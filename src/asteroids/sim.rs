@@ -6,6 +6,7 @@
 //! function of its inputs, so it unit-tests without a window or an audio device.
 
 use crate::config;
+use crate::rng::Rng;
 use std::f32::consts::{PI, TAU};
 
 /// Size tier of a drifting rock.
@@ -117,7 +118,7 @@ pub struct AsteroidsSim {
     pub center: (f32, f32),
     /// Inner radius of the ring wall, in world units.
     pub radius: f32,
-    rng: u64,
+    rng: Rng,
 }
 
 impl AsteroidsSim {
@@ -137,7 +138,7 @@ impl AsteroidsSim {
             turn: 0.0,
             center,
             radius,
-            rng: seed | 1,
+            rng: Rng::from_state(seed | 1),
         };
         sim.spawn_wave();
         sim
@@ -148,22 +149,22 @@ impl AsteroidsSim {
     fn spawn_wave(&mut self) {
         let count = config::ASTEROIDS_WAVE_SIZE.max(1);
         for index in 0..count {
-            let bearing = index as f32 / count as f32 * TAU + self.unit() * 0.6;
-            let distance = self.radius * (0.45 + self.unit() * 0.27);
+            let bearing = index as f32 / count as f32 * TAU + self.rng.unit() * 0.6;
+            let distance = self.radius * (0.45 + self.rng.unit() * 0.27);
             let x = self.center.0 + bearing.cos() * distance;
             let z = self.center.1 + bearing.sin() * distance;
             // Aim at a point scattered around the cycle, so rocks drift through
             // the middle instead of pinballing around the rim.
             let target = (
-                self.center.0 + (self.unit() - 0.5) * self.radius * 0.5,
-                self.center.1 + (self.unit() - 0.5) * self.radius * 0.5,
+                self.center.0 + (self.rng.unit() - 0.5) * self.radius * 0.5,
+                self.center.1 + (self.rng.unit() - 0.5) * self.radius * 0.5,
             );
             let (dx, dz) = normalize(target.0 - x, target.1 - z);
             let speed = config::ASTEROIDS_ROCK_SPEED_MIN
-                + self.unit()
+                + self.rng.unit()
                     * (config::ASTEROIDS_ROCK_SPEED_MAX - config::ASTEROIDS_ROCK_SPEED_MIN);
-            let angle = self.unit() * TAU;
-            let spin = (self.unit() - 0.5) * 1.6;
+            let angle = self.rng.unit() * TAU;
+            let spin = (self.rng.unit() - 0.5) * 1.6;
             self.rocks.push(Rock {
                 x,
                 z,
@@ -174,16 +175,6 @@ impl AsteroidsSim {
                 spin,
             });
         }
-    }
-
-    /// Next pseudo-random number in `0.0..1.0`. A plain LCG keeps the sim
-    /// dependency-free and deterministic across platforms.
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
     }
 
     /// Steering for the next step, clamped to a full turn either way.

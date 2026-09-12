@@ -7,6 +7,7 @@
 //! finish gate at the far end. Running onto a bank or into a rock ends the run.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// A rock sticking out of the river. Touching one ends the run.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -90,7 +91,7 @@ impl SurferSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let length = (lines as f32 * config::SURFER_METRES_PER_LINE)
             .clamp(config::SURFER_MIN_LENGTH, config::SURFER_MAX_LENGTH);
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
         let width = config::SURFER_HALF_WIDTH;
 
         let usable = length - config::SURFER_START_CLEAR - config::SURFER_FINISH_MARGIN;
@@ -101,18 +102,18 @@ impl SurferSim {
             let t = (index as f32 + 0.5) / rock_count as f32;
             // A little jitter around the even spacing, but never so much that
             // two rocks crowd into one stretch of clear water.
-            let jitter = (next_unit(&mut rng) * 2.0 - 1.0) * config::SURFER_ROCK_SPACING * 0.12;
+            let jitter = (rng.unit() * 2.0 - 1.0) * config::SURFER_ROCK_SPACING * 0.12;
             let z = (config::SURFER_START_CLEAR + t * usable + jitter).clamp(
                 config::SURFER_START_CLEAR,
                 length - config::SURFER_FINISH_MARGIN,
             );
-            let radius = config::SURFER_ROCK_RADIUS * (0.85 + next_unit(&mut rng) * 0.35);
+            let radius = config::SURFER_ROCK_RADIUS * (0.85 + rng.unit() * 0.35);
             // Rocks alternate sides and stay far enough off both banks that the
             // other side of the river is always a passable line.
             let max_sway =
                 width - radius - config::SURFER_BOAT_RADIUS - config::SURFER_ROCK_CLEAR_GAP;
             let side = if index % 2 == 0 { 1.0 } else { -1.0 };
-            let sway = side * max_sway * (0.5 + next_unit(&mut rng) * 0.4);
+            let sway = side * max_sway * (0.5 + rng.unit() * 0.4);
             let x = centerline_at(z, seed) + sway;
             rocks.push(Rock { x, z, radius });
         }
@@ -121,7 +122,7 @@ impl SurferSim {
         for index in 0..config::SURFER_GATES {
             let t = (index as f32 + 0.5) / config::SURFER_GATES as f32;
             let z = length * (0.18 + 0.66 * t);
-            let sway = (next_unit(&mut rng) * 2.0 - 1.0) * width * 0.35;
+            let sway = (rng.unit() * 2.0 - 1.0) * width * 0.35;
             gates.push(BoostGate {
                 x: centerline_at(z, seed) + sway,
                 z,
@@ -246,14 +247,6 @@ fn centerline_at(z: f32, seed: u64) -> f32 {
     let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
     let wave = std::f32::consts::TAU / config::SURFER_RIVER_WAVELENGTH;
     config::SURFER_RIVER_AMP * (wave * z + phase).sin()
-}
-
-/// Next value in `0.0..1.0` from a plain LCG, so courses are reproducible.
-fn next_unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

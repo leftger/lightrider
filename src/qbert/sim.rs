@@ -6,6 +6,7 @@
 //! pyramid or into an enemy and a life is spent.
 
 use crate::config;
+use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QbertPhase {
@@ -50,7 +51,7 @@ pub struct QbertSim {
     pub phase: QbertPhase,
     pub invuln: f32,
     enemy_clock: f32,
-    rng: u64,
+    rng: Rng,
     seed: u64,
     lines: usize,
 }
@@ -58,7 +59,7 @@ pub struct QbertSim {
 impl QbertSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let cubes = (0..config::QBERT_ROWS).map(|row| row + 1).sum::<usize>();
-        let rng = seed | 1;
+        let rng = Rng::from_state(seed | 1);
         let enemies = vec![
             Enemy {
                 row: config::QBERT_ROWS - 1,
@@ -143,7 +144,7 @@ impl QbertSim {
             for index in 0..self.enemies.len() {
                 let (row, col) = (self.enemies[index].row, self.enemies[index].index);
                 let options = self.neighbours(row, col);
-                let pick = (self.unit() * options.len() as f32) as usize;
+                let pick = (self.rng.unit() * options.len() as f32) as usize;
                 if let Some(&(row, col)) = options.get(pick.min(options.len().saturating_sub(1))) {
                     self.enemies[index].row = row;
                     self.enemies[index].index = col;
@@ -190,14 +191,6 @@ impl QbertSim {
             }
         }
         options
-    }
-
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
     }
 
     pub fn restart(&mut self) {

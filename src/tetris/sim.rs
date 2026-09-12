@@ -6,6 +6,7 @@
 //! above the rim to lose.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// The seven tetrominoes as four cell offsets each.
 pub const TETROMINOES: [[(i32, i32); 4]; 7] = [
@@ -66,7 +67,7 @@ pub struct TetrisSim {
     pub phase: TetrisPhase,
     pub input: TetrisInput,
     fall_clock: f32,
-    rng: u64,
+    rng: Rng,
     seed: u64,
     file_lines: usize,
 }
@@ -83,7 +84,7 @@ impl TetrisSim {
             phase: TetrisPhase::Falling,
             input: TetrisInput::default(),
             fall_clock: config::TETRIS_FALL_SECONDS,
-            rng: seed | 1,
+            rng: Rng::from_state(seed | 1),
             seed,
             file_lines: lines,
         };
@@ -91,16 +92,8 @@ impl TetrisSim {
         sim
     }
 
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
-    }
-
     fn next_piece(&mut self) -> usize {
-        (self.unit() * TETROMINOES.len() as f32) as usize % TETROMINOES.len()
+        (self.rng.unit() * TETROMINOES.len() as f32) as usize % TETROMINOES.len()
     }
 
     /// Latches a frame's input. `soft` is held; the rest are edges, so they

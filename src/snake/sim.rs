@@ -8,6 +8,7 @@
 
 use crate::config;
 use crate::lightcycle::logic::LightcycleSim;
+use crate::rng::Rng;
 
 /// One power-up waiting on the ring floor.
 #[derive(Debug, Clone, PartialEq)]
@@ -107,11 +108,11 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
         return food;
     }
 
-    let mut rng = seed | 1;
+    let mut rng = Rng::from_state(seed | 1);
     let mut tries = 0;
     while food.len() < target && tries < target * 64 {
         tries += 1;
-        let index = (next_unit(&mut rng) * candidates.len() as f32) as usize % candidates.len();
+        let index = (rng.unit() * candidates.len() as f32) as usize % candidates.len();
         let cell = candidates[index];
         if chebyshev(cell, spawn) < config::SNAKE_MIN_FOOD_DISTANCE {
             continue;
@@ -138,15 +139,6 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
 
 fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
     (a.0 - b.0).abs().max((a.1 - b.1).abs())
-}
-
-/// Next value in `0.0..1.0` from a plain LCG, so the scatter is reproducible
-/// across platforms without a dependency.
-fn next_unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

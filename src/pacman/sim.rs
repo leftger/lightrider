@@ -6,6 +6,7 @@
 //! dot to win, and lose all three lives to a ghost and the run is over.
 
 use crate::config;
+use crate::rng::Rng;
 use std::collections::BTreeSet;
 
 /// One chasing ghost, moving continuously along corridors.
@@ -56,7 +57,7 @@ pub struct PacSim {
     pub invuln: f32,
     /// Held direction: `-1/0/1` east and `-1/0/1` toward +Z.
     pub input: (i32, i32),
-    rng: u64,
+    rng: Rng,
     seed: u64,
     lines: usize,
 }
@@ -77,7 +78,7 @@ impl PacSim {
             phase: PacPhase::Playing,
             invuln: config::PAC_INVULN,
             input: (0, 0),
-            rng: seed | 1,
+            rng: Rng::from_state(seed | 1),
             seed,
             lines,
         };
@@ -269,7 +270,7 @@ impl PacSim {
                 continue;
             }
             let distance = (next.0 - self.cell.0).abs() + (next.1 - self.cell.1).abs();
-            let jitter = if self.unit() > 0.75 { 1 } else { 0 };
+            let jitter = if self.rng.unit() > 0.75 { 1 } else { 0 };
             let key = distance * 2 + jitter;
             if key < best_distance {
                 best_distance = key;
@@ -292,15 +293,6 @@ impl PacSim {
             ghost.z = gz;
             ghost.dir = (0, 0);
         }
-    }
-
-    /// Next pseudo-random number in `0.0..1.0`.
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
     }
 
     /// Restarts from the same seed, as `R` does.

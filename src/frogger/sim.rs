@@ -6,6 +6,7 @@
 //! obstacle spends a life and sends the cycle back to the start.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// One moving obstacle lane. Obstacles wrap around the row.
 #[derive(Debug, Clone, PartialEq)]
@@ -54,14 +55,14 @@ pub struct FroggerSim {
 
 impl FroggerSim {
     pub fn new(seed: u64, lines: usize) -> Self {
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
         let mut lanes = Vec::with_capacity(config::FROGGER_LANES as usize);
         for row in 1..=config::FROGGER_LANES {
-            let speed = 1.6 + unit(&mut rng) * 2.4;
-            let gap = 3.0 + unit(&mut rng) * 2.0;
+            let speed = 1.6 + rng.unit() * 2.4;
+            let gap = 3.0 + rng.unit() * 2.0;
             lanes.push(Lane {
                 row,
-                offset: unit(&mut rng) * config::FROGGER_COLS as f32,
+                offset: rng.unit() * config::FROGGER_COLS as f32,
                 speed: if row % 2 == 0 { -speed } else { speed },
                 gap,
             });
@@ -152,13 +153,6 @@ impl FroggerSim {
     pub fn restart(&mut self) {
         *self = Self::new(self.seed, self.lines);
     }
-}
-
-fn unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

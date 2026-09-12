@@ -6,6 +6,7 @@
 //! every crate unlocks the exit at the far corner; reaching it wins.
 
 use crate::config;
+use crate::rng::Rng;
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,14 +57,14 @@ pub struct BomberSim {
 
 impl BomberSim {
     pub fn new(seed: u64, lines: usize) -> Self {
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
         let mut crates = BTreeSet::new();
         let mut tries = 0;
         while crates.len() < config::BOMBER_CRATES && tries < config::BOMBER_CRATES * 40 {
             tries += 1;
             let cell = (
-                1 + (unit(&mut rng) * (config::BOMBER_COLS - 2) as f32) as i32,
-                1 + (unit(&mut rng) * (config::BOMBER_ROWS - 2) as f32) as i32,
+                1 + (rng.unit() * (config::BOMBER_COLS - 2) as f32) as i32,
+                1 + (rng.unit() * (config::BOMBER_ROWS - 2) as f32) as i32,
             );
             if cell == (1, 1)
                 || cell == (config::BOMBER_COLS - 2, config::BOMBER_ROWS - 2)
@@ -188,13 +189,6 @@ impl BomberSim {
     pub fn restart(&mut self) {
         *self = Self::new(self.seed, self.lines);
     }
-}
-
-fn unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

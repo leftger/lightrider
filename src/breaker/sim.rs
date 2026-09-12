@@ -7,6 +7,7 @@
 //! level, which is how this run is left.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// One brick in the wall. `col`/`row` are grid coordinates, `0` at the top-left.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -87,13 +88,13 @@ impl BreakerSim {
         let (width, height) = (config::BREAKER_WIDTH, config::BREAKER_HEIGHT);
         let cols = config::BREAKER_COLS;
         let rows = config::BREAKER_ROWS;
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
         let mut bricks = Vec::with_capacity((cols * rows) as usize);
         for row in 0..rows {
             for col in 0..cols {
                 // Punch a few gaps so the wall is not a solid slab, but keep the
                 // bottom rows mostly intact.
-                let hole = next_unit(&mut rng) < config::BREAKER_HOLE_CHANCE;
+                let hole = rng.unit() < config::BREAKER_HOLE_CHANCE;
                 bricks.push(Brick {
                     col,
                     row,
@@ -288,14 +289,6 @@ impl BreakerSim {
         let fresh = Self::new(self.seed);
         *self = fresh;
     }
-}
-
-/// Next value in `0.0..1.0` from a plain LCG, so walls are reproducible.
-fn next_unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

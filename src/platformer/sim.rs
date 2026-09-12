@@ -9,6 +9,7 @@
 //! this module has nothing to do with the cell grid the bike games share.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// One flat platform. `y` is its top surface, `x` its left edge.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -305,17 +306,17 @@ fn generate(seed: u64, length: f32) -> Vec<Platform> {
         w: config::PLATFORMER_START_PAD,
         h: thickness,
     }];
-    let mut rng = seed | 1;
+    let mut rng = Rng::from_state(seed | 1);
     let mut cursor = config::PLATFORMER_START_PAD;
     let mut y = 0.0;
 
     while cursor < length {
         let gap = config::PLATFORMER_MIN_GAP
-            + next_unit(&mut rng) * (config::PLATFORMER_MAX_GAP - config::PLATFORMER_MIN_GAP);
-        let step = (next_unit(&mut rng) * 2.0 - 1.0) * config::PLATFORMER_MAX_STEP;
+            + rng.unit() * (config::PLATFORMER_MAX_GAP - config::PLATFORMER_MIN_GAP);
+        let step = (rng.unit() * 2.0 - 1.0) * config::PLATFORMER_MAX_STEP;
         y = (y + step).clamp(0.0, config::PLATFORMER_HEIGHT_MAX);
         let w = config::PLATFORMER_MIN_WIDTH
-            + next_unit(&mut rng) * (config::PLATFORMER_MAX_WIDTH - config::PLATFORMER_MIN_WIDTH);
+            + rng.unit() * (config::PLATFORMER_MAX_WIDTH - config::PLATFORMER_MIN_WIDTH);
         platforms.push(Platform {
             x: cursor + gap,
             y,
@@ -326,7 +327,7 @@ fn generate(seed: u64, length: f32) -> Vec<Platform> {
     }
 
     // The goal pad, on the same level as whatever we ended on.
-    let gap = config::PLATFORMER_MIN_GAP + next_unit(&mut rng) * 1.5;
+    let gap = config::PLATFORMER_MIN_GAP + rng.unit() * 1.5;
     platforms.push(Platform {
         x: cursor + gap,
         y,
@@ -334,14 +335,6 @@ fn generate(seed: u64, length: f32) -> Vec<Platform> {
         h: thickness,
     });
     platforms
-}
-
-/// Next value in `0.0..1.0` from a plain LCG, so levels are reproducible.
-fn next_unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

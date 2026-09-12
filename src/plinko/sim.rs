@@ -6,6 +6,7 @@
 //! target and the board is cleared.
 
 use crate::config;
+use crate::rng::Rng;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pin {
@@ -57,25 +58,24 @@ pub struct PlinkoSim {
     pub score: u32,
     pub target: u32,
     pub phase: PlinkoPhase,
-    rng: u64,
+    rng: Rng,
     seed: u64,
     lines: usize,
 }
 
 impl PlinkoSim {
     pub fn new(seed: u64, lines: usize) -> Self {
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
         let mut pins = Vec::new();
         for row in 0..config::PLINKO_PIN_ROWS {
             let y = config::PLINKO_HEIGHT * 0.75 - row as f32 * 2.4;
             let count = 7 + row % 2;
             for index in 0..count {
-                let x =
-                    (index as f32 - (count - 1) as f32 * 0.5) * 2.0 + (unit(&mut rng) - 0.5) * 0.4;
+                let x = (index as f32 - (count - 1) as f32 * 0.5) * 2.0 + (rng.unit() - 0.5) * 0.4;
                 pins.push(Pin { x, y });
             }
         }
-        let target = config::PLINKO_TARGET + (unit(&mut rng) * 250.0) as u32;
+        let target = config::PLINKO_TARGET + (rng.unit() * 250.0) as u32;
         let _ = lines;
         Self {
             aim: 0.0,
@@ -94,9 +94,9 @@ impl PlinkoSim {
     /// Bucket scores, seeded so each board reads differently.
     pub fn bucket_scores(&self) -> [u32; 8] {
         let mut scores = [0_u32; 8];
-        let mut rng = self.seed.wrapping_mul(31).wrapping_add(7) | 1;
+        let mut rng = Rng::from_state(self.seed.wrapping_mul(31).wrapping_add(7) | 1);
         for slot in &mut scores {
-            *slot = 40 + (unit(&mut rng) * 120.0) as u32;
+            *slot = 40 + (rng.unit() * 120.0) as u32;
         }
         scores
     }
@@ -154,7 +154,7 @@ impl PlinkoSim {
                 if dx * dx + dy * dy <= 0.55 * 0.55 {
                     let push = if dx.abs() > 0.01 {
                         dx.signum() * 5.0
-                    } else if unit(&mut self.rng) > 0.5 {
+                    } else if self.rng.unit() > 0.5 {
                         5.0
                     } else {
                         -5.0
@@ -193,13 +193,6 @@ impl PlinkoSim {
     pub fn restart(&mut self) {
         *self = Self::new(self.seed, self.lines);
     }
-}
-
-fn unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 #[cfg(test)]

@@ -6,6 +6,7 @@
 //! last gem wins. Landing with a gem above the rim loses.
 
 use crate::config;
+use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColumnsPhase {
@@ -56,7 +57,7 @@ pub struct ColumnsSim {
     pub score: u32,
     pub input: ColumnsInput,
     fall_clock: f32,
-    rng: u64,
+    rng: Rng,
     seed: u64,
     lines: usize,
 }
@@ -72,7 +73,7 @@ impl ColumnsSim {
             score: 0,
             input: ColumnsInput::default(),
             fall_clock: config::COLUMNS_FALL_SECONDS,
-            rng: seed | 1,
+            rng: Rng::from_state(seed | 1),
             seed,
             lines,
         };
@@ -86,20 +87,12 @@ impl ColumnsSim {
         sim
     }
 
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
-    }
-
     fn next_piece(&mut self) -> [u8; 3] {
         let colours = config::COLUMNS_GEM_COLORS as u8;
         [
-            (self.unit() * colours as f32) as u8 % colours,
-            (self.unit() * colours as f32) as u8 % colours,
-            (self.unit() * colours as f32) as u8 % colours,
+            (self.rng.unit() * colours as f32) as u8 % colours,
+            (self.rng.unit() * colours as f32) as u8 % colours,
+            (self.rng.unit() * colours as f32) as u8 % colours,
         ]
     }
 
@@ -114,7 +107,7 @@ impl ColumnsSim {
         }
         for col in 0..cols {
             self.board[col + (rows - 1) * cols] = Some(
-                (self.unit() * config::COLUMNS_GEM_COLORS as f32) as u8
+                (self.rng.unit() * config::COLUMNS_GEM_COLORS as f32) as u8
                     % config::COLUMNS_GEM_COLORS as u8,
             );
         }

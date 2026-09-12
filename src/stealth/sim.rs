@@ -12,6 +12,7 @@
 
 use crate::config;
 use crate::lightcycle::logic::Heading;
+use crate::rng::Rng;
 use std::collections::BTreeSet;
 
 /// A back-and-forth lane a guard walks. `horizontal` lanes run along `X`,
@@ -162,7 +163,7 @@ impl StealthSim {
     /// Builds a room from `seed`: cover to hide behind, lanes to slip past.
     pub fn new(seed: u64) -> Self {
         let (half_w, half_h) = (config::STEALTH_WIDTH / 2, config::STEALTH_HEIGHT / 2);
-        let mut rng = seed | 1;
+        let mut rng = Rng::from_state(seed | 1);
 
         let start = (-half_w + 1, -half_h + 1);
         let exit = (half_w - 1, half_h - 1);
@@ -171,9 +172,8 @@ impl StealthSim {
         let mut tries = 0;
         while cover.len() < config::STEALTH_COVER && tries < config::STEALTH_COVER * 40 {
             tries += 1;
-            let x = -half_w + 2 + (next_unit(&mut rng) * (config::STEALTH_WIDTH - 4) as f32) as i32;
-            let z =
-                -half_h + 2 + (next_unit(&mut rng) * (config::STEALTH_HEIGHT - 4) as f32) as i32;
+            let x = -half_w + 2 + (rng.unit() * (config::STEALTH_WIDTH - 4) as f32) as i32;
+            let z = -half_h + 2 + (rng.unit() * (config::STEALTH_HEIGHT - 4) as f32) as i32;
             let cell = (x, z);
             // Keep the doorways and the spawn clear.
             if chebyshev(cell, start) < 3 || chebyshev(cell, exit) < 3 {
@@ -551,14 +551,6 @@ fn angle_delta(a: f32, b: f32) -> f32 {
 
 fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
     (a.0 - b.0).abs().max((a.1 - b.1).abs())
-}
-
-/// Next value in `0.0..1.0` from a plain LCG, so rooms are reproducible.
-fn next_unit(rng: &mut u64) -> f32 {
-    *rng = rng
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    (*rng >> 40) as f32 / (1_u32 << 24) as f32
 }
 
 /// The two directions along a wall: the ones perpendicular to `heading`.

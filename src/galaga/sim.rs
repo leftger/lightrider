@@ -9,6 +9,7 @@
 //! cycle, and it is lost.
 
 use crate::config;
+use crate::rng::Rng;
 
 /// One bug in the formation. The grid slot is its `row`/`col`; the renderer
 /// pools one entity per bug and this sim drives whether it is visible.
@@ -90,7 +91,7 @@ pub struct GalagaSim {
     step_clock: f32,
     step_seconds: f32,
     dive_clock: f32,
-    rng: u64,
+    rng: Rng,
     seed: u64,
     lines: usize,
 }
@@ -118,7 +119,7 @@ impl GalagaSim {
             step_seconds: config::GALAGA_FORMATION_STEP_SECONDS
                 * (0.8 + lines as f32 * 0.0006).clamp(0.8, 1.3),
             dive_clock: config::GALAGA_DIVE_COOLDOWN,
-            rng: seed | 1,
+            rng: Rng::from_state(seed | 1),
             seed,
             lines,
         };
@@ -219,7 +220,8 @@ impl GalagaSim {
             self.dive_clock = config::GALAGA_DIVE_COOLDOWN;
             if let Some(index) = self.pick_diver() {
                 self.bugs[index].diving = true;
-                self.bugs[index].dive_target_x = self.player_x + (self.unit() * 2.0 - 1.0) * 3.0;
+                self.bugs[index].dive_target_x =
+                    self.player_x + (self.rng.unit() * 2.0 - 1.0) * 3.0;
             }
         }
 
@@ -326,17 +328,8 @@ impl GalagaSim {
         if candidates.is_empty() {
             return None;
         }
-        let pick = (self.unit() * candidates.len() as f32) as usize;
+        let pick = (self.rng.unit() * candidates.len() as f32) as usize;
         candidates.get(pick.min(candidates.len() - 1)).copied()
-    }
-
-    /// Next pseudo-random number in `0.0..1.0`.
-    fn unit(&mut self) -> f32 {
-        self.rng = self
-            .rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.rng >> 40) as f32 / (1_u32 << 24) as f32
     }
 
     /// Restarts from the same seed and file length, as `R` does.
