@@ -13,3 +13,5 @@ pub mod combat;
 pub mod language;
 pub mod layout;
 pub mod load;
+
+pub(crate) mod plugin;

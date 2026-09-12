@@ -1,18 +1,64 @@
 //! Disc-wars ring geometry: the shell, gallery, gate and pickups.
+//!
+//! The Bevy side of the arena lives here, beside the Bevy-free [`crate::disc`]
+//! modules.
 
-use super::camera::{cycle_cell_pose, pose_world_position};
-use super::{
-    DiscPickupEntity, DocumentFocusMarker, LightcycleAssets, OpponentDiscEntity, OpponentEntity,
-    PlayerDiscEntity,
-};
 use crate::config;
 use crate::disc::combat::DiscSim;
 use crate::disc::language::SourceLanguage;
 use crate::disc::layout::DiscLayout;
 use crate::lightcycle::logic::{Arena, CrashReason};
-use crate::lightcycle::{ActiveRun, RunEnvironment};
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::plugins::lightcycle::DocumentFocusMarker;
+use crate::plugins::lightcycle::LightcycleAssets;
+use crate::plugins::lightcycle::camera::{cycle_cell_pose, pose_world_position};
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
+
+/// The player's thrown disc.
+#[derive(Component)]
+pub(crate) struct PlayerDiscEntity;
+
+/// The Recognizer opponent's body.
+#[derive(Component)]
+pub(crate) struct OpponentEntity;
+
+/// The opponent's disc.
+#[derive(Component)]
+pub(crate) struct OpponentDiscEntity;
+
+/// One pickup waiting on a ring floor, keyed into `DiscLayout::pickups`.
+#[derive(Component)]
+pub(crate) struct DiscPickupEntity {
+    pub(crate) index: usize,
+    pub(crate) phase: f32,
+}
+
+/// Tracks which alcove the rider is beside, for the ring's folio panel.
+pub(crate) fn update_disc_focus(
+    mut state: ResMut<LightcycleState>,
+    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
+) {
+    let Some(run) = state.run.as_mut() else {
+        return;
+    };
+    let RunEnvironment::Source {
+        layout,
+        focused_block,
+        ..
+    } = &mut run.environment
+    else {
+        return;
+    };
+    *focused_block = layout.focused_block(run.sim.cell);
+    let Some(index) = *focused_block else {
+        return;
+    };
+    let landmark = layout.blocks[index].landmark;
+    if let Ok(mut transform) = marker.single_mut() {
+        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
+    }
+}
 
 /// Index into [`LightcycleAssets::disc_accent_materials`].
 pub(crate) fn disc_language_index(language: SourceLanguage) -> usize {

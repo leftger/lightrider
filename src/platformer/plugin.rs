@@ -4,11 +4,11 @@
 
 use crate::config;
 use crate::disc::language::SourceLanguage;
+use crate::disc::plugin::disc_language_index;
 use crate::platformer::sim::PlatformerSim;
 use crate::plugins::lightcycle::CharacterAnim;
 use crate::plugins::lightcycle::CharacterEntity;
 use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::disc::disc_language_index;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

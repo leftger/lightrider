@@ -1,14 +1,12 @@
 //! Chase-camera rigs, cycle poses, and per-game focus helpers.
 
 use super::space::{corner_arc, heading_angle};
-use super::{
-    CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, DocumentFocusMarker, Only,
-};
+use super::{CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, Only};
 use crate::asteroids::plugin::field_camera_focus;
 use crate::config;
 use crate::disc::language::SourceGame;
 use crate::lightcycle::logic::LightcycleSim;
-use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::lightcycle::{ActiveRun, LightcycleState};
 use crate::plugins::transition::ModeTransition;
 use crate::stealth::plugin::hug_camera_shot;
 use crate::surfer::plugin::surfer_camera_rig;
@@ -65,57 +63,6 @@ pub(crate) fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
             smooth: true,
         }
     })
-}
-
-/// Tracks which alcove the rider is beside, for the ring's folio panel.
-pub(crate) fn update_disc_focus(
-    mut state: ResMut<LightcycleState>,
-    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
-) {
-    let Some(run) = state.run.as_mut() else {
-        return;
-    };
-    let RunEnvironment::Source {
-        layout,
-        focused_block,
-        ..
-    } = &mut run.environment
-    else {
-        return;
-    };
-    *focused_block = layout.focused_block(run.sim.cell);
-    let Some(index) = *focused_block else {
-        return;
-    };
-    let landmark = layout.blocks[index].landmark;
-    if let Ok(mut transform) = marker.single_mut() {
-        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
-    }
-}
-
-pub(crate) fn update_document_focus(
-    mut state: ResMut<LightcycleState>,
-    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
-) {
-    let Some(run) = state.run.as_mut() else {
-        return;
-    };
-    let RunEnvironment::Document {
-        layout,
-        focused_block,
-        ..
-    } = &mut run.environment
-    else {
-        return;
-    };
-    *focused_block = layout.focused_block(run.sim.cell);
-    let Some(index) = *focused_block else {
-        return;
-    };
-    let landmark = layout.blocks[index].landmark;
-    if let Ok(mut transform) = marker.single_mut() {
-        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
-    }
 }
 
 /// Ground-level world position of the pose; the model's wheels sit at its origin.

@@ -1,13 +1,42 @@
 //! Rendering a markdown page arena: rules, walls, arches and glyphs.
+//!
+//! The Bevy side of the arena lives here, beside the Bevy-free
+//! [`crate::document`] modules.
 
-use super::camera::{cycle_cell_pose, pose_world_position};
-use super::{DocumentFocusMarker, LightcycleAssets};
 use crate::config;
 use crate::document::layout::DocumentLayout;
-use crate::lightcycle::ActiveRun;
 use crate::lightcycle::logic::Arena;
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::plugins::lightcycle::DocumentFocusMarker;
+use crate::plugins::lightcycle::LightcycleAssets;
+use crate::plugins::lightcycle::camera::{cycle_cell_pose, pose_world_position};
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
+
+pub(crate) fn update_document_focus(
+    mut state: ResMut<LightcycleState>,
+    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
+) {
+    let Some(run) = state.run.as_mut() else {
+        return;
+    };
+    let RunEnvironment::Document {
+        layout,
+        focused_block,
+        ..
+    } = &mut run.environment
+    else {
+        return;
+    };
+    *focused_block = layout.focused_block(run.sim.cell);
+    let Some(index) = *focused_block else {
+        return;
+    };
+    let landmark = layout.blocks[index].landmark;
+    if let Ok(mut transform) = marker.single_mut() {
+        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
+    }
+}
 
 pub(crate) fn spawn_document_page(
     commands: &mut Commands,

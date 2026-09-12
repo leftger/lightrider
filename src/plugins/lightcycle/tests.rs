@@ -10,7 +10,6 @@ use super::decor::{
     gate_bar_height, gate_pulse, gc_sweep_plane, is_quarantined, stack_frame_glide,
     stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge, wrap_angle,
 };
-use super::document::{document_line_advance, glyph_char_offset, glyph_pixel_offset, glyph_pixels};
 use super::entry::{entry_effect_envelope, entry_halo_pose};
 use super::space::{city_base_trim_mesh, city_cap_mesh, heading_facing, nearest_heading};
 use super::trail::{
@@ -18,6 +17,9 @@ use super::trail::{
 };
 use super::{CITY_TRIM_ACCENT, ChaseCamera, GateScanBar, MarkingQuad};
 use crate::config;
+use crate::document::plugin::{
+    document_line_advance, glyph_char_offset, glyph_pixel_offset, glyph_pixels,
+};
 use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
 };
@@ -566,7 +568,8 @@ fn heading_block(along_x: bool, preview: &str) -> crate::document::layout::Place
 
 #[test]
 fn heading_glyph_meshes_are_non_empty() {
-    let (mesh, used) = super::document::document_glyph_line_mesh(&heading_block(true, "Title"), 24);
+    let (mesh, used) =
+        crate::document::plugin::document_glyph_line_mesh(&heading_block(true, "Title"), 24);
     assert!(used > 0);
     assert!(mesh.count_vertices() > 0);
 }
@@ -576,7 +579,7 @@ fn glyph_budget_caps_characters_per_line_and_overall() {
     let long = "A".repeat(80);
     let heading = heading_block(true, &long);
     let (_, used) =
-        super::document::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
+        crate::document::plugin::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
     assert_eq!(used, config::DOCUMENT_HEADING_GLYPHS);
 
     let paragraph = crate::document::layout::PlacedBlock {
@@ -589,23 +592,25 @@ fn glyph_budget_caps_characters_per_line_and_overall() {
         along_x: true,
     };
     let (_, used) =
-        super::document::document_glyph_line_mesh(&paragraph, config::DOCUMENT_MAX_GLYPHS);
+        crate::document::plugin::document_glyph_line_mesh(&paragraph, config::DOCUMENT_MAX_GLYPHS);
     assert_eq!(used, config::DOCUMENT_PARAGRAPH_GLYPHS);
 
-    let leftover = super::document::document_glyph_line_mesh(&heading, 3).1;
+    let leftover = crate::document::plugin::document_glyph_line_mesh(&heading, 3).1;
     assert_eq!(leftover, 3);
 }
 
 #[test]
 fn heading_glyphs_follow_block_orientation() {
-    let along_x = super::document::document_glyph_line_mesh(&heading_block(true, "HEADING"), 24)
-        .0
-        .compute_aabb()
-        .unwrap();
-    let along_z = super::document::document_glyph_line_mesh(&heading_block(false, "HEADING"), 24)
-        .0
-        .compute_aabb()
-        .unwrap();
+    let along_x =
+        crate::document::plugin::document_glyph_line_mesh(&heading_block(true, "HEADING"), 24)
+            .0
+            .compute_aabb()
+            .unwrap();
+    let along_z =
+        crate::document::plugin::document_glyph_line_mesh(&heading_block(false, "HEADING"), 24)
+            .0
+            .compute_aabb()
+            .unwrap();
     assert!(along_x.half_extents.x > along_x.half_extents.z);
     assert!(along_z.half_extents.z > along_z.half_extents.x);
 }
@@ -672,7 +677,7 @@ fn page_rules_span_the_document_arena() {
         std::path::Path::new("/docs/page.md"),
         "# A\n\nB\n",
     );
-    let aabb = super::document::document_rule_mesh(&arena)
+    let aabb = crate::document::plugin::document_rule_mesh(&arena)
         .unwrap()
         .compute_aabb()
         .unwrap();

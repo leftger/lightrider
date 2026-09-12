@@ -1,7 +1,6 @@
 //! The fixed-step simulation: one step per arena and per mini-game.
 
 use super::decor::is_ring_gate;
-use super::disc::disc_crash_label;
 use super::entry::crash_source;
 use super::run::spawn_sim;
 use super::space::{
@@ -12,6 +11,7 @@ use crate::config;
 use crate::disc::combat::{DiscPhase, DiscSim, PlayerSnapshot};
 use crate::disc::language::SourceGame;
 use crate::disc::load::SourceRequested;
+use crate::disc::plugin::disc_crash_label;
 use crate::document::load::DocumentRequested;
 use crate::lightcycle::logic::{
     CellContent, CrashReason, Heading, LightcycleSim, RunPhase, StepOutcome, classify_next_content,

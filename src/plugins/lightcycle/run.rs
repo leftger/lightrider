@@ -8,8 +8,6 @@ use super::city::{
     spawn_road_markings, spawn_towers, tower_position,
 };
 use super::decor::{decorate_directory_run, mix_linear};
-use super::disc::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_shell};
-use super::document::{spawn_document_focus_marker, spawn_document_page};
 use super::space::{
     heading_facing, level_metres, ring_center_world, ring_food_cells, ring_radius_world,
 };
@@ -29,8 +27,10 @@ use crate::config;
 use crate::disc::combat::DiscSim;
 use crate::disc::language::{SourceGame, SourceLanguage};
 use crate::disc::layout::{build_capped_disc_arena, build_disc_arena, build_flat_arena};
+use crate::disc::plugin::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_shell};
 use crate::document::layout::build_document_arena_from_parse;
 use crate::document::parse::{ParseLimits, parse_markdown_bytes};
+use crate::document::plugin::{spawn_document_focus_marker, spawn_document_page};
 use crate::filesystem::node::FileNode;
 use crate::frogger::plugin::spawn_frogger_highway;
 use crate::frogger::sim::FroggerSim;

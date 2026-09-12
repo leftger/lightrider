@@ -13,8 +13,6 @@ pub(crate) mod camera;
 pub(crate) mod character;
 pub(crate) mod city;
 pub(crate) mod decor;
-pub(crate) mod disc;
-pub(crate) mod document;
 pub(crate) mod entities;
 pub(crate) mod entry;
 pub(crate) mod input;
@@ -25,9 +23,7 @@ pub(crate) mod step;
 pub(crate) mod trail;
 
 use self::assets::setup_lightcycle_assets;
-use self::camera::{
-    arc_cell_pose, chase_base_pitch, update_chase_camera, update_disc_focus, update_document_focus,
-};
+use self::camera::{arc_cell_pose, chase_base_pitch, update_chase_camera};
 use self::character::{
     drive_character_walk, fit_guard_cones, prepare_character_walk, tag_character_model,
 };
@@ -35,7 +31,6 @@ use self::decor::{
     animate_city_beacons, animate_parent_gate, animate_stack_frames, update_flood, update_gc_sweep,
     wrap_angle,
 };
-use self::disc::animate_disc_pickups;
 use self::entities::{
     sync_character_entities, sync_directory_scene_visibility, sync_disc_entities,
 };
@@ -59,6 +54,9 @@ use crate::asteroids::plugin::sync_asteroid_entities;
 use crate::bomberman::plugin::sync_bomberman_entities;
 use crate::breaker::plugin::sync_breaker_entities;
 use crate::columns::plugin::sync_columns_entities;
+use crate::disc::plugin::animate_disc_pickups;
+use crate::disc::plugin::update_disc_focus;
+use crate::document::plugin::update_document_focus;
 use crate::frogger::plugin::sync_frogger_entities;
 use crate::galaga::plugin::sync_galaga_entities;
 use crate::pacman::plugin::sync_pacman_entities;
@@ -319,25 +317,6 @@ pub(crate) struct CityBeacon {
 
 #[derive(Component)]
 pub(crate) struct DocumentFocusMarker;
-
-/// The player's thrown disc.
-#[derive(Component)]
-pub(crate) struct PlayerDiscEntity;
-
-/// The Recognizer opponent's body.
-#[derive(Component)]
-pub(crate) struct OpponentEntity;
-
-/// The opponent's disc.
-#[derive(Component)]
-pub(crate) struct OpponentDiscEntity;
-
-/// One pickup waiting on a ring floor, keyed into `DiscLayout::pickups`.
-#[derive(Component)]
-pub(crate) struct DiscPickupEntity {
-    index: usize,
-    phase: f32,
-}
 
 /// The Tron runner, on a platformer level or a stealth run.
 #[derive(Component)]
