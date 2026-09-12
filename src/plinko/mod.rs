@@ -4,3 +4,5 @@
 //! pins and buckets, the pooled balls and the side-on camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

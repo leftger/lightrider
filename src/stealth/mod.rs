@@ -4,3 +4,5 @@
 //! meshes, the vision cones on the floor and the overhead camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

@@ -4,3 +4,5 @@
 //! cube pyramid, the pooled enemy cubes and the tilted camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

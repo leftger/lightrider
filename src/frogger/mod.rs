@@ -4,3 +4,5 @@
 //! obstacle cubes and the overhead camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

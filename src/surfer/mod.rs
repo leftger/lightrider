@@ -4,3 +4,5 @@
 //! the water ribbon, rocks, gates and the chase camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

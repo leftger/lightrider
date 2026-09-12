@@ -5,3 +5,5 @@
 //! share — the runner lives in metres on the `X`/`Y` plane.
 
 pub mod sim;
+
+pub(crate) mod plugin;

@@ -10,12 +10,6 @@ use super::city::{
 use super::decor::{decorate_directory_run, mix_linear};
 use super::disc::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_shell};
 use super::document::{spawn_document_focus_marker, spawn_document_page};
-use super::fields::{
-    spawn_asteroid_field, spawn_bomber_room, spawn_breaker_court, spawn_frogger_highway,
-    spawn_galaga_field, spawn_gem_well, spawn_pac_maze, spawn_platformer_level, spawn_plinko_board,
-    spawn_qbert_pyramid, spawn_snake_field, spawn_stealth_room, spawn_surfer_course,
-    spawn_tetris_board,
-};
 use super::space::{
     heading_facing, level_metres, ring_center_world, ring_food_cells, ring_radius_world,
 };
@@ -23,9 +17,13 @@ use super::trail::spawn_trail_ribbon;
 use super::{
     ChaseCamera, CycleEntity, LightcycleAssets, SceneEntities, despawn_lightcycle_entities,
 };
+use crate::asteroids::plugin::spawn_asteroid_field;
 use crate::asteroids::sim::AsteroidsSim;
+use crate::bomberman::plugin::spawn_bomber_room;
 use crate::bomberman::sim::BomberSim;
+use crate::breaker::plugin::spawn_breaker_court;
 use crate::breaker::sim::BreakerSim;
+use crate::columns::plugin::spawn_gem_well;
 use crate::columns::sim::ColumnsSim;
 use crate::config;
 use crate::disc::combat::DiscSim;
@@ -34,22 +32,32 @@ use crate::disc::layout::{build_capped_disc_arena, build_disc_arena, build_flat_
 use crate::document::layout::build_document_arena_from_parse;
 use crate::document::parse::{ParseLimits, parse_markdown_bytes};
 use crate::filesystem::node::FileNode;
+use crate::frogger::plugin::spawn_frogger_highway;
 use crate::frogger::sim::FroggerSim;
+use crate::galaga::plugin::spawn_galaga_field;
 use crate::galaga::sim::GalagaSim;
 use crate::lightcycle::logic::{Arena, GatePlacement, Heading, LightcycleSim};
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
+use crate::pacman::plugin::spawn_pac_maze;
 use crate::pacman::sim::PacSim;
+use crate::platformer::plugin::spawn_platformer_level;
 use crate::platformer::sim::PlatformerSim;
+use crate::plinko::plugin::spawn_plinko_board;
 use crate::plinko::sim::PlinkoSim;
 use crate::plugins::transition::{ModeTransition, gods_eye_pose};
+use crate::qbert::plugin::spawn_qbert_pyramid;
 use crate::qbert::sim::QbertSim;
+use crate::snake::plugin::spawn_snake_field;
 use crate::snake::sim::SnakeSim;
 use crate::state::{
     CacheState, FloodState, HistoryState, InteractionMode, LightcycleSceneRoot, NavigatorResource,
     OrbitCameraResource,
 };
+use crate::stealth::plugin::spawn_stealth_room;
 use crate::stealth::sim::StealthSim;
+use crate::surfer::plugin::spawn_surfer_course;
 use crate::surfer::sim::SurferSim;
+use crate::tetris::plugin::spawn_tetris_board;
 use crate::tetris::sim::TetrisSim;
 use bevy::prelude::*;
 use std::collections::HashMap;

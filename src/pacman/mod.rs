@@ -4,3 +4,5 @@
 //! dot and ghost meshes, the walls and the overhead camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

@@ -4,3 +4,5 @@
 //! gem cubes and the side-on camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;

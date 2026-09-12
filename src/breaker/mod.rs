@@ -4,3 +4,5 @@
 //! and drives the bike along the bottom of the court as the rebounding surface.
 
 pub mod sim;
+
+pub(crate) mod plugin;

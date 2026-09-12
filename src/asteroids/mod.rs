@@ -4,3 +4,5 @@
 //! camera and the sound.
 
 pub mod sim;
+
+pub(crate) mod plugin;

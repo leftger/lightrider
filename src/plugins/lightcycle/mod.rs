@@ -8,22 +8,21 @@ use crate::state::{
     StackMotion, TrailSceneRoot,
 };
 use bevy::prelude::*;
-mod assets;
-mod camera;
-mod character;
-mod city;
-mod decor;
-mod disc;
-mod document;
-mod entities;
-mod entry;
-mod fields;
-mod input;
-mod load;
-mod run;
-mod space;
-mod step;
-mod trail;
+pub(crate) mod assets;
+pub(crate) mod camera;
+pub(crate) mod character;
+pub(crate) mod city;
+pub(crate) mod decor;
+pub(crate) mod disc;
+pub(crate) mod document;
+pub(crate) mod entities;
+pub(crate) mod entry;
+pub(crate) mod input;
+pub(crate) mod load;
+pub(crate) mod run;
+pub(crate) mod space;
+pub(crate) mod step;
+pub(crate) mod trail;
 
 use self::assets::setup_lightcycle_assets;
 use self::camera::{
@@ -38,11 +37,7 @@ use self::decor::{
 };
 use self::disc::animate_disc_pickups;
 use self::entities::{
-    sync_asteroid_entities, sync_bomberman_entities, sync_breaker_entities,
-    sync_character_entities, sync_columns_entities, sync_directory_scene_visibility,
-    sync_disc_entities, sync_frogger_entities, sync_galaga_entities, sync_pacman_entities,
-    sync_plinko_entities, sync_qbert_entities, sync_snake_entities, sync_stealth_entities,
-    sync_tetris_entities,
+    sync_character_entities, sync_directory_scene_visibility, sync_disc_entities,
 };
 use self::entry::{
     animate_entry_effect, cleanup_orphaned_entry_effect, spawn_crash_effect, spawn_entry_effect,
@@ -60,6 +55,18 @@ use self::run::{
 };
 use self::step::step_lightcycle;
 use self::trail::update_trail_mesh;
+use crate::asteroids::plugin::sync_asteroid_entities;
+use crate::bomberman::plugin::sync_bomberman_entities;
+use crate::breaker::plugin::sync_breaker_entities;
+use crate::columns::plugin::sync_columns_entities;
+use crate::frogger::plugin::sync_frogger_entities;
+use crate::galaga::plugin::sync_galaga_entities;
+use crate::pacman::plugin::sync_pacman_entities;
+use crate::plinko::plugin::sync_plinko_entities;
+use crate::qbert::plugin::sync_qbert_entities;
+use crate::snake::plugin::sync_snake_entities;
+use crate::stealth::plugin::sync_stealth_entities;
+use crate::tetris::plugin::sync_tetris_entities;
 
 pub struct LightcyclePlugin;
 
@@ -163,92 +170,92 @@ impl Plugin for LightcyclePlugin {
 
 #[derive(Resource)]
 pub(crate) struct LightcycleAssets {
-    unit_cube: Handle<Mesh>,
-    entry_beam_mesh: Handle<Mesh>,
-    entry_halo_mesh: Handle<Mesh>,
-    cycle_scene: Handle<WorldAsset>,
-    trail_material: Handle<StandardMaterial>,
+    pub(crate) unit_cube: Handle<Mesh>,
+    pub(crate) entry_beam_mesh: Handle<Mesh>,
+    pub(crate) entry_halo_mesh: Handle<Mesh>,
+    pub(crate) cycle_scene: Handle<WorldAsset>,
+    pub(crate) trail_material: Handle<StandardMaterial>,
     /// The translucent wall of the memory flood, and its lit crest.
-    flood_material: Handle<StandardMaterial>,
-    flood_crest_material: Handle<StandardMaterial>,
+    pub(crate) flood_material: Handle<StandardMaterial>,
+    pub(crate) flood_crest_material: Handle<StandardMaterial>,
     /// The collector's sweep: the visible cause of the GC stall.
-    gc_sweep_material: Handle<StandardMaterial>,
-    wall_material: Handle<StandardMaterial>,
-    city_floor_material: Handle<StandardMaterial>,
-    city_foundation_material: Handle<StandardMaterial>,
-    city_glass_material: Handle<StandardMaterial>,
-    city_accent_materials: [[Handle<StandardMaterial>; 2]; 4],
-    portal_material: Handle<StandardMaterial>,
-    portal_bar_material: Handle<StandardMaterial>,
-    dir_tower_material: Handle<StandardMaterial>,
-    file_tower_material: Handle<StandardMaterial>,
-    markdown_tower_material: Handle<StandardMaterial>,
-    source_tower_material: Handle<StandardMaterial>,
-    disc_floor_material: Handle<StandardMaterial>,
-    disc_ring_material: Handle<StandardMaterial>,
-    disc_plinth_material: Handle<StandardMaterial>,
-    disc_hazard_material: Handle<StandardMaterial>,
-    disc_opponent_material: Handle<StandardMaterial>,
-    disc_player_disc_material: Handle<StandardMaterial>,
-    disc_pickup_material: Handle<StandardMaterial>,
-    disc_safe_pad_material: Handle<StandardMaterial>,
+    pub(crate) gc_sweep_material: Handle<StandardMaterial>,
+    pub(crate) wall_material: Handle<StandardMaterial>,
+    pub(crate) city_floor_material: Handle<StandardMaterial>,
+    pub(crate) city_foundation_material: Handle<StandardMaterial>,
+    pub(crate) city_glass_material: Handle<StandardMaterial>,
+    pub(crate) city_accent_materials: [[Handle<StandardMaterial>; 2]; 4],
+    pub(crate) portal_material: Handle<StandardMaterial>,
+    pub(crate) portal_bar_material: Handle<StandardMaterial>,
+    pub(crate) dir_tower_material: Handle<StandardMaterial>,
+    pub(crate) file_tower_material: Handle<StandardMaterial>,
+    pub(crate) markdown_tower_material: Handle<StandardMaterial>,
+    pub(crate) source_tower_material: Handle<StandardMaterial>,
+    pub(crate) disc_floor_material: Handle<StandardMaterial>,
+    pub(crate) disc_ring_material: Handle<StandardMaterial>,
+    pub(crate) disc_plinth_material: Handle<StandardMaterial>,
+    pub(crate) disc_hazard_material: Handle<StandardMaterial>,
+    pub(crate) disc_opponent_material: Handle<StandardMaterial>,
+    pub(crate) disc_player_disc_material: Handle<StandardMaterial>,
+    pub(crate) disc_pickup_material: Handle<StandardMaterial>,
+    pub(crate) disc_safe_pad_material: Handle<StandardMaterial>,
     /// One accent per [`SourceLanguage`], indexed by [`disc_language_index`].
-    disc_accent_materials: [Handle<StandardMaterial>; SourceLanguage::COUNT],
+    pub(crate) disc_accent_materials: [Handle<StandardMaterial>; SourceLanguage::COUNT],
     /// Flat cylinder thrown and returned during a fight.
-    disc_mesh: Handle<Mesh>,
+    pub(crate) disc_mesh: Handle<Mesh>,
     /// Taller cylinder body for the Recognizer opponent.
-    recognizer_mesh: Handle<Mesh>,
+    pub(crate) recognizer_mesh: Handle<Mesh>,
     /// Blocky rock body and beam tracer for the asteroid field.
-    rock_material: Handle<StandardMaterial>,
-    beam_material: Handle<StandardMaterial>,
+    pub(crate) rock_material: Handle<StandardMaterial>,
+    pub(crate) beam_material: Handle<StandardMaterial>,
     /// Power-up orb and sealed-exit bar for a snake ring.
-    snake_food_material: Handle<StandardMaterial>,
-    snake_lock_material: Handle<StandardMaterial>,
+    pub(crate) snake_food_material: Handle<StandardMaterial>,
+    pub(crate) snake_lock_material: Handle<StandardMaterial>,
     /// The Tron runner, and the slabs and door of a platformer level.
-    tron_scene: Handle<WorldAsset>,
+    pub(crate) tron_scene: Handle<WorldAsset>,
     /// The same file as a `Gltf`, for the walk clip the scene cannot expose.
-    tron_gltf: Handle<Gltf>,
-    platform_material: Handle<StandardMaterial>,
-    exit_material: Handle<StandardMaterial>,
+    pub(crate) tron_gltf: Handle<Gltf>,
+    pub(crate) platform_material: Handle<StandardMaterial>,
+    pub(crate) exit_material: Handle<StandardMaterial>,
     /// Bricks, ball and court walls for the breaker.
-    brick_material: Handle<StandardMaterial>,
-    ball_material: Handle<StandardMaterial>,
-    court_material: Handle<StandardMaterial>,
+    pub(crate) brick_material: Handle<StandardMaterial>,
+    pub(crate) ball_material: Handle<StandardMaterial>,
+    pub(crate) court_material: Handle<StandardMaterial>,
     /// Floor, cover, guards and their vision cones for the stealth run.
-    stealth_floor_material: Handle<StandardMaterial>,
-    stealth_wall_material: Handle<StandardMaterial>,
-    stealth_cone_material: Handle<StandardMaterial>,
-    stealth_exit_material: Handle<StandardMaterial>,
+    pub(crate) stealth_floor_material: Handle<StandardMaterial>,
+    pub(crate) stealth_wall_material: Handle<StandardMaterial>,
+    pub(crate) stealth_cone_material: Handle<StandardMaterial>,
+    pub(crate) stealth_exit_material: Handle<StandardMaterial>,
     /// Unit-length cone with the stealth half-angle, scaled by its range.
-    vision_cone: Handle<Mesh>,
+    pub(crate) vision_cone: Handle<Mesh>,
     /// Water ribbon, rocks, boost gates and the finish gate for the surfer.
-    surfer_water_material: Handle<StandardMaterial>,
-    surfer_rock_material: Handle<StandardMaterial>,
-    surfer_gate_material: Handle<StandardMaterial>,
-    surfer_finish_material: Handle<StandardMaterial>,
+    pub(crate) surfer_water_material: Handle<StandardMaterial>,
+    pub(crate) surfer_rock_material: Handle<StandardMaterial>,
+    pub(crate) surfer_gate_material: Handle<StandardMaterial>,
+    pub(crate) surfer_finish_material: Handle<StandardMaterial>,
     /// Bug bodies and beam bolts for the Galaga field.
-    galaga_bug_material: Handle<StandardMaterial>,
-    galaga_beam_material: Handle<StandardMaterial>,
+    pub(crate) galaga_bug_material: Handle<StandardMaterial>,
+    pub(crate) galaga_beam_material: Handle<StandardMaterial>,
     /// Arcade block: shared materials for the seven fixed-screen games.
-    gem_materials: [Handle<StandardMaterial>; 4],
-    tetris_materials: [Handle<StandardMaterial>; 7],
-    qbert_cube_dim: Handle<StandardMaterial>,
-    qbert_cube_lit: Handle<StandardMaterial>,
-    qbert_enemy_material: Handle<StandardMaterial>,
-    plinko_pin_material: Handle<StandardMaterial>,
-    plinko_ball_material: Handle<StandardMaterial>,
-    bomber_crate_material: Handle<StandardMaterial>,
-    bomber_bomb_material: Handle<StandardMaterial>,
-    document_floor_material: Handle<StandardMaterial>,
-    document_rule_material: Handle<StandardMaterial>,
-    document_margin_material: Handle<StandardMaterial>,
-    document_ink_material: Handle<StandardMaterial>,
-    document_heading_material: Handle<StandardMaterial>,
-    document_folio_material: Handle<StandardMaterial>,
-    document_focus_material: Handle<StandardMaterial>,
-    crash_material: Handle<StandardMaterial>,
-    entry_beam_material: Handle<StandardMaterial>,
-    entry_halo_material: Handle<StandardMaterial>,
+    pub(crate) gem_materials: [Handle<StandardMaterial>; 4],
+    pub(crate) tetris_materials: [Handle<StandardMaterial>; 7],
+    pub(crate) qbert_cube_dim: Handle<StandardMaterial>,
+    pub(crate) qbert_cube_lit: Handle<StandardMaterial>,
+    pub(crate) qbert_enemy_material: Handle<StandardMaterial>,
+    pub(crate) plinko_pin_material: Handle<StandardMaterial>,
+    pub(crate) plinko_ball_material: Handle<StandardMaterial>,
+    pub(crate) bomber_crate_material: Handle<StandardMaterial>,
+    pub(crate) bomber_bomb_material: Handle<StandardMaterial>,
+    pub(crate) document_floor_material: Handle<StandardMaterial>,
+    pub(crate) document_rule_material: Handle<StandardMaterial>,
+    pub(crate) document_margin_material: Handle<StandardMaterial>,
+    pub(crate) document_ink_material: Handle<StandardMaterial>,
+    pub(crate) document_heading_material: Handle<StandardMaterial>,
+    pub(crate) document_folio_material: Handle<StandardMaterial>,
+    pub(crate) document_focus_material: Handle<StandardMaterial>,
+    pub(crate) crash_material: Handle<StandardMaterial>,
+    pub(crate) entry_beam_material: Handle<StandardMaterial>,
+    pub(crate) entry_halo_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
@@ -332,101 +339,6 @@ pub(crate) struct DiscPickupEntity {
     phase: f32,
 }
 
-/// One pooled rock in the asteroid field, keyed into `AsteroidsSim::rocks`.
-#[derive(Component)]
-pub(crate) struct RockEntity {
-    index: usize,
-}
-
-/// One pooled beam in the asteroid field, keyed into `AsteroidsSim::beams`.
-#[derive(Component)]
-pub(crate) struct BeamEntity {
-    index: usize,
-}
-
-/// One pooled bug in the Galaga field, keyed into `GalagaSim::bugs`.
-#[derive(Component)]
-pub(crate) struct BugEntity {
-    index: usize,
-}
-
-/// One pooled beam in the Galaga field, keyed into `GalagaSim::beams`.
-#[derive(Component)]
-pub(crate) struct GalagaBeamEntity {
-    index: usize,
-}
-
-/// One pooled dot in the Pac-Man maze, keyed by its cell.
-#[derive(Component)]
-pub(crate) struct DotEntity {
-    cell: (i32, i32),
-}
-
-/// One pooled ghost in the Pac-Man maze, keyed into `PacSim::ghosts`.
-#[derive(Component)]
-pub(crate) struct GhostEntity {
-    index: usize,
-}
-
-/// One pooled cell of the Columns well, keyed by its row-major index.
-#[derive(Component)]
-pub(crate) struct GemEntity {
-    index: usize,
-}
-
-/// One pooled cell of the Tetris board, keyed by its row-major index.
-#[derive(Component)]
-pub(crate) struct BlockEntity {
-    index: usize,
-}
-
-/// One pooled obstacle cube on the Frogger highway.
-#[derive(Component)]
-pub(crate) struct FrogObstacleEntity {
-    index: usize,
-}
-
-/// One cube of the Q*bert pyramid, keyed by its row/index pair.
-#[derive(Component)]
-pub(crate) struct QbertCubeEntity {
-    row: usize,
-    index: usize,
-}
-
-/// One pooled enemy on the Q*bert pyramid, keyed into `QbertSim::enemies`.
-#[derive(Component)]
-pub(crate) struct QbertEnemyEntity {
-    index: usize,
-}
-
-/// One pooled crate in the Bomberman room, keyed by its cell.
-#[derive(Component)]
-pub(crate) struct BomberCrateEntity {
-    cell: (i32, i32),
-}
-
-/// One pooled bomb in the Bomberman room, keyed into `BomberSim::bombs`.
-#[derive(Component)]
-pub(crate) struct BomberBombEntity {
-    index: usize,
-}
-
-/// One pooled ball on the Plinko board, keyed into `PlinkoSim::balls`.
-#[derive(Component)]
-pub(crate) struct PlinkoBallEntity {
-    index: usize,
-}
-
-/// One power-up on a snake ring, keyed into `SnakeSim::food`.
-#[derive(Component)]
-pub(crate) struct SnakeFoodEntity {
-    index: usize,
-}
-
-/// The bar sealing a snake ring's exit until enough power-ups are collected.
-#[derive(Component)]
-pub(crate) struct SnakeGateLock;
-
 /// The Tron runner, on a platformer level or a stealth run.
 #[derive(Component)]
 pub(crate) struct CharacterEntity;
@@ -442,7 +354,7 @@ pub(crate) struct CharacterAnim {
 }
 
 impl CharacterAnim {
-    fn at(base: Vec3) -> Self {
+    pub(crate) fn at(base: Vec3) -> Self {
         Self { base }
     }
 }
@@ -462,32 +374,6 @@ pub(crate) struct CharacterWalk(AnimationNodeIndex);
 #[derive(Component)]
 pub(crate) struct CharacterModel;
 
-/// The breaker's ball.
-#[derive(Component)]
-pub(crate) struct BallEntity;
-
-/// One brick of a breaker wall, keyed into `BreakerSim::bricks`.
-#[derive(Component)]
-pub(crate) struct BrickEntity {
-    index: usize,
-}
-
-/// One patrol's body, keyed into `StealthSim::guards`.
-#[derive(Component)]
-pub(crate) struct GuardEntity {
-    index: usize,
-}
-
-/// One patrol's field-of-vision cone, keyed into `StealthSim::guards`.
-#[derive(Component)]
-pub(crate) struct GuardConeEntity {
-    index: usize,
-    /// This guard's own cone, because its shape is cut to what the guard can
-    /// actually see. It starts as the plain fan and is replaced once the sim's
-    /// rays are available, which is on the first frame.
-    mesh: Option<Handle<Mesh>>,
-}
-
 // The query types the sync systems are written in. Every minigame keeps a pool of
 // entities that are spawned once and then shown, hidden and moved to match its
 // sim, and writing that query out per system made the signatures unreadable: the
@@ -498,11 +384,11 @@ pub(crate) struct GuardConeEntity {
 
 /// A pool of sim-driven entities: the marker that keys it, plus the transform and
 /// visibility the sim's own copy of the state drives.
-type Pooled<'w, 's, M, F = ()> =
+pub(crate) type Pooled<'w, 's, M, F = ()> =
     Query<'w, 's, (&'static M, &'static mut Transform, &'static mut Visibility), F>;
 
 /// A pool whose entries also wear a material the sim refreshes.
-type PooledTinted<'w, 's, M, F = ()> = Query<
+pub(crate) type PooledTinted<'w, 's, M, F = ()> = Query<
     'w,
     's,
     (
@@ -515,10 +401,11 @@ type PooledTinted<'w, 's, M, F = ()> = Query<
 >;
 
 /// A pool the sim only moves.
-type PooledPosed<'w, 's, M, F = ()> = Query<'w, 's, (&'static M, &'static mut Transform), F>;
+pub(crate) type PooledPosed<'w, 's, M, F = ()> =
+    Query<'w, 's, (&'static M, &'static mut Transform), F>;
 
 /// A pool the sim moves and re-tints.
-type PooledPosedTinted<'w, 's, M, F = ()> = Query<
+pub(crate) type PooledPosedTinted<'w, 's, M, F = ()> = Query<
     'w,
     's,
     (
@@ -531,27 +418,28 @@ type PooledPosedTinted<'w, 's, M, F = ()> = Query<
 
 /// A pool the sim only shows and hides, because its fate is decided by the sim
 /// rather than by where it is.
-type PooledShown<'w, 's, M, F = ()> = Query<'w, 's, (&'static M, &'static mut Visibility), F>;
+pub(crate) type PooledShown<'w, 's, M, F = ()> =
+    Query<'w, 's, (&'static M, &'static mut Visibility), F>;
 
 /// The marker an entity carries, and the lookalikes it must not be confused with.
 /// These exclusions are what let Bevy prove two queries cannot collide.
-type Only<A, B, C> = (With<A>, Without<B>, Without<C>);
+pub(crate) type Only<A, B, C> = (With<A>, Without<B>, Without<C>);
 
 /// One occupant of an arena it shares with others, told apart by its marker.
-type Fighter<'w, 's, M, Other, ItsDisc> =
+pub(crate) type Fighter<'w, 's, M, Other, ItsDisc> =
     Query<'w, 's, (&'static mut Transform, &'static mut Visibility), Only<M, Other, ItsDisc>>;
 
 /// Keeps an entity clear of the others that share its arena.
-type FreeOf<A, B, C> = (Without<A>, Without<B>, Without<C>);
+pub(crate) type FreeOf<A, B, C> = (Without<A>, Without<B>, Without<C>);
 
 /// Keeps two pools that share an arena from matching each other's entities.
-type Apart<A, B = CycleEntity> = (Without<A>, Without<B>);
+pub(crate) type Apart<A, B = CycleEntity> = (Without<A>, Without<B>);
 
 /// The lightcycle's own entities, which no minigame pool may claim.
-type OutOfCycle = Without<CycleEntity>;
+pub(crate) type OutOfCycle = Without<CycleEntity>;
 
 /// Everything a run spawns, so a room change can clear the lot in one query.
-type SceneEntities<'w, 's> =
+pub(crate) type SceneEntities<'w, 's> =
     Query<'w, 's, Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>;
 
 /// Direction the chase camera is currently following.

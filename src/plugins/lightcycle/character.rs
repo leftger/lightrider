@@ -1,8 +1,9 @@
 //! The on-foot runner: walk playback and guard vision cones.
 
-use super::{CharacterEntity, CharacterModel, CharacterWalk, GuardConeEntity, LightcycleAssets};
+use super::{CharacterEntity, CharacterModel, CharacterWalk, LightcycleAssets};
 use crate::config;
 use crate::lightcycle::LightcycleState;
+use crate::stealth::plugin::GuardConeEntity;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;

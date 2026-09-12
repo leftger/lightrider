@@ -4,3 +4,5 @@
 //! the pooled bug and beam meshes and the overhead camera.
 
 pub mod sim;
+
+pub(crate) mod plugin;
