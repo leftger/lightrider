@@ -1,7 +1,10 @@
+use self::character::sync_character_entities;
 use crate::disc::load::{SourceLoadFailed, SourceLoaded, SourceRequested, WarpRequested};
+use crate::disc::plugin::sync_disc_entities;
 use crate::document::load::{DocumentLoadFailed, DocumentLoaded, DocumentRequested};
 use crate::lightcycle::LightcycleState;
 use crate::lightcycle::scene::SceneEntities;
+use crate::state::DirectorySceneRoot;
 use crate::state::{
     CacheState, FloodState, HistoryState, InteractionMode, PauseState, StackMotion,
 };
@@ -11,7 +14,6 @@ pub(crate) mod camera;
 pub(crate) mod character;
 pub(crate) mod city;
 pub(crate) mod decor;
-pub(crate) mod entities;
 pub(crate) mod entry;
 pub(crate) mod input;
 pub(crate) mod load;
@@ -27,9 +29,6 @@ use self::character::{
 };
 use self::decor::{
     animate_city_beacons, animate_parent_gate, animate_stack_frames, update_flood, update_gc_sweep,
-};
-use self::entities::{
-    sync_character_entities, sync_directory_scene_visibility, sync_disc_entities,
 };
 use self::entry::{
     animate_entry_effect, cleanup_orphaned_entry_effect, spawn_crash_effect, spawn_entry_effect,
@@ -183,3 +182,21 @@ fn despawn_lightcycle_entities(commands: &mut Commands, old_lightcycle_entities:
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn sync_directory_scene_visibility(
+    mode: Res<InteractionMode>,
+    mut directory_scene: Query<&mut Visibility, With<DirectorySceneRoot>>,
+) {
+    let wanted = if *mode == InteractionMode::Explorer {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
+    // Writing unconditionally marks every entity in the scene changed each
+    // frame, which makes Bevy redo visibility propagation for all of them.
+    for mut visibility in &mut directory_scene {
+        if *visibility != wanted {
+            *visibility = wanted;
+        }
+    }
+}

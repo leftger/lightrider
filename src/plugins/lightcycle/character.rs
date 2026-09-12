@@ -1,10 +1,13 @@
 //! The on-foot runner: walk playback and guard vision cones.
 
+use super::camera::character_pose;
 use crate::config;
 use crate::lightcycle::LightcycleState;
+use crate::lightcycle::scene::CharacterAnim;
 use crate::lightcycle::scene::CharacterEntity;
 use crate::lightcycle::scene::CharacterModel;
 use crate::lightcycle::scene::CharacterWalk;
+use crate::lightcycle::scene::CycleEntity;
 use crate::lightcycle::scene::LightcycleAssets;
 use crate::platformer::sim::PlatformerSim;
 use crate::stealth::plugin::GuardConeEntity;
@@ -229,5 +232,44 @@ pub(crate) fn walk_players<'a>(
             active.replay();
         }
         active.set_speed(rate).repeat();
+    }
+}
+
+/// Poses the on-foot character, whichever game it belongs to.
+pub(crate) fn sync_character_entities(
+    state: Res<LightcycleState>,
+    time: Res<Time>,
+    mut character: Query<(&mut Transform, &mut CharacterAnim), Without<CycleEntity>>,
+) {
+    let Some(run) = state.run.as_ref() else {
+        return;
+    };
+    let Some(pose) = character_pose(run) else {
+        return;
+    };
+
+    let dt = time.delta_secs();
+    for (mut transform, mut anim) in &mut character {
+        // The stealth sim moves in whole cells; easing toward the cell turns
+        // that into a glide, and the walk clip supplies the limbs. The
+        // platformer's physics is already continuous.
+        let base = if pose.smooth {
+            // Cover the ground at the pace the sim steps, instead of easing to
+            // each cell and waiting. The second term only bites once the figure
+            // has fallen behind, so a frame hitch does not leave it trailing.
+            let to_target = pose.target - anim.base;
+            let distance = to_target.length();
+            let travel = config::stealth::STEALTH_WALK_SPEED.max(distance * 2.0) * dt;
+            if distance <= travel {
+                pose.target
+            } else {
+                anim.base + to_target / distance * travel
+            }
+        } else {
+            pose.target
+        };
+        anim.base = base;
+        transform.translation = base;
+        transform.rotation = Quat::from_rotation_y(pose.yaw);
     }
 }
