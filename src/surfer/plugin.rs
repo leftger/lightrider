@@ -136,3 +136,18 @@ pub(crate) fn surfer_river_mesh(surfer: &SurferSim) -> Mesh {
     .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
     .with_inserted_indices(Indices::U32(indices))
 }
+
+/// The river surfer's chase rig: lower and closer than the street rig, so the
+/// water and the gates read as a course rather than a flyover. Same free-look
+/// orbit, same pitch clamps.
+pub(crate) fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
+    let view_forward = Quat::from_rotation_y(look.x) * forward;
+    let pitch = (config::SURFER_CAMERA_HEIGHT.atan2(config::SURFER_CAMERA_DISTANCE) + look.y)
+        .clamp(
+            config::LIGHTCYCLE_CAMERA_MIN_PITCH,
+            config::LIGHTCYCLE_CAMERA_MAX_PITCH,
+        );
+    let radius = Vec2::new(config::SURFER_CAMERA_DISTANCE, config::SURFER_CAMERA_HEIGHT).length();
+    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
+    (offset, view_forward)
+}

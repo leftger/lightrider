@@ -550,9 +550,9 @@ impl CornerArc {
 /// One wall-hug camera pose: where the camera stands and what it looks at, both
 /// as offsets from the character's cell centre, plus the camera height.
 pub(crate) struct HugShot {
-    offset: Vec3,
-    look: Vec3,
-    height: f32,
+    pub(crate) offset: Vec3,
+    pub(crate) look: Vec3,
+    pub(crate) height: f32,
 }
 
 #[cfg(test)]

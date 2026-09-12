@@ -1,6 +1,6 @@
 use super::camera::{
-    arc_cell_pose, chase_camera_rig, chase_rig_radius, cycle_cell_pose, hug_camera_shot,
-    pose_forward, pose_rotation, pose_world_position,
+    arc_cell_pose, chase_camera_rig, chase_rig_radius, cycle_cell_pose, pose_forward,
+    pose_rotation, pose_world_position,
 };
 use super::city::{
     city_body_height, city_body_mesh, city_foundation_mesh, city_palette, city_theme_index,
@@ -22,6 +22,7 @@ use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
 };
 use crate::state::StackMotion;
+use crate::stealth::plugin::hug_camera_shot;
 use crate::stealth::sim::StealthSim;
 use bevy::camera::primitives::MeshAabb;
 use bevy::prelude::{Cuboid, Mesh, Vec2, Vec3};
@@ -962,7 +963,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(field.source_disc().is_none() && field.source_snake().is_none());
     assert!(field.asteroid_field_active());
     assert!(
-        super::camera::field_camera_focus(&field).is_some(),
+        crate::asteroids::plugin::field_camera_focus(&field).is_some(),
         "the field plays from above"
     );
 
@@ -971,7 +972,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(ring.source_asteroids().is_none() && ring.source_snake().is_none());
     assert!(!ring.asteroid_field_active());
     assert!(
-        super::camera::field_camera_focus(&ring).is_none(),
+        crate::asteroids::plugin::field_camera_focus(&ring).is_none(),
         "a disc-wars ring must keep the chase camera"
     );
 
@@ -980,7 +981,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(snake.source_disc().is_none() && snake.source_asteroids().is_none());
     assert!(!snake.asteroid_field_active());
     assert!(
-        super::camera::field_camera_focus(&snake).is_none(),
+        crate::asteroids::plugin::field_camera_focus(&snake).is_none(),
         "snake drives on the grid, so it keeps the chase camera"
     );
     let snake = snake.source_snake().expect("snake state");

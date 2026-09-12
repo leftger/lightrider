@@ -5,6 +5,7 @@
 use crate::asteroids::sim::AsteroidsSim;
 use crate::config;
 use crate::disc::language::SourceGame;
+use crate::lightcycle::ActiveRun;
 use crate::lightcycle::LightcycleState;
 use crate::plugins::lightcycle::Apart;
 use crate::plugins::lightcycle::LightcycleAssets;
@@ -113,4 +114,15 @@ pub(crate) fn sync_asteroid_entities(
             None => *visibility = Visibility::Hidden,
         }
     }
+}
+
+/// Focus point and ring radius while the field is live. Once it is decided the
+/// camera returns to the chase rig so the player can drive out, and a disc-wars
+/// ring keeps the chase rig throughout.
+pub(crate) fn field_camera_focus(run: &ActiveRun) -> Option<(Vec3, f32)> {
+    if !run.asteroid_field_active() {
+        return None;
+    }
+    let sim = run.source_asteroids()?;
+    Some((Vec3::new(sim.center.0, 0.0, sim.center.1), sim.radius))
 }

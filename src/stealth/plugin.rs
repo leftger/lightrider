@@ -7,8 +7,11 @@ use crate::lightcycle::LightcycleState;
 use crate::plugins::lightcycle::Apart;
 use crate::plugins::lightcycle::CharacterAnim;
 use crate::plugins::lightcycle::CharacterEntity;
+use crate::plugins::lightcycle::HugShot;
 use crate::plugins::lightcycle::LightcycleAssets;
 use crate::plugins::lightcycle::PooledPosed;
+use crate::plugins::lightcycle::space::unit_of;
+use crate::plugins::lightcycle::step::step_cell;
 use crate::state::LightcycleSceneRoot;
 use crate::stealth::sim::StealthSim;
 use bevy::prelude::*;
@@ -159,5 +162,79 @@ pub(crate) fn sync_stealth_entities(
             transform.rotation =
                 Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 - guard.vision_angle());
         }
+    }
+}
+
+/// Picks the wall-hug camera pose for a character with its back to a wall.
+///
+/// The camera is treated as an imaginary second figure standing off the wall
+/// and looking back at the real one. Standing past the corner on the open side
+/// and aiming back across it is what keeps every element of the shot in frame
+/// at once: the character sits on one side, the wall he is hugging runs across
+/// the middle as a low edge, and the corner with the corridor around it opens
+/// on the other side.
+///
+/// When the wall runs on without a corner in reach, the camera trails the
+/// character instead and looks down the corridor ahead of him.
+pub(crate) fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
+    let wall = room.hug?;
+    let across = room.peek?;
+    let (px, pz) = unit_of(across);
+    let (wx, wz) = unit_of(wall);
+    let spacing = config::GRID_SPACING;
+
+    // Follow the wall toward the peek until it ends. `run` counts the solid
+    // wall cells passed, so the first open cell behind the wall's end is
+    // `run * spacing` along the wall from the character.
+    let mut cell = room.character;
+    let mut run = 0;
+    while run < config::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
+        cell = step_cell(cell, across);
+        run += 1;
+    }
+
+    if run <= config::STEALTH_HUG_CORNER_STEPS {
+        // A reachable corner: stand past it and out from the hugged face. The
+        // farther the corner is, the farther out the camera has to stand for
+        // the corner and the corridor behind it to stay inside the frame.
+        let gap = run as f32 * spacing;
+        let out = config::STEALTH_HUG_CAMERA_OUT
+            + run.saturating_sub(1) as f32 * config::STEALTH_HUG_CAMERA_OUT_STEP;
+        let offset = Vec3::new(
+            px * (gap + config::STEALTH_HUG_CAMERA_PAST) - wx * out,
+            0.0,
+            pz * (gap + config::STEALTH_HUG_CAMERA_PAST) - wz * out,
+        );
+        // Aim at the wall-top corner halfway to the gap cell centre: the
+        // character is then on one side of the view and the corridor around
+        // the corner on the other.
+        let look = Vec3::new(
+            (px * gap + wx * spacing) * 0.5,
+            config::STEALTH_WALL_HEIGHT,
+            (pz * gap + wz * spacing) * 0.5,
+        );
+        Some(HugShot {
+            offset,
+            look,
+            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+        })
+    } else {
+        // No corner in reach: trail the character along the wall and look down
+        // the corridor ahead, with the wall beside him sharing the frame.
+        let offset = Vec3::new(
+            -px * config::STEALTH_HUG_CAMERA_BACK - wx * config::STEALTH_HUG_CAMERA_OUT,
+            0.0,
+            -pz * config::STEALTH_HUG_CAMERA_BACK - wz * config::STEALTH_HUG_CAMERA_OUT,
+        );
+        let look = Vec3::new(
+            px * config::STEALTH_HUG_CAMERA_AIM,
+            config::STEALTH_CAMERA_LOOK,
+            pz * config::STEALTH_HUG_CAMERA_AIM,
+        );
+        Some(HugShot {
+            offset,
+            look,
+            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+        })
     }
 }

@@ -1,17 +1,17 @@
 //! Chase-camera rigs, cycle poses, and per-game focus helpers.
 
-use super::space::{corner_arc, heading_angle, unit_of};
-use super::step::step_cell;
+use super::space::{corner_arc, heading_angle};
 use super::{
-    CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, DocumentFocusMarker,
-    HugShot, Only,
+    CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, DocumentFocusMarker, Only,
 };
+use crate::asteroids::plugin::field_camera_focus;
 use crate::config;
 use crate::disc::language::SourceGame;
 use crate::lightcycle::logic::LightcycleSim;
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
 use crate::plugins::transition::ModeTransition;
-use crate::stealth::sim::StealthSim;
+use crate::stealth::plugin::hug_camera_shot;
+use crate::surfer::plugin::surfer_camera_rig;
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
 
@@ -245,106 +245,6 @@ pub(crate) fn chase_rig_radius() -> f32 {
         config::LIGHTCYCLE_CAMERA_HEIGHT,
     )
     .length()
-}
-
-/// The river surfer's chase rig: lower and closer than the street rig, so the
-/// water and the gates read as a course rather than a flyover. Same free-look
-/// orbit, same pitch clamps.
-pub(crate) fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
-    let view_forward = Quat::from_rotation_y(look.x) * forward;
-    let pitch = (config::SURFER_CAMERA_HEIGHT.atan2(config::SURFER_CAMERA_DISTANCE) + look.y)
-        .clamp(
-            config::LIGHTCYCLE_CAMERA_MIN_PITCH,
-            config::LIGHTCYCLE_CAMERA_MAX_PITCH,
-        );
-    let radius = Vec2::new(config::SURFER_CAMERA_DISTANCE, config::SURFER_CAMERA_HEIGHT).length();
-    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
-    (offset, view_forward)
-}
-
-/// Focus point and ring radius while the field is live. Once it is decided the
-/// camera returns to the chase rig so the player can drive out, and a disc-wars
-/// ring keeps the chase rig throughout.
-pub(crate) fn field_camera_focus(run: &ActiveRun) -> Option<(Vec3, f32)> {
-    if !run.asteroid_field_active() {
-        return None;
-    }
-    let sim = run.source_asteroids()?;
-    Some((Vec3::new(sim.center.0, 0.0, sim.center.1), sim.radius))
-}
-
-/// Picks the wall-hug camera pose for a character with its back to a wall.
-///
-/// The camera is treated as an imaginary second figure standing off the wall
-/// and looking back at the real one. Standing past the corner on the open side
-/// and aiming back across it is what keeps every element of the shot in frame
-/// at once: the character sits on one side, the wall he is hugging runs across
-/// the middle as a low edge, and the corner with the corridor around it opens
-/// on the other side.
-///
-/// When the wall runs on without a corner in reach, the camera trails the
-/// character instead and looks down the corridor ahead of him.
-pub(crate) fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
-    let wall = room.hug?;
-    let across = room.peek?;
-    let (px, pz) = unit_of(across);
-    let (wx, wz) = unit_of(wall);
-    let spacing = config::GRID_SPACING;
-
-    // Follow the wall toward the peek until it ends. `run` counts the solid
-    // wall cells passed, so the first open cell behind the wall's end is
-    // `run * spacing` along the wall from the character.
-    let mut cell = room.character;
-    let mut run = 0;
-    while run < config::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
-        cell = step_cell(cell, across);
-        run += 1;
-    }
-
-    if run <= config::STEALTH_HUG_CORNER_STEPS {
-        // A reachable corner: stand past it and out from the hugged face. The
-        // farther the corner is, the farther out the camera has to stand for
-        // the corner and the corridor behind it to stay inside the frame.
-        let gap = run as f32 * spacing;
-        let out = config::STEALTH_HUG_CAMERA_OUT
-            + run.saturating_sub(1) as f32 * config::STEALTH_HUG_CAMERA_OUT_STEP;
-        let offset = Vec3::new(
-            px * (gap + config::STEALTH_HUG_CAMERA_PAST) - wx * out,
-            0.0,
-            pz * (gap + config::STEALTH_HUG_CAMERA_PAST) - wz * out,
-        );
-        // Aim at the wall-top corner halfway to the gap cell centre: the
-        // character is then on one side of the view and the corridor around
-        // the corner on the other.
-        let look = Vec3::new(
-            (px * gap + wx * spacing) * 0.5,
-            config::STEALTH_WALL_HEIGHT,
-            (pz * gap + wz * spacing) * 0.5,
-        );
-        Some(HugShot {
-            offset,
-            look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
-        })
-    } else {
-        // No corner in reach: trail the character along the wall and look down
-        // the corridor ahead, with the wall beside him sharing the frame.
-        let offset = Vec3::new(
-            -px * config::STEALTH_HUG_CAMERA_BACK - wx * config::STEALTH_HUG_CAMERA_OUT,
-            0.0,
-            -pz * config::STEALTH_HUG_CAMERA_BACK - wz * config::STEALTH_HUG_CAMERA_OUT,
-        );
-        let look = Vec3::new(
-            px * config::STEALTH_HUG_CAMERA_AIM,
-            config::STEALTH_CAMERA_LOOK,
-            pz * config::STEALTH_HUG_CAMERA_AIM,
-        );
-        Some(HugShot {
-            offset,
-            look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
-        })
-    }
 }
 
 // A Bevy system: the queries are the reason for both of these, and folding them
