@@ -6,6 +6,7 @@
 //! every crate unlocks the exit at the far corner; reaching it wins.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
 
@@ -185,6 +186,28 @@ impl BomberSim {
 
     pub fn restart(&mut self) {
         *self = Self::new(self.seed);
+    }
+}
+
+impl SourceGameSim for BomberSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.crates > 0 {
+            tick.sound(GameSound::Portal);
+        }
+        if events.lost_life {
+            tick.sound(GameSound::Crash);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == BomberPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("your own bomb".to_string());
+        }
+        tick
     }
 }
 

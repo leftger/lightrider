@@ -6,6 +6,7 @@
 //! above the rim to lose.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// The seven tetrominoes as four cell offsets each.
@@ -260,6 +261,28 @@ impl TetrisSim {
 
     pub fn restart(&mut self) {
         *self = Self::new(self.seed, self.file_lines);
+    }
+}
+
+impl SourceGameSim for TetrisSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.lines > 0 {
+            tick.sound(GameSound::Portal);
+        }
+        if events.locked {
+            tick.sound(GameSound::Beam);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == TetrisPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("the stack of indentation".to_string());
+        }
+        tick
     }
 }
 

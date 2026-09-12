@@ -7,6 +7,7 @@
 //! finish gate at the far end. Running onto a bank or into a rock ends the run.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// A rock sticking out of the river. Touching one ends the run.
@@ -247,6 +248,29 @@ fn centerline_at(z: f32, seed: u64) -> f32 {
     let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
     let wave = std::f32::consts::TAU / config::SURFER_RIVER_WAVELENGTH;
     config::SURFER_RIVER_AMP * (wave * z + phase).sin()
+}
+
+impl SourceGameSim for SurferSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.boosted {
+            tick.sound(GameSound::Beam);
+        }
+        if events.finished {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.finished;
+        if self.phase == SurferPhase::Crashed {
+            tick.lost = true;
+            tick.label = Some(if events.banked {
+                "the riverbank".to_string()
+            } else {
+                "a rock in the river".to_string()
+            });
+        }
+        tick
+    }
 }
 
 #[cfg(test)]

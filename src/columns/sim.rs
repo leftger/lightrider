@@ -6,6 +6,7 @@
 //! last gem wins. Landing with a gem above the rim loses.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -301,6 +302,28 @@ impl ColumnsSim {
     /// Restarts from the same seed, as `R` does.
     pub fn restart(&mut self) {
         *self = Self::new(self.seed, self.lines);
+    }
+}
+
+impl SourceGameSim for ColumnsSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.matched > 0 {
+            tick.sound(GameSound::Portal);
+        }
+        if events.landed {
+            tick.sound(GameSound::Beam);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == ColumnsPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("the gem well".to_string());
+        }
+        tick
     }
 }
 

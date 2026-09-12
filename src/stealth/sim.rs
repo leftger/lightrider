@@ -13,6 +13,7 @@
 use crate::config;
 use crate::grid::chebyshev;
 use crate::lightcycle::logic::Heading;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
 
@@ -555,6 +556,25 @@ fn along_wall(heading: Heading) -> [Heading; 2] {
     match heading {
         Heading::PosX | Heading::NegX => [Heading::PosZ, Heading::NegZ],
         Heading::PosZ | Heading::NegZ => [Heading::PosX, Heading::NegX],
+    }
+}
+
+impl SourceGameSim for StealthSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.spotted {
+            tick.sound(GameSound::Zap);
+        }
+        if events.escaped {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.escaped;
+        if self.phase == StealthPhase::Caught {
+            tick.lost = true;
+            tick.label = Some("a patrol".to_string());
+        }
+        tick
     }
 }
 

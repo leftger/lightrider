@@ -16,6 +16,7 @@ mod galaga;
 mod grid;
 mod lightcycle;
 mod load;
+mod minigame;
 mod music;
 mod pacman;
 mod platform;

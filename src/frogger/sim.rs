@@ -6,6 +6,7 @@
 //! obstacle spends a life and sends the cycle back to the start.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One moving obstacle lane. Obstacles wrap around the row.
@@ -149,6 +150,25 @@ impl FroggerSim {
 
     pub fn restart(&mut self) {
         *self = Self::new(self.seed);
+    }
+}
+
+impl SourceGameSim for FroggerSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.splatted {
+            tick.sound(GameSound::Crash);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == FroggerPhase::Splatted {
+            tick.lost = true;
+            tick.label = Some("the async highway".to_string());
+        }
+        tick
     }
 }
 

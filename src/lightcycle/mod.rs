@@ -82,6 +82,27 @@ impl SourceSim {
         }
     }
 
+    /// The uniform mini-games — the ones that step themselves from `dt` alone —
+    /// behind one trait object. Disc wars, the asteroid field and snake drive
+    /// the cycle themselves, so they stay concrete.
+    pub fn as_game_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
+        match self {
+            Self::Platformer(sim) => Some(&mut **sim),
+            Self::Breaker(sim) => Some(&mut **sim),
+            Self::Stealth(sim) => Some(&mut **sim),
+            Self::Surfer(sim) => Some(&mut **sim),
+            Self::Galaga(sim) => Some(&mut **sim),
+            Self::PacMan(sim) => Some(&mut **sim),
+            Self::Columns(sim) => Some(&mut **sim),
+            Self::Tetris(sim) => Some(&mut **sim),
+            Self::Frogger(sim) => Some(&mut **sim),
+            Self::Qbert(sim) => Some(&mut **sim),
+            Self::Bomberman(sim) => Some(&mut **sim),
+            Self::Plinko(sim) => Some(&mut **sim),
+            Self::DiscWars(_) | Self::Asteroids(_) | Self::Snake(_) => None,
+        }
+    }
+
     pub fn as_disc(&self) -> Option<&DiscSim> {
         match self {
             Self::DiscWars(disc) => Some(disc),

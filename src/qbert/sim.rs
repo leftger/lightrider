@@ -6,6 +6,7 @@
 //! pyramid or into an enemy and a life is spent.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -192,6 +193,25 @@ impl QbertSim {
 
     pub fn restart(&mut self) {
         *self = Self::new(self.seed);
+    }
+}
+
+impl SourceGameSim for QbertSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.lost_life {
+            tick.sound(GameSound::Crash);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == QbertPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("the pyramid edge".to_string());
+        }
+        tick
     }
 }
 

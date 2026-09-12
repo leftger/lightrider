@@ -7,6 +7,7 @@
 //! level, which is how this run is left.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One brick in the wall. `col`/`row` are grid coordinates, `0` at the top-left.
@@ -288,6 +289,31 @@ impl BreakerSim {
     pub fn restart(&mut self) {
         let fresh = Self::new(self.seed);
         *self = fresh;
+    }
+}
+
+impl SourceGameSim for BreakerSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.launched {
+            tick.sound(GameSound::Beam);
+        }
+        if events.bounced_off_paddle {
+            tick.sound(GameSound::Turn);
+        }
+        for _ in 0..events.broke_bricks {
+            tick.sound(GameSound::Portal);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == BreakerPhase::Missed {
+            tick.lost = true;
+            tick.label = Some("the ball past the bike".to_string());
+        }
+        tick
     }
 }
 

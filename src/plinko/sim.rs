@@ -6,6 +6,7 @@
 //! target and the board is cleared.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -189,6 +190,25 @@ impl PlinkoSim {
 
     pub fn restart(&mut self) {
         *self = Self::new(self.seed);
+    }
+}
+
+impl SourceGameSim for PlinkoSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.scored > 0 {
+            tick.sound(GameSound::Beam);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == PlinkoPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("the data".to_string());
+        }
+        tick
     }
 }
 

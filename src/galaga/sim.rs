@@ -9,6 +9,7 @@
 //! cycle, and it is lost.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One bug in the formation. The grid slot is its `row`/`col`; the renderer
@@ -342,6 +343,35 @@ fn distance_sq(x0: f32, z0: f32, x1: f32, z1: f32) -> f32 {
     let dx = x0 - x1;
     let dz = z0 - z1;
     dx * dx + dz * dz
+}
+
+impl SourceGameSim for GalagaSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.fired {
+            tick.sound(GameSound::Beam);
+        }
+        for _ in 0..events.killed {
+            tick.sound(GameSound::Portal);
+        }
+        if events.lost_life {
+            tick.sound(GameSound::Crash);
+        }
+        if events.cleared {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.cleared;
+        if self.phase == GalagaPhase::Lost {
+            tick.lost = true;
+            tick.label = Some(if events.overrun {
+                "the swarm reached the cycle".to_string()
+            } else {
+                "the swarm".to_string()
+            });
+        }
+        tick
+    }
 }
 
 #[cfg(test)]

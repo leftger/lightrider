@@ -8,32 +8,21 @@ use super::space::{
     heading_facing, nearest_heading, ring_center_world, ring_food_cells, ring_radius_world,
 };
 use crate::asteroids::sim::{AsteroidsPhase, AsteroidsSim};
-use crate::bomberman::sim::BomberPhase;
-use crate::breaker::sim::BreakerPhase;
-use crate::columns::sim::ColumnsPhase;
 use crate::config;
 use crate::disc::combat::{DiscPhase, DiscSim, PlayerSnapshot};
 use crate::disc::language::SourceGame;
 use crate::disc::load::SourceRequested;
 use crate::document::load::DocumentRequested;
-use crate::frogger::sim::FroggerPhase;
-use crate::galaga::sim::GalagaPhase;
 use crate::lightcycle::logic::{
     CellContent, CrashReason, Heading, LightcycleSim, RunPhase, StepOutcome, classify_next_content,
 };
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
 use crate::load::DirectoryRequested;
+use crate::minigame::GameSound;
 use crate::music::sfx::MusicSfx;
-use crate::pacman::sim::PacPhase;
-use crate::platformer::sim::PlatformerPhase;
-use crate::plinko::sim::PlinkoPhase;
 use crate::plugins::transition::ModeTransition;
-use crate::qbert::sim::QbertPhase;
 use crate::snake::sim::SnakeSim;
 use crate::state::{NavigatorResource, PauseState};
-use crate::stealth::sim::StealthPhase;
-use crate::surfer::sim::SurferPhase;
-use crate::tetris::sim::TetrisPhase;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -408,22 +397,12 @@ pub(crate) fn step_lightcycle(
                     step_snake(&mut run, &mut effects);
                     false
                 }
-                Some(SourceGame::Platformer) => step_platformer(&mut run, step, &mut effects),
-                Some(SourceGame::Breaker) => step_breaker(&mut run, step, &mut effects),
-                Some(SourceGame::Stealth) => step_stealth(&mut run, step, &mut effects),
-                Some(SourceGame::RiverSurfer) => step_surfer(&mut run, step, &mut effects),
-                Some(SourceGame::Galaga) => step_galaga(&mut run, step, &mut effects),
-                Some(SourceGame::PacMan) => step_pacman(&mut run, step, &mut effects),
-                Some(SourceGame::Columns) => step_columns(&mut run, step, &mut effects),
-                Some(SourceGame::Tetris) => step_tetris(&mut run, step, &mut effects),
-                Some(SourceGame::Frogger) => step_frogger(&mut run, step, &mut effects),
-                Some(SourceGame::Qbert) => step_qbert(&mut run, step, &mut effects),
-                Some(SourceGame::Bomberman) => step_bomberman(&mut run, step, &mut effects),
-                Some(SourceGame::Plinko) => step_plinko(&mut run, step, &mut effects),
                 Some(SourceGame::DiscWars) => {
                     step_disc_fight(&mut run, step, &mut effects);
                     false
                 }
+                // Everything else is a uniform `dt`-driven game.
+                Some(_) => step_uniform(&mut run, step, &mut effects),
                 None => false,
             };
             // Clearing a level is this run's version of riding out the gate.
@@ -517,344 +496,41 @@ pub(crate) fn step_snake(run: &mut ActiveRun, effects: &mut MessageWriter<MusicS
     }
 }
 
-/// Steps a platformer level. Returns `true` on the frame the exit is reached,
-/// which hands the run back to the directory it came from.
-pub(crate) fn step_platformer(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, fell) = {
-        let Some(level) = run.source_platformer_mut() else {
+/// Steps a uniform mini-game and folds its tick back into the shared run.
+///
+/// Every source game but disc wars, the asteroid field and snake answers a step
+/// with a [`GameTick`]: the sounds to play, whether it cleared, and whether the
+/// run is over. The game owns that policy beside its sim; this only plays it.
+fn step_uniform(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
+    let tick = {
+        let RunEnvironment::Source { sim, .. } = &mut run.environment else {
             return false;
         };
-        let events = level.update(dt);
-        (events, level.phase == PlatformerPhase::Lost)
+        let Some(game) = sim.as_game_mut() else {
+            return false;
+        };
+        game.tick(dt)
     };
-    if events.jumped {
-        effects.write(MusicSfx::Zap);
-    }
-    if events.won {
-        effects.write(MusicSfx::Victory);
-    }
-    // A fall ends the run through the shared crash path, so the burst, the
-    // shake, the label and `R` all behave like any other crash.
-    if fell {
-        crash_source(run, "the void under the level", effects);
-    }
-    events.won
-}
 
-/// Steps a breaker court. Returns `true` when the wall is cleared, which hands
-/// the run back to the directory.
-pub(crate) fn step_breaker(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, missed) = {
-        let Some(level) = run.source_breaker_mut() else {
-            return false;
-        };
-        let events = level.update(dt);
-        (events, level.phase == BreakerPhase::Missed)
-    };
-    if events.launched {
-        effects.write(MusicSfx::Beam);
+    for sound in tick.sounds {
+        effects.write(match sound {
+            GameSound::Turn => MusicSfx::Turn,
+            GameSound::Beam => MusicSfx::Beam,
+            GameSound::Portal => MusicSfx::Portal,
+            GameSound::Victory => MusicSfx::Victory,
+            GameSound::Crash => MusicSfx::Crash,
+            GameSound::Zap => MusicSfx::Zap,
+        });
     }
-    if events.bounced_off_paddle {
-        effects.write(MusicSfx::Turn);
-    }
-    for _ in 0..events.broke_bricks {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    // The wall below the bike is the one that ends it.
-    if missed {
-        crash_source(run, "the ball past the bike", effects);
-    }
-    events.cleared
-}
 
-/// Steps a stealth run. Returns `true` when the character reaches the door.
-pub(crate) fn step_stealth(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, caught) = {
-        let Some(room) = run.source_stealth_mut() else {
-            return false;
-        };
-        let events = room.update(dt);
-        (events, room.phase == StealthPhase::Caught)
-    };
-    if events.spotted {
-        effects.write(MusicSfx::Zap);
-    }
-    if events.escaped {
-        effects.write(MusicSfx::Victory);
-    }
-    if caught {
-        crash_source(run, "a patrol", effects);
-    }
-    events.escaped
-}
-
-/// Steps a river surfer run. Returns `true` when the bike crosses the finish.
-pub(crate) fn step_surfer(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, crashed) = {
-        let Some(surfer) = run.source_surfer_mut() else {
-            return false;
-        };
-        let events = surfer.update(dt);
-        (events, surfer.phase == SurferPhase::Crashed)
-    };
-    if events.boosted {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.finished {
-        effects.write(MusicSfx::Victory);
-    }
-    if crashed {
-        let label = if events.banked {
-            "the riverbank"
-        } else {
-            "a rock in the river"
-        };
+    if tick.lost {
+        // The shared crash path owns the crash sound, the phase change and the
+        // label, so a mini-game's loss reads like any other.
+        let label = tick.label.as_deref().unwrap_or("the crash");
         crash_source(run, label, effects);
     }
-    events.finished
-}
 
-/// Steps a Galaga field. Returns `true` when the formation is cleared, which
-/// hands the run back to the directory.
-pub(crate) fn step_galaga(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_galaga_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == GalagaPhase::Lost)
-    };
-    if events.fired {
-        effects.write(MusicSfx::Beam);
-    }
-    for _ in 0..events.killed {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        let label = if events.overrun {
-            "the swarm reached the cycle"
-        } else {
-            "the swarm"
-        };
-        crash_source(run, label, effects);
-    }
-    events.cleared
-}
-
-/// Steps a Pac-Man maze. Returns `true` when every dot is eaten.
-pub(crate) fn step_pacman(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, caught) = {
-        let Some(sim) = run.source_pacman_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == PacPhase::Caught)
-    };
-    if events.dots > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if caught {
-        crash_source(run, "a ghost in the maze", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Columns well. Returns `true` when the well is empty.
-pub(crate) fn step_columns(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_columns_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == ColumnsPhase::Lost)
-    };
-    if events.matched > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.landed {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the gem well", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Tetris board. Returns `true` once the line target is met.
-pub(crate) fn step_tetris(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_tetris_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == TetrisPhase::Lost)
-    };
-    if events.lines > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.locked {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the stack of indentation", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Frogger highway. Returns `true` when the far row is reached.
-pub(crate) fn step_frogger(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, splatted) = {
-        let Some(sim) = run.source_frogger_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == FroggerPhase::Splatted)
-    };
-    if events.splatted {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if splatted {
-        crash_source(run, "the async highway", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Q*bert pyramid. Returns `true` once every cube is lit.
-pub(crate) fn step_qbert(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_qbert_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == QbertPhase::Lost)
-    };
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the pyramid edge", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Bomberman room. Returns `true` once the exit is reached.
-pub(crate) fn step_bomberman(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_bomberman_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == BomberPhase::Lost)
-    };
-    if events.crates > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "your own bomb", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Plinko board. Returns `true` when the rack beats the target.
-pub(crate) fn step_plinko(
-    run: &mut ActiveRun,
-    dt: f32,
-    effects: &mut MessageWriter<MusicSfx>,
-) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_plinko_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == PlinkoPhase::Lost)
-    };
-    if events.scored > 0 {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the data", effects);
-    }
-    events.cleared
+    tick.cleared
 }
 
 /// Steps one ring's fight and folds its events back into the shared run.

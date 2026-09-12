@@ -9,6 +9,7 @@
 //! this module has nothing to do with the cell grid the bike games share.
 
 use crate::config;
+use crate::minigame::{GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One flat platform. `y` is its top surface, `x` its left edge.
@@ -335,6 +336,25 @@ fn generate(seed: u64, length: f32) -> Vec<Platform> {
         h: thickness,
     });
     platforms
+}
+
+impl SourceGameSim for PlatformerSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.jumped {
+            tick.sound(GameSound::Zap);
+        }
+        if events.won {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.won;
+        if self.phase == PlatformerPhase::Lost {
+            tick.lost = true;
+            tick.label = Some("the void under the level".to_string());
+        }
+        tick
+    }
 }
 
 #[cfg(test)]
