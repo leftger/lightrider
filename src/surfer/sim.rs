@@ -293,6 +293,10 @@ impl SourceGameSim for SurferSim {
     fn input(&mut self, input: &GameInput) {
         self.set_input(input.steer as f32, input.boost);
     }
+
+    fn restart(&mut self) {
+        SurferSim::restart(self);
+    }
 }
 
 #[cfg(test)]

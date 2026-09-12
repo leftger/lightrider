@@ -242,6 +242,10 @@ impl SourceGameSim for BomberSim {
             self.plant();
         }
     }
+
+    fn restart(&mut self) {
+        BomberSim::restart(self);
+    }
 }
 
 #[cfg(test)]

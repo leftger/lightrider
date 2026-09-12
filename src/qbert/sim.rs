@@ -231,6 +231,10 @@ impl SourceGameSim for QbertSim {
         // Diagonal hops; the -Z camera mirrors X, so swap the east/west edges.
         self.hop(-input.right_x(), input.hop_z);
     }
+
+    fn restart(&mut self) {
+        QbertSim::restart(self);
+    }
 }
 
 #[cfg(test)]

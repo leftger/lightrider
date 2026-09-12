@@ -391,6 +391,10 @@ impl SourceGameSim for GalagaSim {
         // The -Z camera mirrors X, so negate steer.
         self.set_input(-input.steer as f32, input.action);
     }
+
+    fn restart(&mut self) {
+        GalagaSim::restart(self);
+    }
 }
 
 #[cfg(test)]

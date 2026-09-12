@@ -93,6 +93,10 @@ pub trait SourceGameSim: AsAny {
     /// Feeds one input frame to the game.
     fn input(&mut self, input: &GameInput);
 
+    /// Re-rolls the game from its own stored seed, for a fresh attempt at the
+    /// same level.
+    fn restart(&mut self);
+
     /// This game's segment of the lightcycle status line, wrapped around the
     /// `inner` text the run has built so far. `ring` is the file's name and
     /// `language` the compiler or language it was recognised as.

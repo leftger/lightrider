@@ -374,6 +374,10 @@ impl SourceGameSim for PlatformerSim {
     fn input(&mut self, input: &GameInput) {
         self.set_input(input.steer as f32, input.action);
     }
+
+    fn restart(&mut self) {
+        PlatformerSim::restart(self);
+    }
 }
 
 #[cfg(test)]

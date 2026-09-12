@@ -589,6 +589,10 @@ impl SourceGameSim for StealthSim {
     fn input(&mut self, input: &GameInput) {
         self.set_input(input.steer, input.move_z);
     }
+
+    fn restart(&mut self) {
+        StealthSim::restart(self);
+    }
 }
 
 #[cfg(test)]

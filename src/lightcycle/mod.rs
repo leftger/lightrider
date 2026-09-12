@@ -62,68 +62,61 @@ pub enum SourceSim {
     Plinko(Box<PlinkoSim>),
 }
 
+/// The mini-games that step from `dt` alone, and the ring game each one is.
+///
+/// One line per game: the variant's identity, its typed accessors and its
+/// [`SourceGame`] all come from the table below, so adding a game means adding
+/// a line rather than editing three parallel matches.
+macro_rules! source_sims {
+    ($($variant:ident => $game:ident),+ $(,)?) => {
+        impl SourceSim {
+            /// Which game this state belongs to.
+            pub fn game(&self) -> SourceGame {
+                match self {
+                    Self::DiscWars(_) => SourceGame::DiscWars,
+                    Self::Asteroids(_) => SourceGame::Asteroids,
+                    Self::Snake(_) => SourceGame::Snake,
+                    $(Self::$variant(_) => SourceGame::$game,)+
+                }
+            }
+
+            /// The uniform mini-games — the ones that step themselves — behind
+            /// one trait object. Disc wars, the asteroid field and snake drive
+            /// the cycle themselves, so they stay concrete.
+            pub fn as_game(&self) -> Option<&dyn crate::minigame::SourceGameSim> {
+                match self {
+                    $(Self::$variant(sim) => Some(&**sim),)+
+                    _ => None,
+                }
+            }
+
+            /// Mutable [`Self::as_game`].
+            pub fn as_game_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
+                match self {
+                    $(Self::$variant(sim) => Some(&mut **sim),)+
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+source_sims! {
+    Platformer => Platformer,
+    Breaker => Breaker,
+    Stealth => Stealth,
+    Surfer => RiverSurfer,
+    Galaga => Galaga,
+    PacMan => PacMan,
+    Columns => Columns,
+    Tetris => Tetris,
+    Frogger => Frogger,
+    Qbert => Qbert,
+    Bomberman => Bomberman,
+    Plinko => Plinko,
+}
+
 impl SourceSim {
-    /// Which game this state belongs to.
-    pub fn game(&self) -> SourceGame {
-        match self {
-            Self::DiscWars(_) => SourceGame::DiscWars,
-            Self::Asteroids(_) => SourceGame::Asteroids,
-            Self::Snake(_) => SourceGame::Snake,
-            Self::Platformer(_) => SourceGame::Platformer,
-            Self::Breaker(_) => SourceGame::Breaker,
-            Self::Stealth(_) => SourceGame::Stealth,
-            Self::Surfer(_) => SourceGame::RiverSurfer,
-            Self::Galaga(_) => SourceGame::Galaga,
-            Self::PacMan(_) => SourceGame::PacMan,
-            Self::Columns(_) => SourceGame::Columns,
-            Self::Tetris(_) => SourceGame::Tetris,
-            Self::Frogger(_) => SourceGame::Frogger,
-            Self::Qbert(_) => SourceGame::Qbert,
-            Self::Bomberman(_) => SourceGame::Bomberman,
-            Self::Plinko(_) => SourceGame::Plinko,
-        }
-    }
-
-    /// The shared form of [`Self::as_game_mut`], for reading.
-    pub fn as_game(&self) -> Option<&dyn crate::minigame::SourceGameSim> {
-        match self {
-            Self::Platformer(sim) => Some(&**sim),
-            Self::Breaker(sim) => Some(&**sim),
-            Self::Stealth(sim) => Some(&**sim),
-            Self::Surfer(sim) => Some(&**sim),
-            Self::Galaga(sim) => Some(&**sim),
-            Self::PacMan(sim) => Some(&**sim),
-            Self::Columns(sim) => Some(&**sim),
-            Self::Tetris(sim) => Some(&**sim),
-            Self::Frogger(sim) => Some(&**sim),
-            Self::Qbert(sim) => Some(&**sim),
-            Self::Bomberman(sim) => Some(&**sim),
-            Self::Plinko(sim) => Some(&**sim),
-            Self::DiscWars(_) | Self::Asteroids(_) | Self::Snake(_) => None,
-        }
-    }
-
-    /// The uniform mini-games — the ones that step themselves from `dt` alone —
-    /// behind one trait object. Disc wars, the asteroid field and snake drive
-    /// the cycle themselves, so they stay concrete.
-    pub fn as_game_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
-        match self {
-            Self::Platformer(sim) => Some(&mut **sim),
-            Self::Breaker(sim) => Some(&mut **sim),
-            Self::Stealth(sim) => Some(&mut **sim),
-            Self::Surfer(sim) => Some(&mut **sim),
-            Self::Galaga(sim) => Some(&mut **sim),
-            Self::PacMan(sim) => Some(&mut **sim),
-            Self::Columns(sim) => Some(&mut **sim),
-            Self::Tetris(sim) => Some(&mut **sim),
-            Self::Frogger(sim) => Some(&mut **sim),
-            Self::Qbert(sim) => Some(&mut **sim),
-            Self::Bomberman(sim) => Some(&mut **sim),
-            Self::Plinko(sim) => Some(&mut **sim),
-            Self::DiscWars(_) | Self::Asteroids(_) | Self::Snake(_) => None,
-        }
-    }
-
     /// The uniform game behind this sim, recovered as its concrete type.
     ///
     /// The game's own wiring is the only caller, so it always names its own

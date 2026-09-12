@@ -339,6 +339,10 @@ impl SourceGameSim for ColumnsSim {
         // A/D slides the piece, W rotates, Space hard-drops.
         self.set_input(input.right_x(), input.hop_z > 0, input.action);
     }
+
+    fn restart(&mut self) {
+        ColumnsSim::restart(self);
+    }
 }
 
 #[cfg(test)]

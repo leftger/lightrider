@@ -56,18 +56,11 @@ pub(crate) fn restart_run(run: &mut ActiveRun) {
                 }
                 // Each sim re-rolls itself from its own stored seed, so a
                 // restart lays out exactly the same level.
-                SourceSim::Platformer(level) => level.restart(),
-                SourceSim::Breaker(level) => level.restart(),
-                SourceSim::Stealth(room) => room.restart(),
-                SourceSim::Surfer(surfer) => surfer.restart(),
-                SourceSim::Galaga(sim) => sim.restart(),
-                SourceSim::PacMan(sim) => sim.restart(),
-                SourceSim::Columns(sim) => sim.restart(),
-                SourceSim::Tetris(sim) => sim.restart(),
-                SourceSim::Frogger(sim) => sim.restart(),
-                SourceSim::Qbert(sim) => sim.restart(),
-                SourceSim::Bomberman(sim) => sim.restart(),
-                SourceSim::Plinko(sim) => sim.restart(),
+                other => {
+                    if let Some(game) = other.as_game_mut() {
+                        game.restart();
+                    }
+                }
             }
         }
     }

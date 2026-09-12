@@ -334,6 +334,10 @@ impl SourceGameSim for PacSim {
     fn input(&mut self, input: &GameInput) {
         self.set_input(input.steer, input.move_z);
     }
+
+    fn restart(&mut self) {
+        PacSim::restart(self);
+    }
 }
 
 #[cfg(test)]

@@ -229,6 +229,10 @@ impl SourceGameSim for PlinkoSim {
             self.drop_ball();
         }
     }
+
+    fn restart(&mut self) {
+        PlinkoSim::restart(self);
+    }
 }
 
 #[cfg(test)]

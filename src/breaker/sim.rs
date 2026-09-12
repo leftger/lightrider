@@ -336,6 +336,10 @@ impl SourceGameSim for BreakerSim {
     fn input(&mut self, input: &GameInput) {
         self.set_input(input.steer as f32, input.action);
     }
+
+    fn restart(&mut self) {
+        BreakerSim::restart(self);
+    }
 }
 
 #[cfg(test)]

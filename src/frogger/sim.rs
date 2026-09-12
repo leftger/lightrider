@@ -195,6 +195,10 @@ impl SourceGameSim for FroggerSim {
         // the start row, so flip it.
         self.hop(input.right_x(), -input.hop_z);
     }
+
+    fn restart(&mut self) {
+        FroggerSim::restart(self);
+    }
 }
 
 #[cfg(test)]

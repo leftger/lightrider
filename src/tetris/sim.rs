@@ -306,6 +306,10 @@ impl SourceGameSim for TetrisSim {
             input.action,
         );
     }
+
+    fn restart(&mut self) {
+        TetrisSim::restart(self);
+    }
 }
 
 #[cfg(test)]
