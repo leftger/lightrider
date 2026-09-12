@@ -11,6 +11,7 @@
 //! it ends the run. Reaching the door at the far side leaves it.
 
 use crate::config;
+use crate::grid::chebyshev;
 use crate::lightcycle::logic::Heading;
 use crate::rng::Rng;
 use std::collections::BTreeSet;
@@ -547,10 +548,6 @@ fn angle_delta(a: f32, b: f32) -> f32 {
         delta += std::f32::consts::TAU;
     }
     delta
-}
-
-fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
 /// The two directions along a wall: the ones perpendicular to `heading`.

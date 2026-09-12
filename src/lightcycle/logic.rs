@@ -4,6 +4,7 @@
 //! spawn search, and parent-portal rules can be unit-tested on a plain thread.
 
 use crate::config;
+use crate::grid::chebyshev;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::Path;
 
@@ -436,10 +437,6 @@ fn thin(plates: &mut Vec<RoadPlate>, target: usize) {
     *plates = (0..target)
         .map(|index| plates[(index as f32 * stride) as usize])
         .collect();
-}
-
-fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
 /// Visual family for one path-seeded TRON district.

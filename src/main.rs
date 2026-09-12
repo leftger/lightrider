@@ -12,6 +12,7 @@ mod document;
 mod filesystem;
 mod frogger;
 mod galaga;
+mod grid;
 mod lightcycle;
 mod load;
 mod music;

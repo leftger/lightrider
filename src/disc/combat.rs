@@ -11,6 +11,7 @@
 
 use crate::config;
 use crate::disc::layout::{DiscLayout, PickupKind};
+use crate::grid::chebyshev;
 use crate::lightcycle::logic::{Arena, CrashReason, Heading, Turn};
 
 /// Snapshot of the player's shared cycle state for one step.
@@ -734,12 +735,6 @@ fn line_of_sight(arena: &Arena, from: (i32, i32), to: (i32, i32)) -> bool {
     } else {
         false
     }
-}
-
-/// Chebyshev distance between two cells: the grid steps a king would need.
-/// Used as a forgiving hit radius around a body.
-fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
 /// Cardinal heading along the X axis toward `to`.

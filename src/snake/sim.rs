@@ -7,6 +7,7 @@
 //! tail cap and the exit state, so it unit-tests without a window.
 
 use crate::config;
+use crate::grid::chebyshev;
 use crate::lightcycle::logic::LightcycleSim;
 use crate::rng::Rng;
 
@@ -135,10 +136,6 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
         food.push(Food { cell, eaten: false });
     }
     food
-}
-
-fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
 #[cfg(test)]
