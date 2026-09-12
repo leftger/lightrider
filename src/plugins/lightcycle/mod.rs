@@ -1,83 +1,65 @@
-use crate::asteroids::sim::{AsteroidsPhase, AsteroidsSim};
-use crate::bomberman::sim::{BomberPhase, BomberSim};
-use crate::breaker::sim::{BreakerPhase, BreakerSim};
-use crate::columns::sim::{ColumnsPhase, ColumnsSim};
 use crate::config;
-use crate::disc::combat::{DiscEvents, DiscPhase, DiscSim, PlayerSnapshot};
-use crate::disc::language::{SourceGame, SourceLanguage};
-use crate::disc::layout::{
-    DiscLayout, build_capped_disc_arena, build_disc_arena, build_flat_arena,
-};
-use crate::disc::load::{
-    SourceLoadFailed, SourceLoadState, SourceLoaded, SourceRequested, WarpRequested,
-};
-use crate::document::layout::{DocumentLayout, build_document_arena_from_parse};
-use crate::document::load::{
-    DocumentLoadFailed, DocumentLoadState, DocumentLoaded, DocumentRequested,
-};
-use crate::document::parse::{ParseLimits, parse_markdown_bytes};
-use crate::filesystem::node::FileNode;
-use crate::frogger::sim::{FroggerPhase, FroggerSim};
-use crate::galaga::sim::{GalagaPhase, GalagaSim};
-use crate::lightcycle::logic::{
-    Arena, ArenaKind, CellContent, CityStructure, CityStructureKind, CityTheme, CrashReason,
-    GatePlacement, Heading, LightcycleSim, ParentPortal, RunPhase, StepOutcome, Wall,
-    classify_next_content, road_plates, stable_path_seed,
-};
-use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
-use crate::load::{DirectoryLoadFailed, DirectoryLoaded, DirectoryRequested};
-use crate::music::sfx::MusicSfx;
-use crate::pacman::sim::{PacPhase, PacSim};
-use crate::platformer::sim::{PlatformerPhase, PlatformerSim};
-use crate::plinko::sim::{PlinkoPhase, PlinkoSim};
-use crate::plugins::transition::{ModeTransition, gods_eye_pose};
-use crate::qbert::sim::{QbertPhase, QbertSim};
-use crate::snake::sim::SnakeSim;
+use crate::disc::language::SourceLanguage;
+use crate::disc::load::{SourceLoadFailed, SourceLoaded, SourceRequested, WarpRequested};
+use crate::document::load::{DocumentLoadFailed, DocumentLoaded, DocumentRequested};
+use crate::lightcycle::LightcycleState;
 use crate::state::{
-    CacheState, DirectorySceneRoot, FloodState, HistoryState, InteractionMode, LightcycleSceneRoot,
-    NavigatorResource, OrbitCameraResource, PauseState, StackMotion, TrailSceneRoot,
+    CacheState, FloodState, HistoryState, InteractionMode, LightcycleSceneRoot, PauseState,
+    StackMotion, TrailSceneRoot,
 };
-use crate::stealth::sim::{StealthPhase, StealthSim};
-use crate::surfer::sim::{SurferPhase, SurferSim};
-use crate::tetris::sim::{TetrisPhase, TetrisSim};
-use bevy::asset::RenderAssetUsages;
-use bevy::input::mouse::AccumulatedMouseMotion;
-use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-mod space;
-pub(crate) use space::*;
-mod input;
-pub(crate) use input::*;
-mod disc;
-pub(crate) use disc::*;
-mod fields;
-pub(crate) use fields::*;
-mod run;
-pub(crate) use run::*;
-mod document;
-pub(crate) use document::*;
-mod load;
-pub(crate) use load::*;
-mod character;
-pub(crate) use character::*;
-mod entry;
-pub(crate) use entry::*;
-mod decor;
-pub(crate) use decor::*;
-mod trail;
-pub(crate) use trail::*;
-mod camera;
-pub(crate) use camera::*;
-mod step;
-pub(crate) use step::*;
-mod city;
-pub(crate) use city::*;
-mod entities;
-pub(crate) use entities::*;
 mod assets;
-pub(crate) use assets::*;
+mod camera;
+mod character;
+mod city;
+mod decor;
+mod disc;
+mod document;
+mod entities;
+mod entry;
+mod fields;
+mod input;
+mod load;
+mod run;
+mod space;
+mod step;
+mod trail;
+
+use self::assets::setup_lightcycle_assets;
+use self::camera::{
+    arc_cell_pose, chase_base_pitch, update_chase_camera, update_disc_focus, update_document_focus,
+};
+use self::character::{
+    drive_character_walk, fit_guard_cones, prepare_character_walk, tag_character_model,
+};
+use self::decor::{
+    animate_city_beacons, animate_parent_gate, animate_stack_frames, update_flood, update_gc_sweep,
+    wrap_angle,
+};
+use self::disc::animate_disc_pickups;
+use self::entities::{
+    sync_asteroid_entities, sync_bomberman_entities, sync_breaker_entities,
+    sync_character_entities, sync_columns_entities, sync_directory_scene_visibility,
+    sync_disc_entities, sync_frogger_entities, sync_galaga_entities, sync_pacman_entities,
+    sync_plinko_entities, sync_qbert_entities, sync_snake_entities, sync_stealth_entities,
+    sync_tetris_entities,
+};
+use self::entry::{
+    animate_entry_effect, cleanup_orphaned_entry_effect, spawn_crash_effect, spawn_entry_effect,
+    update_crash_effects,
+};
+use self::input::{read_lightcycle_input, update_cycle_transform};
+use self::load::{
+    apply_document_load_failure, apply_load_failure, apply_source_load_failure,
+    handle_warp_requests, poll_document_loads, poll_source_loads, reset_on_directory_loaded,
+    reset_on_document_loaded, reset_on_source_loaded, start_document_loads, start_source_loads,
+};
+use self::run::{
+    apply_district_ambience, apply_mode_swap, in_lightcycle_mode, restore_directory_arena,
+    toggle_mode,
+};
+use self::step::step_lightcycle;
+use self::trail::update_trail_mesh;
 
 pub struct LightcyclePlugin;
 

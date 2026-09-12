@@ -1,8 +1,33 @@
-//! Moved out of `super` by the modularity pass: spawn_asteroid_field, spawn_bomber_room, spawn_breaker_court, spawn_frogger_highway, spawn_galaga_field, spawn_gem_well, spawn_pac_maze, spawn_platformer_level, spawn_plinko_board, spawn_qbert_pyramid, spawn_snake_field, spawn_stealth_room, spawn_surfer_course, spawn_surfer_gate, spawn_tetris_board, surfer_river_mesh.
-//!
-//! Nothing about them changed in the move.
+//! Static geometry for each source-file mini-game, spawned once per ring.
 
-use super::*;
+use super::disc::disc_language_index;
+use super::{
+    BallEntity, BeamEntity, BlockEntity, BomberBombEntity, BomberCrateEntity, BrickEntity,
+    BugEntity, CharacterAnim, CharacterEntity, DotEntity, FrogObstacleEntity, GalagaBeamEntity,
+    GemEntity, GhostEntity, GuardConeEntity, GuardEntity, LightcycleAssets, PlinkoBallEntity,
+    QbertCubeEntity, QbertEnemyEntity, RockEntity, SnakeFoodEntity, SnakeGateLock,
+};
+use crate::asteroids::sim::AsteroidsSim;
+use crate::bomberman::sim::BomberSim;
+use crate::breaker::sim::BreakerSim;
+use crate::columns::sim::ColumnsSim;
+use crate::config;
+use crate::disc::language::SourceLanguage;
+use crate::frogger::sim::FroggerSim;
+use crate::galaga::sim::GalagaSim;
+use crate::lightcycle::logic::Arena;
+use crate::pacman::sim::PacSim;
+use crate::platformer::sim::PlatformerSim;
+use crate::plinko::sim::PlinkoSim;
+use crate::qbert::sim::QbertSim;
+use crate::snake::sim::SnakeSim;
+use crate::state::LightcycleSceneRoot;
+use crate::stealth::sim::StealthSim;
+use crate::surfer::sim::SurferSim;
+use crate::tetris::sim::TetrisSim;
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology};
+use bevy::prelude::*;
 
 /// Spawns the pooled rock and beam bodies for an asteroid field.
 ///

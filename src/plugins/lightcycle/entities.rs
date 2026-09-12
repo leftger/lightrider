@@ -1,8 +1,23 @@
-//! Moved out of `super` by the modularity pass: sync_asteroid_entities, sync_bomberman_entities, sync_breaker_entities, sync_character_entities, sync_columns_entities, sync_directory_scene_visibility, sync_disc_entities, sync_frogger_entities, sync_galaga_entities, sync_pacman_entities, sync_plinko_entities, sync_qbert_entities, sync_snake_entities, sync_stealth_entities, sync_tetris_entities.
-//!
-//! Nothing about them changed in the move.
+//! Pooled-entity sync systems: show, hide and move a mini-game's entity pool.
 
-use super::*;
+use super::camera::character_pose;
+use super::disc::disc_entity_position;
+use super::{
+    Apart, BallEntity, BeamEntity, BlockEntity, BomberBombEntity, BomberCrateEntity, BrickEntity,
+    BugEntity, CharacterAnim, CharacterEntity, CycleEntity, DiscPickupEntity, DotEntity, Fighter,
+    FreeOf, FrogObstacleEntity, GalagaBeamEntity, GemEntity, GhostEntity, GuardConeEntity,
+    GuardEntity, LightcycleAssets, OpponentDiscEntity, OpponentEntity, OutOfCycle,
+    PlayerDiscEntity, PlinkoBallEntity, Pooled, PooledPosed, PooledPosedTinted, PooledShown,
+    PooledTinted, QbertCubeEntity, QbertEnemyEntity, RockEntity, SnakeFoodEntity, SnakeGateLock,
+};
+use crate::bomberman::sim::BomberSim;
+use crate::config;
+use crate::disc::language::SourceGame;
+use crate::frogger::sim::FroggerSim;
+use crate::lightcycle::LightcycleState;
+use crate::qbert::sim::QbertSim;
+use crate::state::{DirectorySceneRoot, InteractionMode};
+use bevy::prelude::*;
 
 pub(crate) fn sync_directory_scene_visibility(
     mode: Res<InteractionMode>,

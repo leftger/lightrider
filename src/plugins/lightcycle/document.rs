@@ -1,8 +1,13 @@
-//! Moved out of `super` by the modularity pass: collapsed_document_glyph, document_arch_mesh, document_glyph_line_mesh, document_line_advance, document_margin_mesh, document_rule_mesh, document_wall_mesh, glyph_char_offset, glyph_pixel_offset, glyph_pixels, spawn_document_arches, spawn_document_focus_marker, spawn_document_glyphs, spawn_document_page, spawn_document_rules, spawn_document_walls.
-//!
-//! Nothing about them changed in the move.
+//! Rendering a markdown page arena: rules, walls, arches and glyphs.
 
-use super::*;
+use super::camera::{cycle_cell_pose, pose_world_position};
+use super::{DocumentFocusMarker, LightcycleAssets};
+use crate::config;
+use crate::document::layout::DocumentLayout;
+use crate::lightcycle::ActiveRun;
+use crate::lightcycle::logic::Arena;
+use crate::state::LightcycleSceneRoot;
+use bevy::prelude::*;
 
 pub(crate) fn spawn_document_page(
     commands: &mut Commands,

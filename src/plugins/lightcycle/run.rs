@@ -1,8 +1,59 @@
-//! Moved out of `super` by the modularity pass: apply_district_ambience, apply_mode_swap, build_active_run, build_document_run, build_source_run, in_lightcycle_mode, restore_directory_arena, spawn_run_entities, spawn_sim, toggle_mode.
-//!
-//! Nothing about them changed in the move.
+//! Building, swapping, spawning and restoring lightcycle runs.
 
-use super::*;
+use super::camera::{
+    chase_landing_pose, cycle_cell_pose, pose_forward, pose_rotation, pose_world_position,
+};
+use super::city::{
+    city_palette, city_theme_index, spawn_arena_walls, spawn_city_floor, spawn_city_structures,
+    spawn_road_markings, spawn_towers, tower_position,
+};
+use super::decor::{decorate_directory_run, mix_linear};
+use super::disc::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_shell};
+use super::document::{spawn_document_focus_marker, spawn_document_page};
+use super::fields::{
+    spawn_asteroid_field, spawn_bomber_room, spawn_breaker_court, spawn_frogger_highway,
+    spawn_galaga_field, spawn_gem_well, spawn_pac_maze, spawn_platformer_level, spawn_plinko_board,
+    spawn_qbert_pyramid, spawn_snake_field, spawn_stealth_room, spawn_surfer_course,
+    spawn_tetris_board,
+};
+use super::space::{
+    heading_facing, level_metres, ring_center_world, ring_food_cells, ring_radius_world,
+};
+use super::trail::spawn_trail_ribbon;
+use super::{
+    ChaseCamera, CycleEntity, LightcycleAssets, SceneEntities, despawn_lightcycle_entities,
+};
+use crate::asteroids::sim::AsteroidsSim;
+use crate::bomberman::sim::BomberSim;
+use crate::breaker::sim::BreakerSim;
+use crate::columns::sim::ColumnsSim;
+use crate::config;
+use crate::disc::combat::DiscSim;
+use crate::disc::language::{SourceGame, SourceLanguage};
+use crate::disc::layout::{build_capped_disc_arena, build_disc_arena, build_flat_arena};
+use crate::document::layout::build_document_arena_from_parse;
+use crate::document::parse::{ParseLimits, parse_markdown_bytes};
+use crate::filesystem::node::FileNode;
+use crate::frogger::sim::FroggerSim;
+use crate::galaga::sim::GalagaSim;
+use crate::lightcycle::logic::{Arena, GatePlacement, Heading, LightcycleSim};
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
+use crate::pacman::sim::PacSim;
+use crate::platformer::sim::PlatformerSim;
+use crate::plinko::sim::PlinkoSim;
+use crate::plugins::transition::{ModeTransition, gods_eye_pose};
+use crate::qbert::sim::QbertSim;
+use crate::snake::sim::SnakeSim;
+use crate::state::{
+    CacheState, FloodState, HistoryState, InteractionMode, LightcycleSceneRoot, NavigatorResource,
+    OrbitCameraResource,
+};
+use crate::stealth::sim::StealthSim;
+use crate::surfer::sim::SurferSim;
+use crate::tetris::sim::TetrisSim;
+use bevy::prelude::*;
+use std::collections::HashMap;
+use std::path::Path;
 
 pub(crate) fn in_lightcycle_mode(mode: Res<InteractionMode>) -> bool {
     *mode == InteractionMode::Lightcycle

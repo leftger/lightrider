@@ -1,8 +1,18 @@
-//! Moved out of `super` by the modularity pass: animate_entry_effect, cleanup_orphaned_entry_effect, crash_source, entry_effect_envelope, entry_halo_pose, spawn_crash_effect, spawn_entry_effect, update_crash_effects.
-//!
-//! Nothing about them changed in the move.
+//! Crash debris, camera shake, and the directory-tower transport effect.
 
-use super::*;
+use super::decor::smoothstep;
+use super::space::cycle_world_position;
+use super::{
+    Apart, CrashDebris, CycleEntity, EntryBeam, EntryHalo, EntryTransportEntity, LightcycleAssets,
+    Only,
+};
+use crate::config;
+use crate::lightcycle::logic::RunPhase;
+use crate::lightcycle::{ActiveRun, LightcycleState};
+use crate::load::DirectoryRequested;
+use crate::music::sfx::MusicSfx;
+use crate::state::{LightcycleSceneRoot, NavigatorResource};
+use bevy::prelude::*;
 
 /// Ends a source run through the shared crash path, so the burst, the shake, the
 /// label and `R` behave the same as a grid crash.

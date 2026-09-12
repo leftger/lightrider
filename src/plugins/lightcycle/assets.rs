@@ -1,8 +1,12 @@
-//! Moved out of `super` by the modularity pass: neon_material, setup_lightcycle_assets, unlit_material.
-//!
-//! Nothing about them changed in the move.
+//! Materials and unit meshes shared by every lightcycle arena.
 
-use super::*;
+use super::LightcycleAssets;
+use super::character::vision_cone_mesh;
+use super::city::city_palette;
+use super::trail::trail_glass_material;
+use crate::config;
+use crate::disc::language::SourceLanguage;
+use bevy::prelude::*;
 
 pub(crate) fn unlit_material(color: Color) -> StandardMaterial {
     StandardMaterial {

@@ -1,8 +1,15 @@
-//! Moved out of `super` by the modularity pass: build_trail_mesh, collapse_near_duplicates, collapsed_trail_mesh, distances_from_end, polyline_tangent, push_quad, rail_segments, rounded_polyline, spawn_trail_ribbon, trail_centerline, trail_glass_material, trail_glass_mesh, trail_heights, trail_mesh_from, trim_polyline_end, update_trail_mesh.
-//!
-//! Nothing about them changed in the move.
+//! The liquid-glass trail ribbon that streams off the cycle's tail.
 
-use super::*;
+use super::LightcycleAssets;
+use super::camera::{arc_cell_pose, cycle_cell_pose};
+use super::space::{cell_to_point, corner_arc, is_path_turn, offset_cell_point, point_distance};
+use crate::config;
+use crate::lightcycle::logic::LightcycleSim;
+use crate::lightcycle::{ActiveRun, LightcycleState};
+use crate::state::TrailSceneRoot;
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology};
+use bevy::prelude::*;
 
 /// Lit transmissive sheet: the directional light and the arena behind it show
 /// through, with a cyan tint and a hard specular so it reads as glass rather

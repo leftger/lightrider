@@ -1,8 +1,12 @@
-//! Moved out of `super` by the modularity pass: cell_to_point, city_base_trim_mesh, city_cap_mesh, corner_arc, cycle_world_position, heading_angle, heading_facing, is_path_turn, level_metres, nearest_heading, offset_cell_point, point_distance, ring_center_world, ring_food_cells, ring_radius_world, unit_of.
-//!
-//! Nothing about them changed in the move.
+//! World-space maths shared by the arena renderers.
 
-use super::*;
+use super::CornerArc;
+use super::camera::{cycle_cell_pose, pose_world_position};
+use super::city::{city_body_height, city_body_scale};
+use crate::config;
+use crate::disc::layout::DiscLayout;
+use crate::lightcycle::logic::{Arena, CityStructure, Heading, LightcycleSim};
+use bevy::prelude::*;
 
 /// Level length for an off-grid run, in metres: longer file, longer level.
 pub(crate) fn level_metres(layout: &DiscLayout) -> f32 {

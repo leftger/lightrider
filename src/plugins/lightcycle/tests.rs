@@ -1,14 +1,22 @@
-use super::{
-    CITY_TRIM_ACCENT, ChaseCamera, GateScanBar, MarkingQuad, arc_cell_pose, build_trail_mesh,
-    chase_camera_rig, chase_rig_radius, city_base_trim_mesh, city_body_height, city_body_mesh,
-    city_cap_mesh, city_foundation_mesh, city_palette, city_theme_index, cycle_cell_pose,
-    document_line_advance, entry_effect_envelope, entry_halo_pose, gate_bar_height, gate_pulse,
-    gc_sweep_plane, glyph_char_offset, glyph_pixel_offset, glyph_pixels, heading_facing,
-    hug_camera_shot, is_quarantined, marking_chunk_mesh, nearest_heading, pose_forward,
-    pose_rotation, pose_world_position, push_marking_quads, rail_segments, stack_frame_glide,
-    stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge, trail_centerline,
-    trail_heights, trim_polyline_end, wrap_angle,
+use super::camera::{
+    arc_cell_pose, chase_camera_rig, chase_rig_radius, cycle_cell_pose, hug_camera_shot,
+    pose_forward, pose_rotation, pose_world_position,
 };
+use super::city::{
+    city_body_height, city_body_mesh, city_foundation_mesh, city_palette, city_theme_index,
+    marking_chunk_mesh, push_marking_quads,
+};
+use super::decor::{
+    gate_bar_height, gate_pulse, gc_sweep_plane, is_quarantined, stack_frame_glide,
+    stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge, wrap_angle,
+};
+use super::document::{document_line_advance, glyph_char_offset, glyph_pixel_offset, glyph_pixels};
+use super::entry::{entry_effect_envelope, entry_halo_pose};
+use super::space::{city_base_trim_mesh, city_cap_mesh, heading_facing, nearest_heading};
+use super::trail::{
+    build_trail_mesh, rail_segments, trail_centerline, trail_heights, trim_polyline_end,
+};
+use super::{CITY_TRIM_ACCENT, ChaseCamera, GateScanBar, MarkingQuad};
 use crate::config;
 use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
@@ -519,7 +527,7 @@ fn cycle_faces_travel_direction_and_stays_upright_in_every_heading() {
         let rotation = pose_rotation(&pose);
         let model_yaw = bevy::prelude::Quat::from_rotation_y(config::LIGHTCYCLE_MODEL_YAW);
 
-        let travel = super::pose_forward(&pose);
+        let travel = super::camera::pose_forward(&pose);
         let nose = rotation * model_yaw * MODEL_NOSE_AXIS;
         assert!(
             nose.dot(travel) > 0.99,
@@ -557,7 +565,7 @@ fn heading_block(along_x: bool, preview: &str) -> crate::document::layout::Place
 
 #[test]
 fn heading_glyph_meshes_are_non_empty() {
-    let (mesh, used) = super::document_glyph_line_mesh(&heading_block(true, "Title"), 24);
+    let (mesh, used) = super::document::document_glyph_line_mesh(&heading_block(true, "Title"), 24);
     assert!(used > 0);
     assert!(mesh.count_vertices() > 0);
 }
@@ -566,7 +574,8 @@ fn heading_glyph_meshes_are_non_empty() {
 fn glyph_budget_caps_characters_per_line_and_overall() {
     let long = "A".repeat(80);
     let heading = heading_block(true, &long);
-    let (_, used) = super::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
+    let (_, used) =
+        super::document::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
     assert_eq!(used, config::DOCUMENT_HEADING_GLYPHS);
 
     let paragraph = crate::document::layout::PlacedBlock {
@@ -578,20 +587,21 @@ fn glyph_budget_caps_characters_per_line_and_overall() {
         landmark: (1, 0),
         along_x: true,
     };
-    let (_, used) = super::document_glyph_line_mesh(&paragraph, config::DOCUMENT_MAX_GLYPHS);
+    let (_, used) =
+        super::document::document_glyph_line_mesh(&paragraph, config::DOCUMENT_MAX_GLYPHS);
     assert_eq!(used, config::DOCUMENT_PARAGRAPH_GLYPHS);
 
-    let leftover = super::document_glyph_line_mesh(&heading, 3).1;
+    let leftover = super::document::document_glyph_line_mesh(&heading, 3).1;
     assert_eq!(leftover, 3);
 }
 
 #[test]
 fn heading_glyphs_follow_block_orientation() {
-    let along_x = super::document_glyph_line_mesh(&heading_block(true, "HEADING"), 24)
+    let along_x = super::document::document_glyph_line_mesh(&heading_block(true, "HEADING"), 24)
         .0
         .compute_aabb()
         .unwrap();
-    let along_z = super::document_glyph_line_mesh(&heading_block(false, "HEADING"), 24)
+    let along_z = super::document::document_glyph_line_mesh(&heading_block(false, "HEADING"), 24)
         .0
         .compute_aabb()
         .unwrap();
@@ -661,7 +671,7 @@ fn page_rules_span_the_document_arena() {
         std::path::Path::new("/docs/page.md"),
         "# A\n\nB\n",
     );
-    let aabb = super::document_rule_mesh(&arena)
+    let aabb = super::document::document_rule_mesh(&arena)
         .unwrap()
         .compute_aabb()
         .unwrap();
@@ -689,7 +699,8 @@ fn directory_and_document_palettes_and_portals_differ() {
 
 #[test]
 fn document_arenas_have_no_city_skyline() {
-    let run = super::build_document_run(std::path::Path::new("/tmp/note.md"), b"# Hi\n\nHello\n");
+    let run =
+        super::run::build_document_run(std::path::Path::new("/tmp/note.md"), b"# Hi\n\nHello\n");
     assert_eq!(
         run.arena.kind,
         crate::lightcycle::logic::ArenaKind::Document
@@ -709,15 +720,15 @@ fn closing_a_document_can_rebuild_the_containing_directory() {
         12,
         0,
     )];
-    let directory = super::build_active_run(&path, nodes.clone());
-    let document = super::build_document_run(&nodes[0].path, b"# Hi\n");
+    let directory = super::run::build_active_run(&path, nodes.clone());
+    let document = super::run::build_document_run(&nodes[0].path, b"# Hi\n");
     assert!(document.is_document());
     assert!(!directory.is_document());
     assert_eq!(
         directory.arena.kind,
         crate::lightcycle::logic::ArenaKind::Directory
     );
-    let restored = super::build_active_run(&path, nodes);
+    let restored = super::run::build_active_run(&path, nodes);
     assert_eq!(restored.arena, directory.arena);
 }
 
@@ -751,8 +762,8 @@ fn the_flight_lands_on_the_rig_the_chase_camera_will_hold() {
         12,
         0,
     )];
-    let run = super::build_active_run(&path, nodes);
-    let (landing, focus, road) = super::chase_landing_pose(&run);
+    let run = super::run::build_active_run(&path, nodes);
+    let (landing, focus, road) = super::camera::chase_landing_pose(&run);
     let cycle = pose_world_position(&cycle_cell_pose(&run.sim));
 
     assert!((landing.translation.distance(cycle) - chase_rig_radius()).abs() < 1e-4);
@@ -943,7 +954,7 @@ fn the_field_facing_round_trips_through_the_grid_headings() {
 fn each_source_language_builds_only_its_own_game() {
     use crate::disc::language::SourceLanguage;
     let run = |name: &str, language: SourceLanguage, body: &[u8]| {
-        super::build_source_run(std::path::Path::new(name), language, body)
+        super::run::build_source_run(std::path::Path::new(name), language, body)
     };
 
     let field = run("/tmp/field.c", SourceLanguage::C, b"int main(void) {}\n");
@@ -951,7 +962,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(field.source_disc().is_none() && field.source_snake().is_none());
     assert!(field.asteroid_field_active());
     assert!(
-        super::field_camera_focus(&field).is_some(),
+        super::camera::field_camera_focus(&field).is_some(),
         "the field plays from above"
     );
 
@@ -960,7 +971,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(ring.source_asteroids().is_none() && ring.source_snake().is_none());
     assert!(!ring.asteroid_field_active());
     assert!(
-        super::field_camera_focus(&ring).is_none(),
+        super::camera::field_camera_focus(&ring).is_none(),
         "a disc-wars ring must keep the chase camera"
     );
 
@@ -969,7 +980,7 @@ fn each_source_language_builds_only_its_own_game() {
     assert!(snake.source_disc().is_none() && snake.source_asteroids().is_none());
     assert!(!snake.asteroid_field_active());
     assert!(
-        super::field_camera_focus(&snake).is_none(),
+        super::camera::field_camera_focus(&snake).is_none(),
         "snake drives on the grid, so it keeps the chase camera"
     );
     let snake = snake.source_snake().expect("snake state");
@@ -1000,14 +1011,14 @@ fn each_source_language_builds_only_its_own_game() {
 
 #[test]
 fn a_locked_snake_gate_is_a_wall_until_it_opens() {
-    let run = super::build_source_run(
+    let run = super::run::build_source_run(
         std::path::Path::new("/tmp/snake.py"),
         crate::disc::language::SourceLanguage::Python,
         b"print('hi')\n",
     );
     let portal = run.arena.parent_portal.as_ref().expect("a close gate");
     assert!(
-        super::is_ring_gate(&run.arena, portal.to),
+        super::decor::is_ring_gate(&run.arena, portal.to),
         "the portal cell is the gate"
     );
     assert!(

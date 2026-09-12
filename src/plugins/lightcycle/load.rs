@@ -1,8 +1,23 @@
-//! Moved out of `super` by the modularity pass: apply_document_load_failure, apply_load_failure, apply_source_load_failure, handle_warp_requests, poll_document_loads, poll_source_loads, reset_on_directory_loaded, reset_on_document_loaded, reset_on_source_loaded, start_document_loads, start_source_loads, warp_bytes.
-//!
-//! Nothing about them changed in the move.
+//! Loading a directory, document or source file into a run, and the failures that follow.
 
-use super::*;
+use super::decor::decorate_directory_run;
+use super::run::{build_active_run, build_document_run, build_source_run, spawn_run_entities};
+use super::{EntryTransportEntity, LightcycleAssets, SceneEntities, despawn_lightcycle_entities};
+use crate::config;
+use crate::disc::language::SourceLanguage;
+use crate::disc::load::{
+    SourceLoadFailed, SourceLoadState, SourceLoaded, SourceRequested, WarpRequested,
+};
+use crate::document::load::{
+    DocumentLoadFailed, DocumentLoadState, DocumentLoaded, DocumentRequested,
+};
+use crate::lightcycle::LightcycleState;
+use crate::lightcycle::logic::RunPhase;
+use crate::load::{DirectoryLoadFailed, DirectoryLoaded};
+use crate::music::sfx::MusicSfx;
+use crate::state::{CacheState, FloodState, HistoryState, InteractionMode, PauseState};
+use bevy::prelude::*;
+use std::path::PathBuf;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn reset_on_directory_loaded(

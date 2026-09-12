@@ -1,8 +1,19 @@
-//! Moved out of `super` by the modularity pass: build_tower_chunk_mesh, city_body_height, city_body_mesh, city_body_scale, city_foundation_mesh, city_palette, city_theme_index, marking_chunk_mesh, push_marking_quads, spawn_arena_walls, spawn_city_floor, spawn_city_structures, spawn_road_markings, spawn_structure_layer, spawn_towers, spawn_wall_rail, tower_cube_mesh, tower_position, wall_extent, wall_plane.
-//!
-//! Nothing about them changed in the move.
+//! The TRON city: floors, towers, arterial roads and road markings.
 
-use super::*;
+use super::decor::{gate_world_span, spawn_parent_gate};
+use super::space::{city_base_trim_mesh, city_cap_mesh};
+use super::trail::rail_segments;
+use super::{CITY_TRIM_ACCENT, CityBeacon, LightcycleAssets, MarkingQuad};
+use crate::config;
+use crate::filesystem::node::FileNode;
+use crate::lightcycle::logic::{
+    Arena, ArenaKind, CityStructure, CityStructureKind, CityTheme, Wall,
+};
+use crate::lightcycle::{ActiveRun, RunEnvironment};
+use crate::state::LightcycleSceneRoot;
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology};
+use bevy::prelude::*;
 
 pub(crate) fn city_palette() -> [[(Color, LinearRgba); 2]; 4] {
     [

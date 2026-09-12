@@ -1,8 +1,22 @@
-//! Moved out of `super` by the modularity pass: read_lightcycle_input, update_cycle_transform.
-//!
-//! Nothing about them changed in the move.
+//! Lightcycle input handling and the cycle transform update.
 
-use super::*;
+use super::CycleEntity;
+use super::camera::{cycle_cell_pose, pose_rotation, pose_world_position};
+use super::step::restart_run;
+use crate::bomberman::sim::{BomberPhase, BomberSim};
+use crate::config;
+use crate::disc::combat::{DiscEvents, PlayerSnapshot};
+use crate::disc::language::SourceGame;
+use crate::disc::load::WarpRequested;
+use crate::frogger::sim::FroggerSim;
+use crate::lightcycle::logic::RunPhase;
+use crate::lightcycle::{LightcycleState, RunEnvironment};
+use crate::load::DirectoryRequested;
+use crate::music::sfx::MusicSfx;
+use crate::plugins::transition::ModeTransition;
+use crate::qbert::sim::QbertSim;
+use crate::state::{FloodState, HistoryState, NavigatorResource, PauseState};
+use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn read_lightcycle_input(

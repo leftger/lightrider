@@ -1,8 +1,19 @@
-//! Moved out of `super` by the modularity pass: animate_city_beacons, animate_parent_gate, animate_stack_frames, decorate_directory_run, gate_bar_height, gate_pulse, gate_world_span, gc_sweep_plane, is_quarantined, is_ring_gate, mix_linear, smoothstep, spawn_parent_gate, stack_frame_glide, stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge, update_flood, update_gc_sweep, wrap_angle.
-//!
-//! Nothing about them changed in the move.
+//! Ambient scenery: the call stack, the parent gate, the memory flood and the GC sweep.
 
-use super::*;
+use super::city::{city_theme_index, wall_plane};
+use super::{
+    CityBeacon, FloodEntity, GateFrame, GateScanBar, GcSweepEntity, LightcycleAssets,
+    StackFrameEntity,
+};
+use crate::config;
+use crate::lightcycle::logic::{
+    Arena, ArenaKind, ParentPortal, RunPhase, Wall, road_plates, stable_path_seed,
+};
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::music::sfx::MusicSfx;
+use crate::state::{FloodState, LightcycleSceneRoot, PauseState, StackMotion};
+use bevy::prelude::*;
+use std::path::Path;
 
 /// Wraps an angle into `[-PI, PI)` so recentering unwinds the short way round
 /// however many times a drag has spun the camera about the cycle.

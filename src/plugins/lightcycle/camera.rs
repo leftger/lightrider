@@ -1,8 +1,19 @@
-//! Moved out of `super` by the modularity pass: advance_chase_forward, arc_cell_pose, character_pose, chase_base_pitch, chase_camera_rig, chase_landing_pose, chase_rig_radius, cycle_cell_pose, field_camera_focus, hug_camera_shot, pose_forward, pose_rotation, pose_world_position, surfer_camera_rig, update_chase_camera, update_disc_focus, update_document_focus.
-//!
-//! Nothing about them changed in the move.
+//! Chase-camera rigs, cycle poses, and per-game focus helpers.
 
-use super::*;
+use super::space::{corner_arc, heading_angle, unit_of};
+use super::step::step_cell;
+use super::{
+    CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, DocumentFocusMarker,
+    HugShot, Only,
+};
+use crate::config;
+use crate::disc::language::SourceGame;
+use crate::lightcycle::logic::LightcycleSim;
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::plugins::transition::ModeTransition;
+use crate::stealth::sim::StealthSim;
+use bevy::input::mouse::AccumulatedMouseMotion;
+use bevy::prelude::*;
 
 /// Where the chase camera will sit once a run spawns, the point it looks at,
 /// and the road the cycle will ride away down.

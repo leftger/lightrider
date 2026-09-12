@@ -1,8 +1,41 @@
-//! Moved out of `super` by the modularity pass: restart_run, step_asteroid_field, step_bomberman, step_breaker, step_cell, step_columns, step_disc_fight, step_frogger, step_galaga, step_lightcycle, step_pacman, step_platformer, step_plinko, step_qbert, step_snake, step_stealth, step_surfer, step_tetris.
-//!
-//! Nothing about them changed in the move.
+//! The fixed-step simulation: one step per arena and per mini-game.
 
-use super::*;
+use super::decor::is_ring_gate;
+use super::disc::disc_crash_label;
+use super::entry::crash_source;
+use super::run::spawn_sim;
+use super::space::{
+    heading_facing, nearest_heading, ring_center_world, ring_food_cells, ring_radius_world,
+};
+use crate::asteroids::sim::{AsteroidsPhase, AsteroidsSim};
+use crate::bomberman::sim::BomberPhase;
+use crate::breaker::sim::BreakerPhase;
+use crate::columns::sim::ColumnsPhase;
+use crate::config;
+use crate::disc::combat::{DiscPhase, DiscSim, PlayerSnapshot};
+use crate::disc::language::SourceGame;
+use crate::disc::load::SourceRequested;
+use crate::document::load::DocumentRequested;
+use crate::frogger::sim::FroggerPhase;
+use crate::galaga::sim::GalagaPhase;
+use crate::lightcycle::logic::{
+    CellContent, CrashReason, Heading, LightcycleSim, RunPhase, StepOutcome, classify_next_content,
+};
+use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
+use crate::load::DirectoryRequested;
+use crate::music::sfx::MusicSfx;
+use crate::pacman::sim::PacPhase;
+use crate::platformer::sim::PlatformerPhase;
+use crate::plinko::sim::PlinkoPhase;
+use crate::plugins::transition::ModeTransition;
+use crate::qbert::sim::QbertPhase;
+use crate::snake::sim::SnakeSim;
+use crate::state::{NavigatorResource, PauseState};
+use crate::stealth::sim::StealthPhase;
+use crate::surfer::sim::SurferPhase;
+use crate::tetris::sim::TetrisPhase;
+use bevy::prelude::*;
+use std::collections::HashMap;
 
 /// One cell along `heading`. This mirrors the sim's own step for a view-only
 /// walk along a wall, so a mismatch could only ever misplace the camera.

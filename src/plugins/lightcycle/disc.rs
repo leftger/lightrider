@@ -1,8 +1,18 @@
-//! Moved out of `super` by the modularity pass: animate_disc_pickups, disc_crash_label, disc_cube, disc_entity_position, disc_language_index, spawn_disc_arena, spawn_disc_cube_layer, spawn_disc_focus_marker, spawn_disc_gate, spawn_ring_shell.
-//!
-//! Nothing about them changed in the move.
+//! Disc-wars ring geometry: the shell, gallery, gate and pickups.
 
-use super::*;
+use super::camera::{cycle_cell_pose, pose_world_position};
+use super::{
+    DiscPickupEntity, DocumentFocusMarker, LightcycleAssets, OpponentDiscEntity, OpponentEntity,
+    PlayerDiscEntity,
+};
+use crate::config;
+use crate::disc::combat::DiscSim;
+use crate::disc::language::SourceLanguage;
+use crate::disc::layout::DiscLayout;
+use crate::lightcycle::logic::{Arena, CrashReason};
+use crate::lightcycle::{ActiveRun, RunEnvironment};
+use crate::state::LightcycleSceneRoot;
+use bevy::prelude::*;
 
 /// Index into [`LightcycleAssets::disc_accent_materials`].
 pub(crate) fn disc_language_index(language: SourceLanguage) -> usize {

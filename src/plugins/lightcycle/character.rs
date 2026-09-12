@@ -1,8 +1,11 @@
-//! Moved out of `super` by the modularity pass: cone_mesh, cone_positions, drive_character_walk, fit_guard_cones, prepare_character_walk, refit_cone, tag_character_model, vision_cone_mesh, walk_players.
-//!
-//! Nothing about them changed in the move.
+//! The on-foot runner: walk playback and guard vision cones.
 
-use super::*;
+use super::{CharacterEntity, CharacterModel, CharacterWalk, GuardConeEntity, LightcycleAssets};
+use crate::config;
+use crate::lightcycle::LightcycleState;
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology};
+use bevy::prelude::*;
 
 /// A floor fan: a centre point, then one rim point per ray, each reaching as far
 /// as that ray can see. Radii are in the mesh's own units.
