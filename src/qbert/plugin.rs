@@ -79,7 +79,11 @@ pub(crate) fn sync_qbert_entities(
     mut cubes: PooledPosedTinted<QbertCubeEntity, Without<QbertEnemyEntity>>,
     mut enemies: Pooled<QbertEnemyEntity, Without<QbertCubeEntity>>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_qbert()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<QbertSim>())
+    else {
         return;
     };
     for (entity, mut transform, mut material) in &mut cubes {

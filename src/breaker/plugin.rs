@@ -99,7 +99,11 @@ pub(crate) fn sync_breaker_entities(
     mut ball: Query<&mut Transform, (With<BallEntity>, Without<BrickEntity>)>,
     mut bricks: PooledShown<BrickEntity, Apart<BallEntity, CharacterEntity>>,
 ) {
-    let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) else {
+    let Some(level) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<BreakerSim>())
+    else {
         return;
     };
     for mut transform in &mut ball {

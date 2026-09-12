@@ -89,7 +89,11 @@ pub(crate) fn sync_bomberman_entities(
     mut crates: PooledShown<BomberCrateEntity, Apart<BomberBombEntity>>,
     mut bombs: Pooled<BomberBombEntity, Apart<BomberCrateEntity>>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_bomberman()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<BomberSim>())
+    else {
         return;
     };
     for (entity, mut visibility) in &mut crates {

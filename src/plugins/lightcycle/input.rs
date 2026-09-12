@@ -4,19 +4,28 @@ use super::CycleEntity;
 use super::camera::{cycle_cell_pose, pose_rotation, pose_world_position};
 use super::step::restart_run;
 use crate::bomberman::sim::BomberSim;
+use crate::breaker::sim::BreakerSim;
+use crate::columns::sim::ColumnsSim;
 use crate::config;
 use crate::disc::combat::{DiscEvents, PlayerSnapshot};
 use crate::disc::language::SourceGame;
 use crate::disc::load::WarpRequested;
 use crate::frogger::sim::FroggerSim;
+use crate::galaga::sim::GalagaSim;
 use crate::lightcycle::logic::RunPhase;
 use crate::lightcycle::{LightcycleState, RunEnvironment};
 use crate::load::DirectoryRequested;
 use crate::minigame::GameInput;
 use crate::music::sfx::MusicSfx;
+use crate::pacman::sim::PacSim;
+use crate::platformer::sim::PlatformerSim;
+use crate::plinko::sim::PlinkoSim;
 use crate::plugins::transition::ModeTransition;
 use crate::qbert::sim::QbertSim;
 use crate::state::{FloodState, HistoryState, NavigatorResource, PauseState};
+use crate::stealth::sim::StealthSim;
+use crate::surfer::sim::SurferSim;
+use crate::tetris::sim::TetrisSim;
 use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -196,7 +205,7 @@ pub(crate) fn read_lightcycle_input(
             if fired {
                 effects.write(MusicSfx::Zap);
             }
-        } else if let Some(game) = run.source_sim_mut() {
+        } else if let Some(game) = run.source_game_mut() {
             game.input(&frame);
         } else if run.source_game() == Some(SourceGame::DiscWars) {
             // Disc wars: throw and recall. The cycle's movement is unchanged.
@@ -271,7 +280,7 @@ pub(crate) fn update_cycle_transform(
     };
 
     // The on-foot games park the bike out of sight and pose their own character.
-    if run.source_platformer().is_some() || run.source_stealth().is_some() {
+    if run.source_sim::<PlatformerSim>().is_some() || run.source_sim::<StealthSim>().is_some() {
         *visibility = Visibility::Hidden;
         return;
     }
@@ -279,7 +288,7 @@ pub(crate) fn update_cycle_transform(
 
     // In the breaker the bike is the paddle: it slides along the bottom of the
     // court and rebounds the ball.
-    if let Some(level) = run.source_breaker() {
+    if let Some(level) = run.source_sim::<BreakerSim>() {
         transform.translation = Vec3::new(level.paddle_x, config::BREAKER_PADDLE_Y, 0.0);
         transform.rotation = Quat::IDENTITY;
         transform.scale = Vec3::splat(config::BREAKER_PADDLE_SCALE);
@@ -289,7 +298,7 @@ pub(crate) fn update_cycle_transform(
 
     // The surfer rides the shared bike as a hovercraft over the river, bobbing
     // with the waves and leaning into the steering heading.
-    if let Some(surfer) = run.source_surfer() {
+    if let Some(surfer) = run.source_sim::<SurferSim>() {
         transform.translation = Vec3::new(surfer.x, surfer.height, surfer.z);
         transform.rotation = Quat::from_rotation_arc(
             Vec3::X,
@@ -300,14 +309,14 @@ pub(crate) fn update_cycle_transform(
 
     // The Galaga field parks the bike on the bottom edge, facing up the field,
     // and slides it side to side.
-    if let Some(sim) = run.source_galaga() {
+    if let Some(sim) = run.source_sim::<GalagaSim>() {
         transform.translation = Vec3::new(sim.player_x, 0.0, config::GALAGA_PLAYER_Z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;
     }
 
     // Pac-Man rides the maze corridors.
-    if let Some(sim) = run.source_pacman() {
+    if let Some(sim) = run.source_sim::<PacSim>() {
         transform.translation = Vec3::new(sim.x, 0.7, sim.z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;
@@ -315,30 +324,30 @@ pub(crate) fn update_cycle_transform(
 
     // Columns and Tetris park the bike at the foot of the well; Plinko parks
     // it on the top rail.
-    if run.source_columns().is_some() {
+    if run.source_sim::<ColumnsSim>().is_some() {
         transform.translation = Vec3::new(0.0, 0.0, 3.0);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Y);
         return;
     }
-    if run.source_tetris().is_some() {
+    if run.source_sim::<TetrisSim>().is_some() {
         transform.translation = Vec3::new(0.0, 0.0, 4.0);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Y);
         return;
     }
-    if let Some(sim) = run.source_plinko() {
+    if let Some(sim) = run.source_sim::<PlinkoSim>() {
         transform.translation = Vec3::new(sim.aim, config::PLINKO_HEIGHT * 0.5 - 1.0, 0.0);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Y);
         return;
     }
 
     // Frogger and Bomberman walk the cycle on their X/Z grids.
-    if let Some(sim) = run.source_frogger() {
+    if let Some(sim) = run.source_sim::<FroggerSim>() {
         let (x, z) = FroggerSim::center(sim.cell);
         transform.translation = Vec3::new(x, 0.7, z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;
     }
-    if let Some(sim) = run.source_bomberman() {
+    if let Some(sim) = run.source_sim::<BomberSim>() {
         let (x, z) = BomberSim::center(sim.cell);
         transform.translation = Vec3::new(x, 0.7, z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
@@ -346,7 +355,7 @@ pub(crate) fn update_cycle_transform(
     }
 
     // Q*bert perches the bike on its current cube.
-    if let Some(sim) = run.source_qbert() {
+    if let Some(sim) = run.source_sim::<QbertSim>() {
         let (x, z) = QbertSim::cube_position(sim.row, sim.index);
         let y =
             (config::QBERT_ROWS as f32 - 1.0 - sim.row as f32) * config::QBERT_CUBE_HEIGHT * 0.5

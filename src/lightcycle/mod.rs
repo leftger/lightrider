@@ -122,6 +122,15 @@ impl SourceSim {
         }
     }
 
+    /// The uniform game behind this sim, recovered as its concrete type.
+    ///
+    /// The game's own wiring is the only caller, so it always names its own
+    /// type; a game that is not `T` simply yields `None`.
+    pub fn sim<T: crate::minigame::SourceGameSim + 'static>(&self) -> Option<&T> {
+        let game = self.as_game()?;
+        crate::minigame::AsAny::as_any(game).downcast_ref::<T>()
+    }
+
     pub fn as_disc(&self) -> Option<&DiscSim> {
         match self {
             Self::DiscWars(disc) => Some(disc),
@@ -160,90 +169,6 @@ impl SourceSim {
     pub fn as_snake_mut(&mut self) -> Option<&mut SnakeSim> {
         match self {
             Self::Snake(snake) => Some(snake),
-            _ => None,
-        }
-    }
-
-    pub fn as_platformer(&self) -> Option<&PlatformerSim> {
-        match self {
-            Self::Platformer(level) => Some(level),
-            _ => None,
-        }
-    }
-
-    pub fn as_breaker(&self) -> Option<&BreakerSim> {
-        match self {
-            Self::Breaker(level) => Some(level),
-            _ => None,
-        }
-    }
-
-    pub fn as_stealth(&self) -> Option<&StealthSim> {
-        match self {
-            Self::Stealth(room) => Some(room),
-            _ => None,
-        }
-    }
-
-    pub fn as_surfer(&self) -> Option<&SurferSim> {
-        match self {
-            Self::Surfer(surfer) => Some(surfer),
-            _ => None,
-        }
-    }
-
-    pub fn as_galaga(&self) -> Option<&GalagaSim> {
-        match self {
-            Self::Galaga(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_pacman(&self) -> Option<&PacSim> {
-        match self {
-            Self::PacMan(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_columns(&self) -> Option<&ColumnsSim> {
-        match self {
-            Self::Columns(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_tetris(&self) -> Option<&TetrisSim> {
-        match self {
-            Self::Tetris(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_frogger(&self) -> Option<&FroggerSim> {
-        match self {
-            Self::Frogger(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_qbert(&self) -> Option<&QbertSim> {
-        match self {
-            Self::Qbert(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_bomberman(&self) -> Option<&BomberSim> {
-        match self {
-            Self::Bomberman(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_plinko(&self) -> Option<&PlinkoSim> {
-        match self {
-            Self::Plinko(sim) => Some(sim),
             _ => None,
         }
     }
@@ -311,9 +236,17 @@ impl ActiveRun {
     }
 
     /// The uniform mini-game behind this source run, for stepping and input.
-    pub fn source_sim_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
+    pub fn source_game_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
         match &mut self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_game_mut(),
+            _ => None,
+        }
+    }
+
+    /// The uniform game behind this run, recovered as its concrete type.
+    pub fn source_sim<T: crate::minigame::SourceGameSim + 'static>(&self) -> Option<&T> {
+        match &self.environment {
+            RunEnvironment::Source { sim, .. } => sim.sim::<T>(),
             _ => None,
         }
     }
@@ -356,90 +289,6 @@ impl ActiveRun {
     pub fn source_snake_mut(&mut self) -> Option<&mut SnakeSim> {
         match &mut self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_snake_mut(),
-            _ => None,
-        }
-    }
-
-    pub fn source_platformer(&self) -> Option<&PlatformerSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_platformer(),
-            _ => None,
-        }
-    }
-
-    pub fn source_breaker(&self) -> Option<&BreakerSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_breaker(),
-            _ => None,
-        }
-    }
-
-    pub fn source_stealth(&self) -> Option<&StealthSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_stealth(),
-            _ => None,
-        }
-    }
-
-    pub fn source_surfer(&self) -> Option<&SurferSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_surfer(),
-            _ => None,
-        }
-    }
-
-    pub fn source_galaga(&self) -> Option<&GalagaSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_galaga(),
-            _ => None,
-        }
-    }
-
-    pub fn source_pacman(&self) -> Option<&PacSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_pacman(),
-            _ => None,
-        }
-    }
-
-    pub fn source_columns(&self) -> Option<&ColumnsSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_columns(),
-            _ => None,
-        }
-    }
-
-    pub fn source_tetris(&self) -> Option<&TetrisSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_tetris(),
-            _ => None,
-        }
-    }
-
-    pub fn source_frogger(&self) -> Option<&FroggerSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_frogger(),
-            _ => None,
-        }
-    }
-
-    pub fn source_qbert(&self) -> Option<&QbertSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_qbert(),
-            _ => None,
-        }
-    }
-
-    pub fn source_bomberman(&self) -> Option<&BomberSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_bomberman(),
-            _ => None,
-        }
-    }
-
-    pub fn source_plinko(&self) -> Option<&PlinkoSim> {
-        match &self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_plinko(),
             _ => None,
         }
     }

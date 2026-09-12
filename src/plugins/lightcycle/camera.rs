@@ -3,13 +3,18 @@
 use super::space::{corner_arc, heading_angle};
 use super::{CharacterEntity, CharacterPose, ChaseCamera, CycleEntity, CyclePose, Only};
 use crate::asteroids::plugin::field_camera_focus;
+use crate::breaker::sim::BreakerSim;
 use crate::config;
 use crate::disc::language::SourceGame;
+use crate::galaga::sim::GalagaSim;
 use crate::lightcycle::logic::LightcycleSim;
 use crate::lightcycle::{ActiveRun, LightcycleState};
+use crate::platformer::sim::PlatformerSim;
 use crate::plugins::transition::ModeTransition;
 use crate::stealth::plugin::hug_camera_shot;
+use crate::stealth::sim::StealthSim;
 use crate::surfer::plugin::surfer_camera_rig;
+use crate::surfer::sim::SurferSim;
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
 
@@ -28,7 +33,7 @@ pub(crate) fn chase_landing_pose(run: &ActiveRun) -> (Transform, Vec3, Vec3) {
 }
 
 pub(crate) fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
-    if let Some(level) = run.source_platformer() {
+    if let Some(level) = run.source_sim::<PlatformerSim>() {
         return Some(CharacterPose {
             target: Vec3::new(level.runner.x, level.runner.y, 0.0),
             // A quarter turn each way, not a half: the model's forward is
@@ -42,7 +47,7 @@ pub(crate) fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
             smooth: false,
         });
     }
-    run.source_stealth().map(|room| {
+    run.source_sim::<StealthSim>().map(|room| {
         // Backed against a wall, the figure is leaned into it. Standing a whole
         // cell short reads as not quite touching, which loses the pose entirely;
         // `hug` is the wall's direction, so the lean is toward it. It eases in and
@@ -217,7 +222,11 @@ pub(crate) fn update_chase_camera(
     }
 
     // The platformer is played from the side, riding along with the runner.
-    if let Some(level) = state.run.as_ref().and_then(|run| run.source_platformer()) {
+    if let Some(level) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<PlatformerSim>())
+    {
         let focus = Vec3::new(
             level.runner.x + config::PLATFORMER_CAMERA_AHEAD,
             (level.runner.y + config::PLATFORMER_CAMERA_HEIGHT).max(2.0),
@@ -232,7 +241,11 @@ pub(crate) fn update_chase_camera(
 
     // The breaker is played head-on: the whole court stays in frame while the
     // bike slides along the bottom.
-    if let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) {
+    if let Some(level) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<BreakerSim>())
+    {
         let centre = Vec3::new(0.0, level.court.1 * 0.5, 0.0);
         camera.translation = Vec3::new(0.0, centre.y, config::BREAKER_CAMERA_BACK);
         camera.look_at(centre, Vec3::Y);
@@ -240,7 +253,11 @@ pub(crate) fn update_chase_camera(
     }
 
     // The stealth run is played from above, like a stakeout.
-    if let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) {
+    if let Some(room) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+    {
         // Follow where the figure is actually drawn, not the cell it is walking
         // toward: the sim moves in whole cells, so tracking the cell would lurch
         // the whole view once per step.
@@ -306,7 +323,7 @@ pub(crate) fn update_chase_camera(
     if state
         .run
         .as_ref()
-        .and_then(|run| run.source_galaga())
+        .and_then(|run| run.source_sim::<GalagaSim>())
         .is_some()
     {
         let center = Vec3::ZERO;
@@ -406,7 +423,7 @@ pub(crate) fn update_chase_camera(
     let surfing = state
         .run
         .as_ref()
-        .and_then(|run| run.source_surfer())
+        .and_then(|run| run.source_sim::<SurferSim>())
         .is_some();
     let (offset, view_forward) = if surfing {
         surfer_camera_rig(chase.forward, chase.look)

@@ -12,6 +12,7 @@ use crate::state::{
     FloodState, HistoryState, InteractionMode, MachineState, NavigatorResource, PauseState,
     SelectionState, UiNotice, UiSettings,
 };
+use crate::stealth::sim::StealthSim;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use std::path::PathBuf;
@@ -110,7 +111,7 @@ fn sync_radar(
     if state
         .run
         .as_ref()
-        .and_then(|run| run.source_stealth())
+        .and_then(|run| run.source_sim::<StealthSim>())
         .is_none()
     {
         for panel in &panels {
@@ -301,7 +302,11 @@ fn sync_pause_menu(
 /// about where is safe to stand — which is the one thing a stealth map must get
 /// right.
 fn update_radar(state: Res<LightcycleState>, mut cells: Query<(&RadarCell, &mut BackgroundColor)>) {
-    let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) else {
+    let Some(room) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+    else {
         return;
     };
     for (cell, mut shade) in &mut cells {

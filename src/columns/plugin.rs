@@ -76,7 +76,11 @@ pub(crate) fn sync_columns_entities(
     assets: Res<LightcycleAssets>,
     mut gems: PooledTinted<GemEntity, OutOfCycle>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_columns()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<ColumnsSim>())
+    else {
         return;
     };
     let rendered = sim.render_board();

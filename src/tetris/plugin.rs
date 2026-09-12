@@ -77,7 +77,11 @@ pub(crate) fn sync_tetris_entities(
     assets: Res<LightcycleAssets>,
     mut blocks: PooledTinted<BlockEntity, OutOfCycle>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_tetris()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<TetrisSim>())
+    else {
         return;
     };
     let rendered = sim.render_board();

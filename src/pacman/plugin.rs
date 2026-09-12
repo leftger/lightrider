@@ -79,7 +79,11 @@ pub(crate) fn sync_pacman_entities(
     mut dots: PooledShown<DotEntity, Apart<GhostEntity>>,
     mut ghosts: Pooled<GhostEntity, Apart<DotEntity>>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_pacman()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<PacSim>())
+    else {
         return;
     };
     for (entity, mut visibility) in &mut dots {

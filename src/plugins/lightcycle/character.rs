@@ -3,7 +3,9 @@
 use super::{CharacterEntity, CharacterModel, CharacterWalk, LightcycleAssets};
 use crate::config;
 use crate::lightcycle::LightcycleState;
+use crate::platformer::sim::PlatformerSim;
 use crate::stealth::plugin::GuardConeEntity;
+use crate::stealth::sim::StealthSim;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
@@ -64,7 +66,11 @@ pub(crate) fn fit_guard_cones(
     mut meshes: ResMut<Assets<Mesh>>,
     mut cones: Query<(&mut GuardConeEntity, &mut Transform, &mut Mesh3d)>,
 ) {
-    let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) else {
+    let Some(room) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+    else {
         return;
     };
     for (mut cone, mut transform, mut mesh) in &mut cones {
@@ -151,14 +157,14 @@ pub(crate) fn drive_character_walk(
     // per second. The guards walk continuously, so their clip must not stop
     // just because the player is waiting for them to pass.
     let step_speed = config::STEALTH_WALK_SPEED;
-    let character_speed = if let Some(room) = run.source_stealth() {
+    let character_speed = if let Some(room) = run.source_sim::<StealthSim>() {
         if room.walking { step_speed } else { 0.0 }
-    } else if let Some(level) = run.source_platformer() {
+    } else if let Some(level) = run.source_sim::<PlatformerSim>() {
         level.runner.vx.abs()
     } else {
         0.0
     };
-    let guard_speed = if run.source_stealth().is_some() {
+    let guard_speed = if run.source_sim::<StealthSim>().is_some() {
         step_speed
     } else {
         0.0

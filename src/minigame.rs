@@ -8,6 +8,24 @@
 //!
 //! The types here stay free of Bevy so the sims remain unit-testable.
 
+use std::any::Any;
+
+/// Recovers a mini-game's concrete type from behind its trait object.
+///
+/// The lightcycle steps and feeds source games through `dyn SourceGameSim`, but
+/// each game's own sync and camera code still needs to read its sim's fields.
+/// This is the blanket-implemented hook that makes that possible without an
+/// accessor per game.
+pub trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T: Any> AsAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 /// A gameplay sound a mini-game asks the run for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameSound {
@@ -68,7 +86,7 @@ impl GameInput {
 }
 
 /// The step a mini-game plays. Implemented beside each sim.
-pub trait SourceGameSim {
+pub trait SourceGameSim: AsAny {
     /// Advances the game one fixed step.
     fn tick(&mut self, dt: f32) -> GameTick;
 

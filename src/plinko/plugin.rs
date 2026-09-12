@@ -89,7 +89,11 @@ pub(crate) fn sync_plinko_entities(
     state: Res<LightcycleState>,
     mut balls: Query<(&PlinkoBallEntity, &mut Transform, &mut Visibility), Without<CycleEntity>>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_plinko()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<PlinkoSim>())
+    else {
         return;
     };
     for (entity, mut transform, mut visibility) in &mut balls {

@@ -144,7 +144,11 @@ pub(crate) fn sync_stealth_entities(
     mut guards: PooledPosed<GuardEntity, Apart<GuardConeEntity, CharacterEntity>>,
     mut cones: PooledPosed<GuardConeEntity, Apart<GuardEntity, CharacterEntity>>,
 ) {
-    let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) else {
+    let Some(room) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+    else {
         return;
     };
     for (guard, mut transform) in &mut guards {

@@ -42,7 +42,11 @@ pub(crate) fn sync_frogger_entities(
     state: Res<LightcycleState>,
     mut obstacles: Pooled<FrogObstacleEntity, OutOfCycle>,
 ) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_frogger()) else {
+    let Some(sim) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<FroggerSim>())
+    else {
         return;
     };
     let cells = sim.obstacle_cells();

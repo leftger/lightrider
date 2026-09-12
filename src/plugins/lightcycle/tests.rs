@@ -16,6 +16,7 @@ use super::trail::{
     build_trail_mesh, rail_segments, trail_centerline, trail_heights, trim_polyline_end,
 };
 use super::{CITY_TRIM_ACCENT, ChaseCamera, GateScanBar, MarkingQuad};
+use crate::breaker::sim::BreakerSim;
 use crate::config;
 use crate::document::plugin::{
     document_line_advance, glyph_char_offset, glyph_pixel_offset, glyph_pixels,
@@ -23,6 +24,7 @@ use crate::document::plugin::{
 use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
 };
+use crate::platformer::sim::PlatformerSim;
 use crate::state::StackMotion;
 use crate::stealth::plugin::hug_camera_shot;
 use crate::stealth::sim::StealthSim;
@@ -999,20 +1001,31 @@ fn each_source_language_builds_only_its_own_game() {
         SourceLanguage::Slint,
         b"export component App {}\n",
     );
-    assert!(level.source_platformer().is_some());
+    assert!(level.source_sim::<PlatformerSim>().is_some());
     assert!(!level.asteroid_field_active());
     assert!(
-        level.source_platformer().expect("level").platforms.len() > 2,
+        level
+            .source_sim::<PlatformerSim>()
+            .expect("level")
+            .platforms
+            .len()
+            > 2,
         "a level should have platforms to run"
     );
 
     let court = run("/tmp/init.lua", SourceLanguage::Lua, b"local x = 1\n");
-    assert!(court.source_breaker().is_some());
-    assert!(court.source_breaker().expect("court").remaining() > 0);
+    assert!(court.source_sim::<BreakerSim>().is_some());
+    assert!(court.source_sim::<BreakerSim>().expect("court").remaining() > 0);
 
     let room = run("/tmp/build.sh", SourceLanguage::Shell, b"set -e\n");
-    assert!(room.source_stealth().is_some());
-    assert!(!room.source_stealth().expect("room").guards.is_empty());
+    assert!(room.source_sim::<StealthSim>().is_some());
+    assert!(
+        !room
+            .source_sim::<StealthSim>()
+            .expect("room")
+            .guards
+            .is_empty()
+    );
 }
 
 #[test]
