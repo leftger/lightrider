@@ -1,35 +1,14 @@
 //! Source-language identity for a disc-wars ring.
 //!
 //! Each language is a ring type, not a different game (see
-//! `docs/disc-wars-plan.md`, section 1). This module owns the extension
-//! allowlist and the small per-language touches: the compiler name the opponent
-//! dais carries, the ring accent colour, and the arpeggiator tint applied while
-//! the ring is open.
+//! `docs/disc-wars-plan.md`, section 1). The allowlist itself lives in
+//! [`crate::filesystem::language`]; this module owns what a language means to
+//! the ring: the game it opens, the compiler name the opponent dais carries,
+//! the ring accent colour, and the arpeggiator tint applied while it is open.
 
 use crate::config;
+use crate::filesystem::language::SourceLanguage;
 use bevy::prelude::Color;
-use std::path::Path;
-
-/// A source language that may be ridden as a disc-wars ring.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SourceLanguage {
-    Rust,
-    C,
-    Cpp,
-    Python,
-    Slint,
-    Lua,
-    Shell,
-    Toml,
-    Json,
-    Go,
-    Ruby,
-    Yaml,
-    JavaScript,
-    Zig,
-    Php,
-    R,
-}
 
 /// Which mini-game a source file opens.
 ///
@@ -127,38 +106,6 @@ impl SourceLanguage {
         SourceLanguage::Php,
         SourceLanguage::R,
     ];
-
-    /// Maps a lowercase file extension to a language, or `None` when the
-    /// extension is not part of the allowlist.
-    pub fn from_extension(extension: &str) -> Option<Self> {
-        match extension.to_ascii_lowercase().as_str() {
-            "rs" => Some(Self::Rust),
-            // Headers are their own ring for now; the plan leaves linking a
-            // header to its `.c` to phase 2.
-            "c" | "h" => Some(Self::C),
-            "cc" | "cpp" | "cxx" | "hpp" | "hh" | "hxx" => Some(Self::Cpp),
-            "py" | "pyi" => Some(Self::Python),
-            "slint" => Some(Self::Slint),
-            "lua" => Some(Self::Lua),
-            "sh" | "bash" | "zsh" => Some(Self::Shell),
-            "toml" => Some(Self::Toml),
-            "json" => Some(Self::Json),
-            "go" => Some(Self::Go),
-            "rb" => Some(Self::Ruby),
-            "yaml" | "yml" => Some(Self::Yaml),
-            "js" | "mjs" => Some(Self::JavaScript),
-            "zig" => Some(Self::Zig),
-            "php" => Some(Self::Php),
-            "r" => Some(Self::R),
-            _ => None,
-        }
-    }
-
-    pub fn from_path(path: &Path) -> Option<Self> {
-        path.extension()
-            .and_then(|extension| extension.to_str())
-            .and_then(Self::from_extension)
-    }
 
     /// Short name used in the HUD and the dais label.
     pub fn name(self) -> &'static str {

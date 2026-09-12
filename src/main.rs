@@ -30,6 +30,7 @@ mod state;
 mod stealth;
 mod surfer;
 mod tetris;
+mod text;
 
 use cli::Options;
 use config::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};

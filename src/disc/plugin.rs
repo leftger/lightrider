@@ -5,8 +5,8 @@
 
 use crate::config;
 use crate::disc::combat::DiscSim;
-use crate::disc::language::SourceLanguage;
 use crate::disc::layout::DiscLayout;
+use crate::filesystem::language::SourceLanguage;
 use crate::lightcycle::logic::{Arena, CrashReason};
 use crate::lightcycle::scene::DocumentFocusMarker;
 use crate::lightcycle::scene::Fighter;

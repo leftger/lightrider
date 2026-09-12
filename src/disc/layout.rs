@@ -7,7 +7,7 @@
 //! The same file therefore always produces the same ring.
 
 use crate::config;
-use crate::disc::language::SourceLanguage;
+use crate::filesystem::language::SourceLanguage;
 use crate::lightcycle::logic::{
     Arena, ArenaKind, CityTheme, Heading, ParentPortal, Wall, stable_path_seed,
 };
@@ -343,10 +343,8 @@ fn build_arena(
             .get(index)
             .cloned()
             .unwrap_or_else(|| format!("fn {}", language.name()));
-        let preview = crate::document::parse::truncate_chars(
-            &text,
-            config::document::DOCUMENT_PARAGRAPH_GLYPHS,
-        );
+        let preview =
+            crate::text::truncate_chars(&text, config::document::DOCUMENT_PARAGRAPH_GLYPHS);
         blocks.push(DiscBlock {
             text,
             preview,
@@ -825,7 +823,7 @@ fn mix(seed: u64, value: u64) -> u64 {
 mod tests {
     use super::{PickupKind, SourceSignals, build_disc_arena, heading_toward, tokenize_source};
     use crate::config;
-    use crate::disc::language::SourceLanguage;
+    use crate::filesystem::language::SourceLanguage;
     use crate::lightcycle::logic::{ArenaKind, Heading, Wall};
     use std::path::Path;
 

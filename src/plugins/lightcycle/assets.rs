@@ -4,7 +4,7 @@ use super::character::vision_cone_mesh;
 use super::city::city_palette;
 use super::trail::trail_glass_material;
 use crate::config;
-use crate::disc::language::SourceLanguage;
+use crate::filesystem::language::SourceLanguage;
 use crate::lightcycle::scene::LightcycleAssets;
 use bevy::prelude::*;
 

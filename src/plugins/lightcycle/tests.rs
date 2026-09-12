@@ -977,7 +977,7 @@ fn the_field_facing_round_trips_through_the_grid_headings() {
 /// appeared in disc wars.
 #[test]
 fn each_source_language_builds_only_its_own_game() {
-    use crate::disc::language::SourceLanguage;
+    use crate::filesystem::language::SourceLanguage;
     let run = |name: &str, language: SourceLanguage, body: &[u8]| {
         super::run::build_source_run(std::path::Path::new(name), language, body)
     };
@@ -1049,7 +1049,7 @@ fn each_source_language_builds_only_its_own_game() {
 fn a_locked_snake_gate_is_a_wall_until_it_opens() {
     let run = super::run::build_source_run(
         std::path::Path::new("/tmp/snake.py"),
-        crate::disc::language::SourceLanguage::Python,
+        crate::filesystem::language::SourceLanguage::Python,
         b"print('hi')\n",
     );
     let portal = run.arena.parent_portal.as_ref().expect("a close gate");

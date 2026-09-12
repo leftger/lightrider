@@ -1,4 +1,5 @@
 use crate::config;
+use crate::text::truncate_chars;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocBlockKind {
@@ -185,14 +186,6 @@ fn push_block(blocks: &mut Vec<DocBlock>, kind: DocBlockKind, text: &str, limits
         text,
         preview,
     });
-}
-
-pub fn truncate_chars(text: &str, max_chars: usize) -> String {
-    let count = text.chars().count();
-    if count <= max_chars {
-        return text.to_string();
-    }
-    text.chars().take(max_chars).collect()
 }
 
 #[cfg(test)]

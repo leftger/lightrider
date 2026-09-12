@@ -9,7 +9,7 @@ pub(crate) mod pose;
 
 use self::pose::{chase_base_pitch, wrap_angle};
 use crate::config;
-use crate::disc::language::SourceLanguage;
+use crate::filesystem::language::SourceLanguage;
 use crate::state::{LightcycleSceneRoot, TrailSceneRoot};
 use bevy::prelude::*;
 

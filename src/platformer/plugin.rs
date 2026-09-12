@@ -3,8 +3,8 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::disc::language::SourceLanguage;
 use crate::disc::plugin::disc_language_index;
+use crate::filesystem::language::SourceLanguage;
 use crate::lightcycle::scene::CharacterAnim;
 use crate::lightcycle::scene::CharacterEntity;
 use crate::lightcycle::scene::LightcycleAssets;

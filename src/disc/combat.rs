@@ -761,8 +761,8 @@ fn vertical_heading(from: (i32, i32), to: (i32, i32)) -> Heading {
 mod tests {
     use super::{DiscPhase, DiscSim, PlayerSnapshot};
     use crate::config;
-    use crate::disc::language::SourceLanguage;
     use crate::disc::layout::{DiscLayout, build_disc_arena};
+    use crate::filesystem::language::SourceLanguage;
     use crate::lightcycle::logic::{Arena, Heading, Turn};
     use std::path::Path;
 
