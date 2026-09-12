@@ -103,13 +103,16 @@ impl TetrisSim {
         (self.unit() * TETROMINOES.len() as f32) as usize % TETROMINOES.len()
     }
 
+    /// Latches a frame's input. `soft` is held; the rest are edges, so they
+    /// accumulate until a step consumes them rather than being overwritten by a
+    /// frame that ran no step.
     pub fn set_input(&mut self, slide: i32, rotate: bool, soft: bool, drop: bool) {
-        self.input = TetrisInput {
-            slide,
-            rotate,
-            soft,
-            drop,
-        };
+        if slide != 0 {
+            self.input.slide = slide;
+        }
+        self.input.rotate |= rotate;
+        self.input.soft = soft;
+        self.input.drop |= drop;
     }
 
     fn cells(&self, piece: usize, rotation: usize, x: i32, y: i32) -> [(i32, i32); 4] {
@@ -274,6 +277,21 @@ mod tests {
 
     fn sim() -> TetrisSim {
         TetrisSim::new(5, 200)
+    }
+
+    #[test]
+    fn edge_presses_survive_a_frame_that_runs_no_step() {
+        // Input is latched once per rendered frame but consumed on a 1/60
+        // accumulator, so a press has to outlive the release that follows it
+        // on a frame that ran no step.
+        let mut game = sim();
+        let x = game.x;
+        game.set_input(1, true, false, false);
+        game.set_input(0, false, false, false);
+        let events = game.update(1.0 / 60.0);
+        assert_eq!(game.x, x + 1, "the slide was swallowed");
+        assert!(events.rotated, "the rotate was swallowed");
+        assert_eq!(game.rotation, 1);
     }
 
     #[test]

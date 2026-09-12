@@ -125,9 +125,12 @@ impl BreakerSim {
         self.bricks.iter().filter(|brick| brick.alive).count()
     }
 
-    /// Latches a frame's input. `slide` is held; `launch` is an edge.
+    /// Latches a frame's input. `slide` is held; `launch` is an edge, so it
+    /// accumulates until a step consumes it rather than being overwritten by a
+    /// frame that ran no step.
     pub fn set_input(&mut self, slide: f32, launch: bool) {
-        self.input = BreakerInput { slide, launch };
+        self.input.slide = slide;
+        self.input.launch |= launch;
     }
 
     /// Left edge of a brick in court space.
@@ -308,6 +311,19 @@ mod tests {
         level.set_input(0.0, true);
         level.update(1.0 / 60.0);
         assert_eq!(level.phase, BreakerPhase::Running);
+    }
+
+    #[test]
+    fn a_launch_press_survives_a_frame_that_runs_no_step() {
+        // Input is latched once per rendered frame but consumed on a 1/60
+        // accumulator, so a press has to outlive the release that follows it
+        // on a frame that ran no step.
+        let mut level = sim(1);
+        level.set_input(0.0, true);
+        level.set_input(0.0, false);
+        level.update(1.0 / 60.0);
+        assert_eq!(level.phase, BreakerPhase::Running);
+        assert!(!level.ball.held, "the serve was swallowed");
     }
 
     #[test]

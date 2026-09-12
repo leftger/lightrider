@@ -161,9 +161,16 @@ impl PlatformerSim {
         }
     }
 
-    /// Latches a frame's input. `walk` is held; `jump` is an edge.
+    /// Latches a frame's input. `walk` is held, so it simply replaces what was
+    /// there; `jump` is an edge and accumulates until a step consumes it.
+    ///
+    /// The edge has to be sticky because input is read once per rendered frame
+    /// while steps only run on a 60Hz accumulator: above 60Hz some frames run
+    /// no step at all, and a press latched on one of those would otherwise be
+    /// overwritten by the next frame's release before anything could see it.
     pub fn set_input(&mut self, walk: f32, jump: bool) {
-        self.input = PlatformerInput { walk, jump };
+        self.input.walk = walk;
+        self.input.jump |= jump;
     }
 
     /// Advances one fixed step from the latched [`Self::input`].
@@ -421,6 +428,73 @@ mod tests {
             }
         }
         assert!(landed, "what goes up must come down");
+    }
+
+    #[test]
+    fn a_jump_press_survives_a_frame_that_runs_no_step() {
+        // Input is read once per rendered frame, but steps run on a 60Hz
+        // accumulator, so a frame on a faster display can run no step at all.
+        // Two latches back to back stand in for that: the press must outlive
+        // the release that follows it.
+        let mut level = sim(1);
+        level.set_input(0.0, true);
+        level.set_input(0.0, false);
+        assert!(
+            level.update(1.0 / 60.0).jumped,
+            "the jump was swallowed by a frame that ran no step"
+        );
+        assert!(!level.runner.on_ground);
+    }
+
+    #[test]
+    fn a_spent_jump_edge_does_not_fire_again() {
+        let mut level = sim(1);
+        level.set_input(0.0, true);
+        assert!(level.update(1.0 / 60.0).jumped);
+        // Back on the ground with nothing pressed: a sticky edge must not have
+        // outlived the step that consumed it.
+        for _ in 0..240 {
+            level.set_input(0.0, false);
+            assert!(!level.update(1.0 / 60.0).jumped, "a spent edge relaunched");
+        }
+    }
+
+    #[test]
+    fn every_jump_press_lands_at_any_refresh_rate() {
+        // Replays the real frame loop: `read_lightcycle_input` latching once a
+        // frame, then `step_lightcycle` draining a 1/60 accumulator. Before the
+        // edge was made sticky, everything above 60Hz silently ate presses.
+        let fixed_step = 1.0 / 60.0;
+        let max_substeps = 4;
+
+        for display_hz in [60.0_f32, 75.0, 120.0, 144.0, 240.0] {
+            let mut level = sim(3);
+            let mut clock = 0.0_f32;
+            let (mut pressed, mut jumped) = (0, 0);
+
+            // An odd cadence so presses land on both substep parities.
+            for frame in 0..1200 {
+                let press = frame % 31 == 0 && level.runner.on_ground;
+                pressed += u32::from(press);
+                level.set_input(0.0, press);
+
+                clock = (clock + 1.0 / display_hz).min(fixed_step * max_substeps as f32);
+                let mut substeps = 0;
+                while clock >= fixed_step && substeps < max_substeps {
+                    clock -= fixed_step;
+                    substeps += 1;
+                    jumped += u32::from(level.update(fixed_step).jumped);
+                }
+            }
+
+            assert!(pressed > 0, "{display_hz}Hz: the harness never pressed");
+            assert_eq!(
+                pressed,
+                jumped,
+                "{display_hz}Hz: {} of {pressed} presses never became jumps",
+                pressed - jumped
+            );
+        }
     }
 
     #[test]

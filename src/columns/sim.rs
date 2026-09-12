@@ -120,12 +120,15 @@ impl ColumnsSim {
         }
     }
 
+    /// Latches a frame's input. Every field is an edge, so each accumulates
+    /// until a step consumes it rather than being overwritten by a frame that
+    /// ran no step.
     pub fn set_input(&mut self, slide: i32, rotate: bool, drop: bool) {
-        self.input = ColumnsInput {
-            slide,
-            rotate,
-            drop,
-        };
+        if slide != 0 {
+            self.input.slide = slide;
+        }
+        self.input.rotate |= rotate;
+        self.input.drop |= drop;
     }
 
     fn cell(&self, col: i32, row: i32) -> Option<u8> {
@@ -315,6 +318,22 @@ mod tests {
 
     fn sim() -> ColumnsSim {
         ColumnsSim::new(5, 200)
+    }
+
+    #[test]
+    fn edge_presses_survive_a_frame_that_runs_no_step() {
+        // Input is latched once per rendered frame but consumed on a 1/60
+        // accumulator, so a press has to outlive the release that follows it
+        // on a frame that ran no step.
+        let mut well = sim();
+        let start = well.col;
+        let colours = well.piece;
+        well.set_input(1, true, false);
+        well.set_input(0, false, false);
+        let events = well.update(1.0 / 60.0);
+        assert_eq!(well.col, start + 1, "the slide was swallowed");
+        assert!(events.rotated, "the rotate was swallowed");
+        assert_ne!(well.piece, colours);
     }
 
     #[test]

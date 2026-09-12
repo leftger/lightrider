@@ -156,9 +156,12 @@ impl GalagaSim {
         (config::GALAGA_ROWS - row) as u32 * 40
     }
 
-    /// Latches a frame's input. `slide` is held; `fire` is an edge.
+    /// Latches a frame's input. `slide` is held; `fire` is an edge, so it
+    /// accumulates until a step consumes it rather than being overwritten by a
+    /// frame that ran no step.
     pub fn set_input(&mut self, slide: f32, fire: bool) {
-        self.input = GalagaInput { slide, fire };
+        self.input.slide = slide;
+        self.input.fire |= fire;
     }
 
     /// Advances one frame.
@@ -357,6 +360,21 @@ mod tests {
         let mut sim = GalagaSim::new(7, lines);
         sim.invuln = 0.0;
         sim
+    }
+
+    #[test]
+    fn a_fire_press_survives_a_frame_that_runs_no_step() {
+        // Input is latched once per rendered frame but consumed on a 1/60
+        // accumulator, so a press has to outlive the release that follows it
+        // on a frame that ran no step.
+        let mut field = sim(200);
+        field.set_input(0.0, true);
+        field.set_input(0.0, false);
+        assert!(
+            field.update(1.0 / 60.0).fired,
+            "the shot was swallowed by a frame that ran no step"
+        );
+        assert_eq!(field.beams.len(), 1);
     }
 
     #[test]
