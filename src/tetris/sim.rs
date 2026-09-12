@@ -284,6 +284,16 @@ impl SourceGameSim for TetrisSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "TETRIS {} / {} LINES | RING: {ring} | {language} | {inner}",
+            self.lines,
+            config::TETRIS_TARGET_LINES
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

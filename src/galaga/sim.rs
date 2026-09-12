@@ -372,6 +372,15 @@ impl SourceGameSim for GalagaSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "GALAGA {} | LIVES {} | RING: {ring} | {language} | {inner}",
+            self.score, self.lives
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

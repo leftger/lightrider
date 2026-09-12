@@ -271,6 +271,15 @@ impl SourceGameSim for SurferSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "SURFER {}% | RIVER: {ring} | {language} | {inner}",
+            (self.progress() * 100.0).round() as u32
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

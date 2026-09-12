@@ -210,6 +210,15 @@ impl SourceGameSim for PlinkoSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "PLINKO {} / {} | BALLS {} | RING: {ring} | {language} | {inner}",
+            self.score, self.target, self.balls_left
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

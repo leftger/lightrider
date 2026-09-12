@@ -170,6 +170,15 @@ impl SourceGameSim for FroggerSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "FROGGER LIVES {} | RING: {ring} | {language} | {inner}",
+            self.lives
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

@@ -315,6 +315,15 @@ impl SourceGameSim for BreakerSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "BREAKER {} bricks | RING: {ring} | {language} | {inner}",
+            self.remaining()
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

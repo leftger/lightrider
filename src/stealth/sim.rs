@@ -576,6 +576,14 @@ impl SourceGameSim for StealthSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        format!(
+            "STEALTH {} | DETECT {}% | RING: {ring} | {language} | {inner}",
+            self.phase.label(),
+            self.detection_percent()
+        )
+    }
 }
 
 #[cfg(test)]

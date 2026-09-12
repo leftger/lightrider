@@ -209,6 +209,16 @@ impl SourceGameSim for BomberSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "BOMBERMAN CRATES {} | LIVES {} | RING: {ring} | {language} | {inner}",
+            self.crates.len(),
+            self.lives
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]

@@ -769,108 +769,6 @@ fn update_status_text(
                                 if snake.exit_open { "OPEN" } else { "LOCKED" }
                             );
                         }
-                        SourceSim::Platformer(level) => {
-                            status = format!(
-                                "PLATFORMER {}% | RING: {name} | {} | {status}",
-                                (level.progress() * 100.0).round() as u32,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", level.phase.label());
-                        }
-                        SourceSim::Breaker(level) => {
-                            status = format!(
-                                "BREAKER {} bricks | RING: {name} | {} | {status}",
-                                level.remaining(),
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", level.phase.label());
-                        }
-                        SourceSim::Stealth(room) => {
-                            status = format!(
-                                "STEALTH {} | DETECT {}% | RING: {name} | {} | {status}",
-                                room.phase.label(),
-                                room.detection_percent(),
-                                language.name(),
-                            );
-                        }
-                        SourceSim::Surfer(surfer) => {
-                            status = format!(
-                                "SURFER {}% | RIVER: {name} | {} | {status}",
-                                (surfer.progress() * 100.0).round() as u32,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", surfer.phase.label());
-                        }
-                        SourceSim::Galaga(sim) => {
-                            status = format!(
-                                "GALAGA {} | LIVES {} | RING: {name} | {} | {status}",
-                                sim.score,
-                                sim.lives,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::PacMan(sim) => {
-                            status = format!(
-                                "PAC-MAN {} | LIVES {} | RING: {name} | {} | {status}",
-                                sim.score,
-                                sim.lives,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Columns(sim) => {
-                            status = format!(
-                                "COLUMNS {} | RING: {name} | {} | {status}",
-                                sim.score,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Tetris(sim) => {
-                            status = format!(
-                                "TETRIS {} / {} LINES | RING: {name} | {} | {status}",
-                                sim.lines,
-                                config::TETRIS_TARGET_LINES,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Frogger(sim) => {
-                            status = format!(
-                                "FROGGER LIVES {} | RING: {name} | {} | {status}",
-                                sim.lives,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Qbert(sim) => {
-                            status = format!(
-                                "QBERT LIVES {} | RING: {name} | {} | {status}",
-                                sim.lives,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Bomberman(sim) => {
-                            status = format!(
-                                "BOMBERMAN CRATES {} | LIVES {} | RING: {name} | {} | {status}",
-                                sim.crates.len(),
-                                sim.lives,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
-                        SourceSim::Plinko(sim) => {
-                            status = format!(
-                                "PLINKO {} / {} | BALLS {} | RING: {name} | {} | {status}",
-                                sim.score,
-                                sim.target,
-                                sim.balls_left,
-                                language.name(),
-                            );
-                            status = format!("{status} | {}", sim.phase.label());
-                        }
                         SourceSim::DiscWars(disc) => {
                             status = format!(
                                 "DISC {}-{} | RING: {name} | {} | {status}",
@@ -887,6 +785,14 @@ fn update_status_text(
                             // LOCK means a throw would currently line up a clear shot.
                             if disc.has_clear_shot(run.sim.cell, &run.arena) {
                                 status = format!("{status} | LOCK");
+                            }
+                        }
+                        // The uniform games own their status text beside their
+                        // sim. Asteroids, snake and disc wars keep their own
+                        // arms because they carry extra run context.
+                        _ => {
+                            if let Some(game) = sim.as_game() {
+                                status = game.status_line(name, language.name(), &status);
                             }
                         }
                     }

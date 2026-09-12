@@ -43,4 +43,9 @@ impl GameTick {
 pub trait SourceGameSim {
     /// Advances the game one fixed step.
     fn tick(&mut self, dt: f32) -> GameTick;
+
+    /// This game's segment of the lightcycle status line, wrapped around the
+    /// `inner` text the run has built so far. `ring` is the file's name and
+    /// `language` the compiler or language it was recognised as.
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String;
 }

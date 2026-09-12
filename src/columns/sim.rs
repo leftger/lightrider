@@ -325,6 +325,15 @@ impl SourceGameSim for ColumnsSim {
         }
         tick
     }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "COLUMNS {} | RING: {ring} | {language} | {inner}",
+            self.score
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
 }
 
 #[cfg(test)]
