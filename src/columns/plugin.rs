@@ -5,9 +5,9 @@
 use crate::columns::sim::ColumnsSim;
 use crate::config;
 use crate::lightcycle::LightcycleState;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::OutOfCycle;
-use crate::plugins::lightcycle::PooledTinted;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::OutOfCycle;
+use crate::lightcycle::scene::PooledTinted;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

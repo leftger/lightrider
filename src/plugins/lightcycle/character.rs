@@ -1,8 +1,11 @@
 //! The on-foot runner: walk playback and guard vision cones.
 
-use super::{CharacterEntity, CharacterModel, CharacterWalk, LightcycleAssets};
 use crate::config;
 use crate::lightcycle::LightcycleState;
+use crate::lightcycle::scene::CharacterEntity;
+use crate::lightcycle::scene::CharacterModel;
+use crate::lightcycle::scene::CharacterWalk;
+use crate::lightcycle::scene::LightcycleAssets;
 use crate::platformer::sim::PlatformerSim;
 use crate::stealth::plugin::GuardConeEntity;
 use crate::stealth::sim::StealthSim;

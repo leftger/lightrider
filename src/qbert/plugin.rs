@@ -4,9 +4,9 @@
 
 use crate::config;
 use crate::lightcycle::LightcycleState;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::Pooled;
-use crate::plugins::lightcycle::PooledPosedTinted;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::Pooled;
+use crate::lightcycle::scene::PooledPosedTinted;
 use crate::qbert::sim::QbertSim;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;

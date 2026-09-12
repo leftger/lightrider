@@ -1239,6 +1239,16 @@ pub fn classify_next_content(
     CellContent::Empty
 }
 
+/// One cell along `heading`.
+pub(crate) fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
+    match heading {
+        Heading::PosX => (cell.0 + 1, cell.1),
+        Heading::NegX => (cell.0 - 1, cell.1),
+        Heading::PosZ => (cell.0, cell.1 + 1),
+        Heading::NegZ => (cell.0, cell.1 - 1),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{

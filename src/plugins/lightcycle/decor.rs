@@ -1,26 +1,22 @@
 //! Ambient scenery: the call stack, the parent gate, the memory flood and the GC sweep.
 
 use super::city::{city_theme_index, wall_plane};
-use super::{
-    CityBeacon, FloodEntity, GateFrame, GateScanBar, GcSweepEntity, LightcycleAssets,
-    StackFrameEntity,
-};
 use crate::config;
 use crate::lightcycle::logic::{
     Arena, ArenaKind, ParentPortal, RunPhase, Wall, road_plates, stable_path_seed,
 };
+use crate::lightcycle::scene::CityBeacon;
+use crate::lightcycle::scene::FloodEntity;
+use crate::lightcycle::scene::GateFrame;
+use crate::lightcycle::scene::GateScanBar;
+use crate::lightcycle::scene::GcSweepEntity;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::StackFrameEntity;
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
 use crate::music::sfx::MusicSfx;
 use crate::state::{FloodState, LightcycleSceneRoot, PauseState, StackMotion};
 use bevy::prelude::*;
 use std::path::Path;
-
-/// Wraps an angle into `[-PI, PI)` so recentering unwinds the short way round
-/// however many times a drag has spun the camera about the cycle.
-pub(crate) fn wrap_angle(angle: f32) -> f32 {
-    use std::f32::consts::{PI, TAU};
-    (angle + PI).rem_euclid(TAU) - PI
-}
 
 /// True when `cell` is a ring's close gate.
 pub(crate) fn is_ring_gate(arena: &Arena, cell: (i32, i32)) -> bool {

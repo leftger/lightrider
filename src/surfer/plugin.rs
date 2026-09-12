@@ -3,7 +3,7 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::plugins::lightcycle::LightcycleAssets;
+use crate::lightcycle::scene::LightcycleAssets;
 use crate::state::LightcycleSceneRoot;
 use crate::surfer::sim::SurferSim;
 use bevy::asset::RenderAssetUsages;

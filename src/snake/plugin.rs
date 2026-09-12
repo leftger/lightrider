@@ -5,7 +5,7 @@
 use crate::config;
 use crate::lightcycle::LightcycleState;
 use crate::lightcycle::logic::Arena;
-use crate::plugins::lightcycle::LightcycleAssets;
+use crate::lightcycle::scene::LightcycleAssets;
 use crate::snake::sim::SnakeSim;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;

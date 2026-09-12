@@ -1,11 +1,15 @@
 //! Pooled-entity sync systems: show, hide and move a mini-game's entity pool.
 
 use super::camera::character_pose;
-use super::{CharacterAnim, CycleEntity, Fighter, FreeOf, PooledShown};
 use crate::config;
 use crate::disc::plugin::disc_entity_position;
 use crate::disc::plugin::{DiscPickupEntity, OpponentDiscEntity, OpponentEntity, PlayerDiscEntity};
 use crate::lightcycle::LightcycleState;
+use crate::lightcycle::scene::CharacterAnim;
+use crate::lightcycle::scene::CycleEntity;
+use crate::lightcycle::scene::Fighter;
+use crate::lightcycle::scene::FreeOf;
+use crate::lightcycle::scene::PooledShown;
 use crate::state::{DirectorySceneRoot, InteractionMode};
 use bevy::prelude::*;
 

@@ -4,14 +4,14 @@
 
 use crate::config;
 use crate::lightcycle::LightcycleState;
-use crate::plugins::lightcycle::Apart;
-use crate::plugins::lightcycle::CharacterAnim;
-use crate::plugins::lightcycle::CharacterEntity;
-use crate::plugins::lightcycle::HugShot;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::PooledPosed;
-use crate::plugins::lightcycle::space::unit_of;
-use crate::plugins::lightcycle::step::step_cell;
+use crate::lightcycle::logic::step_cell;
+use crate::lightcycle::scene::Apart;
+use crate::lightcycle::scene::CharacterAnim;
+use crate::lightcycle::scene::CharacterEntity;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::PooledPosed;
+use crate::lightcycle::scene::pose::HugShot;
+use crate::lightcycle::scene::pose::unit_of;
 use crate::state::LightcycleSceneRoot;
 use crate::stealth::sim::StealthSim;
 use bevy::prelude::*;

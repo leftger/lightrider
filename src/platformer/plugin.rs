@@ -5,10 +5,10 @@
 use crate::config;
 use crate::disc::language::SourceLanguage;
 use crate::disc::plugin::disc_language_index;
+use crate::lightcycle::scene::CharacterAnim;
+use crate::lightcycle::scene::CharacterEntity;
+use crate::lightcycle::scene::LightcycleAssets;
 use crate::platformer::sim::PlatformerSim;
-use crate::plugins::lightcycle::CharacterAnim;
-use crate::plugins::lightcycle::CharacterEntity;
-use crate::plugins::lightcycle::LightcycleAssets;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

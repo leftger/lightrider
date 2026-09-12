@@ -4,9 +4,9 @@
 
 use crate::config;
 use crate::lightcycle::LightcycleState;
+use crate::lightcycle::scene::CycleEntity;
+use crate::lightcycle::scene::LightcycleAssets;
 use crate::plinko::sim::PlinkoSim;
-use crate::plugins::lightcycle::CycleEntity;
-use crate::plugins::lightcycle::LightcycleAssets;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

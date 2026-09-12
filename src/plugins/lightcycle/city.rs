@@ -1,14 +1,17 @@
 //! The TRON city: floors, towers, arterial roads and road markings.
 
+use super::CITY_TRIM_ACCENT;
 use super::decor::{gate_world_span, spawn_parent_gate};
 use super::space::{city_base_trim_mesh, city_cap_mesh};
 use super::trail::rail_segments;
-use super::{CITY_TRIM_ACCENT, CityBeacon, LightcycleAssets, MarkingQuad};
 use crate::config;
 use crate::filesystem::node::FileNode;
 use crate::lightcycle::logic::{
     Arena, ArenaKind, CityStructure, CityStructureKind, CityTheme, Wall,
 };
+use crate::lightcycle::scene::CityBeacon;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::MarkingQuad;
 use crate::lightcycle::{ActiveRun, RunEnvironment};
 use crate::state::LightcycleSceneRoot;
 use bevy::asset::RenderAssetUsages;

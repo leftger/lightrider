@@ -1,11 +1,12 @@
 //! World-space maths shared by the arena renderers.
 
-use super::CornerArc;
-use super::camera::{cycle_cell_pose, pose_world_position};
 use super::city::{city_body_height, city_body_scale};
 use crate::config;
 use crate::disc::layout::DiscLayout;
 use crate::lightcycle::logic::{Arena, CityStructure, Heading, LightcycleSim};
+use crate::lightcycle::scene::pose::cycle_cell_pose;
+use crate::lightcycle::scene::pose::heading_angle;
+use crate::lightcycle::scene::pose::pose_world_position;
 use bevy::prelude::*;
 
 /// Level length for an off-grid run, in metres: longer file, longer level.
@@ -29,12 +30,6 @@ pub(crate) fn ring_radius_world(layout: &DiscLayout) -> f32 {
 /// Driveable cells of a ring, in a stable order, for scattering power-ups.
 pub(crate) fn ring_food_cells(arena: &Arena) -> Vec<(i32, i32)> {
     arena.roads.iter().copied().collect()
-}
-
-/// The unit vector a heading points along, in the `(x, z)` the world is built on.
-pub(crate) fn unit_of(heading: Heading) -> (f32, f32) {
-    let angle = heading_angle(heading);
-    (angle.cos(), angle.sin())
 }
 
 pub(crate) fn city_cap_mesh(structure: &CityStructure) -> Mesh {
@@ -98,59 +93,10 @@ pub(crate) fn cycle_world_position(sim: &LightcycleSim) -> Vec3 {
     pose_world_position(&cycle_cell_pose(sim))
 }
 
-pub(crate) fn corner_arc(sim: &LightcycleSim) -> Option<CornerArc> {
-    let radius = config::lightcycle::LIGHTCYCLE_TURN_RADIUS;
-
-    // Approaching a queued turn: the first half of the arc happens just before
-    // the cycle reaches the intersection cell.
-    if let Some(turn) = sim.queued_turn
-        && sim.cell_t >= 1.0 - radius
-    {
-        let incoming = sim.heading.delta();
-        let outgoing = sim.heading.turn(turn).delta();
-        let u = ((sim.cell_t - (1.0 - radius)) / radius) * 0.5;
-        return Some(CornerArc {
-            corner: sim.next_cell(),
-            incoming,
-            outgoing,
-            u,
-            radius,
-        });
-    }
-
-    // Just applied a turn: render the second half of the arc after leaving the
-    // intersection cell. The previous trail cell tells us the incoming heading.
-    if sim.queued_turn.is_none()
-        && sim.cell_t <= radius
-        && let Some(&previous) = sim.trail.last()
-    {
-        let incoming = (sim.cell.0 - previous.0, sim.cell.1 - previous.1);
-        let outgoing = sim.heading.delta();
-        let is_turn = incoming.0 * outgoing.0 + incoming.1 * outgoing.1 == 0;
-        if is_turn {
-            let u = 0.5 + (sim.cell_t / radius) * 0.5;
-            return Some(CornerArc {
-                corner: sim.cell,
-                incoming,
-                outgoing,
-                u,
-                radius,
-            });
-        }
-    }
-
-    None
-}
-
 /// Facing, in radians, for a grid heading, matching the field's aim convention
 /// (`0` is `+X`, growing toward `+Z`).
 pub(crate) fn heading_facing(heading: Heading) -> f32 {
     heading_angle(heading)
-}
-
-/// Facing of a grid heading, in radians.
-pub(crate) fn heading_angle(heading: Heading) -> f32 {
-    heading.angle()
 }
 
 /// The grid heading closest to an aim angle. Used when the field ends so the

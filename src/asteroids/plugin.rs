@@ -7,9 +7,9 @@ use crate::config;
 use crate::disc::language::SourceGame;
 use crate::lightcycle::ActiveRun;
 use crate::lightcycle::LightcycleState;
-use crate::plugins::lightcycle::Apart;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::Pooled;
+use crate::lightcycle::scene::Apart;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::Pooled;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

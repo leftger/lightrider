@@ -5,10 +5,10 @@
 use crate::breaker::sim::BreakerSim;
 use crate::config;
 use crate::lightcycle::LightcycleState;
-use crate::plugins::lightcycle::Apart;
-use crate::plugins::lightcycle::CharacterEntity;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::PooledShown;
+use crate::lightcycle::scene::Apart;
+use crate::lightcycle::scene::CharacterEntity;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::PooledShown;
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

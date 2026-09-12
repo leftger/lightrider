@@ -14,7 +14,7 @@ use crate::disc::load::SourceRequested;
 use crate::disc::plugin::disc_crash_label;
 use crate::document::load::DocumentRequested;
 use crate::lightcycle::logic::{
-    CellContent, CrashReason, Heading, LightcycleSim, RunPhase, StepOutcome, classify_next_content,
+    CellContent, CrashReason, LightcycleSim, RunPhase, StepOutcome, classify_next_content,
 };
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
 use crate::load::DirectoryRequested;
@@ -25,17 +25,6 @@ use crate::snake::sim::SnakeSim;
 use crate::state::{NavigatorResource, PauseState};
 use bevy::prelude::*;
 use std::collections::HashMap;
-
-/// One cell along `heading`. This mirrors the sim's own step for a view-only
-/// walk along a wall, so a mismatch could only ever misplace the camera.
-pub(crate) fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
-    match heading {
-        Heading::PosX => (cell.0 + 1, cell.1),
-        Heading::NegX => (cell.0 - 1, cell.1),
-        Heading::PosZ => (cell.0, cell.1 + 1),
-        Heading::NegZ => (cell.0, cell.1 - 1),
-    }
-}
 
 pub(crate) fn restart_run(run: &mut ActiveRun) {
     match &mut run.environment {

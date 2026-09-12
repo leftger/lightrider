@@ -1,7 +1,5 @@
 //! Lightcycle input handling and the cycle transform update.
 
-use super::CycleEntity;
-use super::camera::{cycle_cell_pose, pose_rotation, pose_world_position};
 use super::step::restart_run;
 use crate::bomberman::sim::BomberSim;
 use crate::breaker::sim::BreakerSim;
@@ -13,6 +11,10 @@ use crate::disc::load::WarpRequested;
 use crate::frogger::sim::FroggerSim;
 use crate::galaga::sim::GalagaSim;
 use crate::lightcycle::logic::RunPhase;
+use crate::lightcycle::scene::CycleEntity;
+use crate::lightcycle::scene::pose::cycle_cell_pose;
+use crate::lightcycle::scene::pose::pose_rotation;
+use crate::lightcycle::scene::pose::pose_world_position;
 use crate::lightcycle::{LightcycleState, RunEnvironment};
 use crate::load::DirectoryRequested;
 use crate::minigame::GameInput;

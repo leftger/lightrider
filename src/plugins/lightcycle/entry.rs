@@ -2,12 +2,16 @@
 
 use super::decor::smoothstep;
 use super::space::cycle_world_position;
-use super::{
-    Apart, CrashDebris, CycleEntity, EntryBeam, EntryHalo, EntryTransportEntity, LightcycleAssets,
-    Only,
-};
 use crate::config;
 use crate::lightcycle::logic::RunPhase;
+use crate::lightcycle::scene::Apart;
+use crate::lightcycle::scene::CrashDebris;
+use crate::lightcycle::scene::CycleEntity;
+use crate::lightcycle::scene::EntryBeam;
+use crate::lightcycle::scene::EntryHalo;
+use crate::lightcycle::scene::EntryTransportEntity;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::Only;
 use crate::lightcycle::{ActiveRun, LightcycleState};
 use crate::load::DirectoryRequested;
 use crate::music::sfx::MusicSfx;

@@ -1,21 +1,17 @@
-use super::camera::{
-    arc_cell_pose, chase_camera_rig, chase_rig_radius, cycle_cell_pose, pose_forward,
-    pose_rotation, pose_world_position,
-};
+use super::CITY_TRIM_ACCENT;
 use super::city::{
     city_body_height, city_body_mesh, city_foundation_mesh, city_palette, city_theme_index,
     marking_chunk_mesh, push_marking_quads,
 };
 use super::decor::{
     gate_bar_height, gate_pulse, gc_sweep_plane, is_quarantined, stack_frame_glide,
-    stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge, wrap_angle,
+    stack_frame_hover, stack_frame_mesh, stack_frame_rock, stack_plunge,
 };
 use super::entry::{entry_effect_envelope, entry_halo_pose};
 use super::space::{city_base_trim_mesh, city_cap_mesh, heading_facing, nearest_heading};
 use super::trail::{
     build_trail_mesh, rail_segments, trail_centerline, trail_heights, trim_polyline_end,
 };
-use super::{CITY_TRIM_ACCENT, ChaseCamera, GateScanBar, MarkingQuad};
 use crate::breaker::sim::BreakerSim;
 use crate::config;
 use crate::document::plugin::{
@@ -24,6 +20,17 @@ use crate::document::plugin::{
 use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
 };
+use crate::lightcycle::scene::ChaseCamera;
+use crate::lightcycle::scene::GateScanBar;
+use crate::lightcycle::scene::MarkingQuad;
+use crate::lightcycle::scene::pose::arc_cell_pose;
+use crate::lightcycle::scene::pose::chase_camera_rig;
+use crate::lightcycle::scene::pose::chase_rig_radius;
+use crate::lightcycle::scene::pose::cycle_cell_pose;
+use crate::lightcycle::scene::pose::pose_forward;
+use crate::lightcycle::scene::pose::pose_rotation;
+use crate::lightcycle::scene::pose::pose_world_position;
+use crate::lightcycle::scene::pose::wrap_angle;
 use crate::platformer::sim::PlatformerSim;
 use crate::state::StackMotion;
 use crate::stealth::plugin::hug_camera_shot;
@@ -44,7 +51,7 @@ const RADIUS: f32 = config::lightcycle::LIGHTCYCLE_TURN_RADIUS;
 const MODEL_NOSE_AXIS: Vec3 = Vec3::X;
 
 /// A right turn at cell (1, 0): entering along +X, leaving along +Z.
-fn right_corner(u: f32) -> super::CyclePose {
+fn right_corner(u: f32) -> crate::lightcycle::scene::pose::CyclePose {
     arc_cell_pose((1, 0), (1, 0), (0, 1), u, RADIUS)
 }
 
@@ -83,7 +90,7 @@ fn hugging_room(wall_cells: &[(i32, i32)]) -> StealthSim {
 
 /// Asserts that the imaginary figure at `shot.offset` looking at `shot.look`
 /// has every `subject` inside its view.
-fn assert_shot_frames(shot: &super::HugShot, subjects: &[(&str, Vec3)]) {
+fn assert_shot_frames(shot: &crate::lightcycle::scene::pose::HugShot, subjects: &[(&str, Vec3)]) {
     let camera = shot.offset;
     let view = horizontal_angle(shot.offset, shot.look);
     for (label, point) in subjects {
@@ -524,7 +531,7 @@ fn gate_bars_stay_evenly_spaced_up_the_opening() {
 fn cycle_faces_travel_direction_and_stays_upright_in_every_heading() {
     for heading in [Heading::PosX, Heading::NegX, Heading::PosZ, Heading::NegZ] {
         let (dx, dz) = heading.delta();
-        let pose = super::CyclePose {
+        let pose = crate::lightcycle::scene::pose::CyclePose {
             position: (0.0, 0.0),
             direction: Vec2::new(dx as f32, dz as f32),
             lean: 0.0,
@@ -533,7 +540,7 @@ fn cycle_faces_travel_direction_and_stays_upright_in_every_heading() {
         let model_yaw =
             bevy::prelude::Quat::from_rotation_y(config::lightcycle::LIGHTCYCLE_MODEL_YAW);
 
-        let travel = super::camera::pose_forward(&pose);
+        let travel = crate::lightcycle::scene::pose::pose_forward(&pose);
         let nose = rotation * model_yaw * MODEL_NOSE_AXIS;
         assert!(
             nose.dot(travel) > 0.99,
@@ -776,7 +783,7 @@ fn the_flight_lands_on_the_rig_the_chase_camera_will_hold() {
         0,
     )];
     let run = super::run::build_active_run(&path, nodes);
-    let (landing, focus, road) = super::camera::chase_landing_pose(&run);
+    let (landing, focus, road) = crate::lightcycle::scene::pose::chase_landing_pose(&run);
     let cycle = pose_world_position(&cycle_cell_pose(&run.sim));
 
     assert!((landing.translation.distance(cycle) - chase_rig_radius()).abs() < 1e-4);

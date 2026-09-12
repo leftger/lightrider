@@ -1,10 +1,12 @@
 //! The liquid-glass trail ribbon that streams off the cycle's tail.
 
-use super::LightcycleAssets;
-use super::camera::{arc_cell_pose, cycle_cell_pose};
-use super::space::{cell_to_point, corner_arc, is_path_turn, offset_cell_point, point_distance};
+use super::space::{cell_to_point, is_path_turn, offset_cell_point, point_distance};
 use crate::config;
 use crate::lightcycle::logic::LightcycleSim;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::pose::arc_cell_pose;
+use crate::lightcycle::scene::pose::corner_arc;
+use crate::lightcycle::scene::pose::cycle_cell_pose;
 use crate::lightcycle::{ActiveRun, LightcycleState};
 use crate::state::TrailSceneRoot;
 use bevy::asset::RenderAssetUsages;

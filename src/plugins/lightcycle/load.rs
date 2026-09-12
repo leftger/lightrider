@@ -1,8 +1,8 @@
 //! Loading a directory, document or source file into a run, and the failures that follow.
 
 use super::decor::decorate_directory_run;
+use super::despawn_lightcycle_entities;
 use super::run::{build_active_run, build_document_run, build_source_run, spawn_run_entities};
-use super::{EntryTransportEntity, LightcycleAssets, SceneEntities, despawn_lightcycle_entities};
 use crate::config;
 use crate::disc::language::SourceLanguage;
 use crate::disc::load::{
@@ -13,6 +13,9 @@ use crate::document::load::{
 };
 use crate::lightcycle::LightcycleState;
 use crate::lightcycle::logic::RunPhase;
+use crate::lightcycle::scene::EntryTransportEntity;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::SceneEntities;
 use crate::load::{DirectoryLoadFailed, DirectoryLoaded};
 use crate::music::sfx::MusicSfx;
 use crate::state::{CacheState, FloodState, HistoryState, InteractionMode, PauseState};

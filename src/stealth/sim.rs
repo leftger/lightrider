@@ -13,6 +13,7 @@
 use crate::config;
 use crate::grid::chebyshev;
 use crate::lightcycle::logic::Heading;
+use crate::lightcycle::logic::step_cell;
 use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
@@ -540,15 +541,6 @@ fn guard_lanes(half_w: i32, half_h: i32) -> Vec<Patrol> {
 }
 
 /// The cell one step from `cell` along `heading`.
-pub fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
-    match heading {
-        Heading::PosX => (cell.0 + 1, cell.1),
-        Heading::NegX => (cell.0 - 1, cell.1),
-        Heading::PosZ => (cell.0, cell.1 + 1),
-        Heading::NegZ => (cell.0, cell.1 - 1),
-    }
-}
-
 /// Smallest angle between two directions, in `-PI..=PI`.
 fn angle_delta(a: f32, b: f32) -> f32 {
     let mut delta = (a - b) % std::f32::consts::TAU;

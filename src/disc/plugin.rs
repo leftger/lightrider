@@ -8,10 +8,11 @@ use crate::disc::combat::DiscSim;
 use crate::disc::language::SourceLanguage;
 use crate::disc::layout::DiscLayout;
 use crate::lightcycle::logic::{Arena, CrashReason};
+use crate::lightcycle::scene::DocumentFocusMarker;
+use crate::lightcycle::scene::LightcycleAssets;
+use crate::lightcycle::scene::pose::cycle_cell_pose;
+use crate::lightcycle::scene::pose::pose_world_position;
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
-use crate::plugins::lightcycle::DocumentFocusMarker;
-use crate::plugins::lightcycle::LightcycleAssets;
-use crate::plugins::lightcycle::camera::{cycle_cell_pose, pose_world_position};
 use crate::state::LightcycleSceneRoot;
 use bevy::prelude::*;
 

@@ -1,4 +1,5 @@
 pub mod logic;
+pub(crate) mod scene;
 
 use crate::asteroids::sim::AsteroidsSim;
 use crate::bomberman::sim::BomberSim;
