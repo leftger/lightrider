@@ -471,6 +471,72 @@ struct GuardConeEntity {
     mesh: Option<Handle<Mesh>>,
 }
 
+// The query types the sync systems are written in. Every minigame keeps a pool of
+// entities that are spawned once and then shown, hidden and moved to match its
+// sim, and writing that query out per system made the signatures unreadable: the
+// alias says which marker keys the pool and what the sim drives on it.
+//
+// `F` is the filter that keeps sibling pools apart, since two pools of the same
+// shape would otherwise match each other's entities.
+
+/// A pool of sim-driven entities: the marker that keys it, plus the transform and
+/// visibility the sim's own copy of the state drives.
+type Pooled<'w, 's, M, F = ()> =
+    Query<'w, 's, (&'static M, &'static mut Transform, &'static mut Visibility), F>;
+
+/// A pool whose entries also wear a material the sim refreshes.
+type PooledTinted<'w, 's, M, F = ()> = Query<
+    'w,
+    's,
+    (
+        &'static M,
+        &'static mut Transform,
+        &'static mut Visibility,
+        &'static mut MeshMaterial3d<StandardMaterial>,
+    ),
+    F,
+>;
+
+/// A pool the sim only moves.
+type PooledPosed<'w, 's, M, F = ()> = Query<'w, 's, (&'static M, &'static mut Transform), F>;
+
+/// A pool the sim moves and re-tints.
+type PooledPosedTinted<'w, 's, M, F = ()> = Query<
+    'w,
+    's,
+    (
+        &'static M,
+        &'static mut Transform,
+        &'static mut MeshMaterial3d<StandardMaterial>,
+    ),
+    F,
+>;
+
+/// A pool the sim only shows and hides, because its fate is decided by the sim
+/// rather than by where it is.
+type PooledShown<'w, 's, M, F = ()> = Query<'w, 's, (&'static M, &'static mut Visibility), F>;
+
+/// The marker an entity carries, and the lookalikes it must not be confused with.
+/// These exclusions are what let Bevy prove two queries cannot collide.
+type Only<A, B, C> = (With<A>, Without<B>, Without<C>);
+
+/// One occupant of an arena it shares with others, told apart by its marker.
+type Fighter<'w, 's, M, Other, ItsDisc> =
+    Query<'w, 's, (&'static mut Transform, &'static mut Visibility), Only<M, Other, ItsDisc>>;
+
+/// Keeps an entity clear of the others that share its arena.
+type FreeOf<A, B, C> = (Without<A>, Without<B>, Without<C>);
+
+/// Keeps two pools that share an arena from matching each other's entities.
+type Apart<A, B = CycleEntity> = (Without<A>, Without<B>);
+
+/// The lightcycle's own entities, which no minigame pool may claim.
+type OutOfCycle = Without<CycleEntity>;
+
+/// Everything a run spawns, so a room change can clear the lot in one query.
+type SceneEntities<'w, 's> =
+    Query<'w, 's, Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>;
+
 /// Direction the chase camera is currently following.
 ///
 /// This trails the cycle's own heading so a corner reads as the cycle swinging
@@ -1228,7 +1294,7 @@ fn chase_landing_pose(run: &ActiveRun) -> (Transform, Vec3, Vec3) {
 
 /// Tears down the old world and builds the new one, at the top of the flight's
 /// climb, where the camera is highest and the flash covers the frame.
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 fn apply_mode_swap(
     mut transition: ResMut<ModeTransition>,
     mut mode: ResMut<InteractionMode>,
@@ -1240,7 +1306,7 @@ fn apply_mode_swap(
     assets: Res<LightcycleAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     let Some(target) = transition.pending_swap() else {
         return;
@@ -1293,11 +1359,7 @@ fn apply_mode_swap(
     transition.mark_swapped();
 }
 
-#[allow(clippy::type_complexity)]
-fn despawn_lightcycle_entities(
-    commands: &mut Commands,
-    old_lightcycle_entities: &Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
-) {
+fn despawn_lightcycle_entities(commands: &mut Commands, old_lightcycle_entities: &SceneEntities) {
     for entity in old_lightcycle_entities {
         commands.entity(entity).despawn();
     }
@@ -1450,7 +1512,6 @@ fn spawn_city_floor(
 
 /// Builds a disc-wars ring: circular floor, ring wall, plinth, hazards, safe
 /// pads, close gate, pickups, and the two fighters.
-#[allow(clippy::too_many_arguments)]
 /// Ring wall, corner plinth and close gate. Shared by every source arena, so
 /// the asteroid field gets the same containment and the same way out.
 fn spawn_ring_shell(
@@ -2385,7 +2446,6 @@ fn spawn_surfer_course(
 }
 
 /// Two posts and a lintel framing a gate opening across the river.
-#[allow(clippy::too_many_arguments)]
 fn spawn_surfer_gate(
     commands: &mut Commands,
     assets: &LightcycleAssets,
@@ -2637,40 +2697,14 @@ fn spawn_disc_focus_marker(commands: &mut Commands, assets: &LightcycleAssets, r
 }
 
 /// Keeps the disc, opponent, opponent disc, and pickups glued to the sim.
-#[allow(clippy::type_complexity)]
 fn sync_disc_entities(
     state: Res<LightcycleState>,
-    mut player_disc: Query<
-        (&mut Transform, &mut Visibility),
-        (
-            With<PlayerDiscEntity>,
-            Without<OpponentEntity>,
-            Without<OpponentDiscEntity>,
-        ),
-    >,
-    mut opponent: Query<
-        (&mut Transform, &mut Visibility),
-        (
-            With<OpponentEntity>,
-            Without<PlayerDiscEntity>,
-            Without<OpponentDiscEntity>,
-        ),
-    >,
-    mut opponent_disc: Query<
-        (&mut Transform, &mut Visibility),
-        (
-            With<OpponentDiscEntity>,
-            Without<PlayerDiscEntity>,
-            Without<OpponentEntity>,
-        ),
-    >,
-    mut pickups: Query<
-        (&DiscPickupEntity, &mut Visibility),
-        (
-            Without<PlayerDiscEntity>,
-            Without<OpponentEntity>,
-            Without<OpponentDiscEntity>,
-        ),
+    mut player_disc: Fighter<PlayerDiscEntity, OpponentEntity, OpponentDiscEntity>,
+    mut opponent: Fighter<OpponentEntity, PlayerDiscEntity, OpponentDiscEntity>,
+    mut opponent_disc: Fighter<OpponentDiscEntity, PlayerDiscEntity, OpponentEntity>,
+    mut pickups: PooledShown<
+        DiscPickupEntity,
+        FreeOf<PlayerDiscEntity, OpponentEntity, OpponentDiscEntity>,
     >,
 ) {
     let Some(run) = state.run.as_ref() else {
@@ -2733,17 +2767,10 @@ fn sync_disc_entities(
 
 /// Places the pooled rocks and beams of an asteroid field. Anything past the
 /// live end of the sim's vectors is hidden, so splits and pops need no spawning.
-#[allow(clippy::type_complexity)]
 fn sync_asteroid_entities(
     state: Res<LightcycleState>,
-    mut rocks: Query<
-        (&RockEntity, &mut Transform, &mut Visibility),
-        (Without<BeamEntity>, Without<CycleEntity>),
-    >,
-    mut beams: Query<
-        (&BeamEntity, &mut Transform, &mut Visibility),
-        (Without<RockEntity>, Without<CycleEntity>),
-    >,
+    mut rocks: Pooled<RockEntity, Apart<BeamEntity>>,
+    mut beams: Pooled<BeamEntity, Apart<RockEntity>>,
 ) {
     // Only an actual asteroid field owns rock entities; a disc-wars ring also
     // carries a (never stepped) field sim, so check the game kind too.
@@ -2786,17 +2813,10 @@ fn sync_asteroid_entities(
 
 /// Places the pooled bugs and beams of a Galaga field. Dead bugs and spent
 /// beams are hidden rather than despawned, so the pool never needs to grow.
-#[allow(clippy::type_complexity)]
 fn sync_galaga_entities(
     state: Res<LightcycleState>,
-    mut bugs: Query<
-        (&BugEntity, &mut Transform, &mut Visibility),
-        (Without<GalagaBeamEntity>, Without<CycleEntity>),
-    >,
-    mut beams: Query<
-        (&GalagaBeamEntity, &mut Transform, &mut Visibility),
-        (Without<BugEntity>, Without<CycleEntity>),
-    >,
+    mut bugs: Pooled<BugEntity, Apart<GalagaBeamEntity>>,
+    mut beams: Pooled<GalagaBeamEntity, Apart<BugEntity>>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_galaga()) else {
         return;
@@ -2825,14 +2845,10 @@ fn sync_galaga_entities(
 }
 
 /// Places the pooled dots and ghosts of a Pac-Man maze.
-#[allow(clippy::type_complexity)]
 fn sync_pacman_entities(
     state: Res<LightcycleState>,
-    mut dots: Query<(&DotEntity, &mut Visibility), (Without<GhostEntity>, Without<CycleEntity>)>,
-    mut ghosts: Query<
-        (&GhostEntity, &mut Transform, &mut Visibility),
-        (Without<DotEntity>, Without<CycleEntity>),
-    >,
+    mut dots: PooledShown<DotEntity, Apart<GhostEntity>>,
+    mut ghosts: Pooled<GhostEntity, Apart<DotEntity>>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_pacman()) else {
         return;
@@ -2856,19 +2872,10 @@ fn sync_pacman_entities(
 }
 
 /// Places the pooled gem cells of a Columns well.
-#[allow(clippy::type_complexity)]
 fn sync_columns_entities(
     state: Res<LightcycleState>,
     assets: Res<LightcycleAssets>,
-    mut gems: Query<
-        (
-            &GemEntity,
-            &mut Transform,
-            &mut Visibility,
-            &mut MeshMaterial3d<StandardMaterial>,
-        ),
-        Without<CycleEntity>,
-    >,
+    mut gems: PooledTinted<GemEntity, OutOfCycle>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_columns()) else {
         return;
@@ -2894,19 +2901,10 @@ fn sync_columns_entities(
 }
 
 /// Places the pooled block cells of a Tetris board.
-#[allow(clippy::type_complexity)]
 fn sync_tetris_entities(
     state: Res<LightcycleState>,
     assets: Res<LightcycleAssets>,
-    mut blocks: Query<
-        (
-            &BlockEntity,
-            &mut Transform,
-            &mut Visibility,
-            &mut MeshMaterial3d<StandardMaterial>,
-        ),
-        Without<CycleEntity>,
-    >,
+    mut blocks: PooledTinted<BlockEntity, OutOfCycle>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_tetris()) else {
         return;
@@ -2931,13 +2929,9 @@ fn sync_tetris_entities(
 }
 
 /// Places the pooled obstacle cubes of a Frogger highway.
-#[allow(clippy::type_complexity)]
 fn sync_frogger_entities(
     state: Res<LightcycleState>,
-    mut obstacles: Query<
-        (&FrogObstacleEntity, &mut Transform, &mut Visibility),
-        Without<CycleEntity>,
-    >,
+    mut obstacles: Pooled<FrogObstacleEntity, OutOfCycle>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_frogger()) else {
         return;
@@ -2956,22 +2950,11 @@ fn sync_frogger_entities(
 }
 
 /// Relights Q*bert cubes and places the pooled enemies.
-#[allow(clippy::type_complexity)]
 fn sync_qbert_entities(
     state: Res<LightcycleState>,
     assets: Res<LightcycleAssets>,
-    mut cubes: Query<
-        (
-            &QbertCubeEntity,
-            &mut Transform,
-            &mut MeshMaterial3d<StandardMaterial>,
-        ),
-        Without<QbertEnemyEntity>,
-    >,
-    mut enemies: Query<
-        (&QbertEnemyEntity, &mut Transform, &mut Visibility),
-        Without<QbertCubeEntity>,
-    >,
+    mut cubes: PooledPosedTinted<QbertCubeEntity, Without<QbertEnemyEntity>>,
+    mut enemies: Pooled<QbertEnemyEntity, Without<QbertCubeEntity>>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_qbert()) else {
         return;
@@ -3005,17 +2988,10 @@ fn sync_qbert_entities(
 }
 
 /// Places the pooled crates and bombs of a Bomberman room.
-#[allow(clippy::type_complexity)]
 fn sync_bomberman_entities(
     state: Res<LightcycleState>,
-    mut crates: Query<
-        (&BomberCrateEntity, &mut Visibility),
-        (Without<BomberBombEntity>, Without<CycleEntity>),
-    >,
-    mut bombs: Query<
-        (&BomberBombEntity, &mut Transform, &mut Visibility),
-        (Without<BomberCrateEntity>, Without<CycleEntity>),
-    >,
+    mut crates: PooledShown<BomberCrateEntity, Apart<BomberBombEntity>>,
+    mut bombs: Pooled<BomberBombEntity, Apart<BomberCrateEntity>>,
 ) {
     let Some(sim) = state.run.as_ref().and_then(|run| run.source_bomberman()) else {
         return;
@@ -3040,7 +3016,6 @@ fn sync_bomberman_entities(
 }
 
 /// Places the pooled balls of a Plinko board.
-#[allow(clippy::type_complexity)]
 fn sync_plinko_entities(
     state: Res<LightcycleState>,
     mut balls: Query<(&PlinkoBallEntity, &mut Transform, &mut Visibility), Without<CycleEntity>>,
@@ -3317,15 +3292,11 @@ fn walk_players<'a>(
     }
 }
 
-#[allow(clippy::type_complexity)]
 /// Keeps the breaker's ball and bricks glued to its sim.
 fn sync_breaker_entities(
     state: Res<LightcycleState>,
     mut ball: Query<&mut Transform, (With<BallEntity>, Without<BrickEntity>)>,
-    mut bricks: Query<
-        (&BrickEntity, &mut Visibility),
-        (Without<BallEntity>, Without<CharacterEntity>),
-    >,
+    mut bricks: PooledShown<BrickEntity, Apart<BallEntity, CharacterEntity>>,
 ) {
     let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) else {
         return;
@@ -3341,18 +3312,11 @@ fn sync_breaker_entities(
     }
 }
 
-#[allow(clippy::type_complexity)]
 /// Walks the patrols and swings their vision cones.
 fn sync_stealth_entities(
     state: Res<LightcycleState>,
-    mut guards: Query<
-        (&GuardEntity, &mut Transform),
-        (Without<GuardConeEntity>, Without<CharacterEntity>),
-    >,
-    mut cones: Query<
-        (&GuardConeEntity, &mut Transform),
-        (Without<GuardEntity>, Without<CharacterEntity>),
-    >,
+    mut guards: PooledPosed<GuardEntity, Apart<GuardConeEntity, CharacterEntity>>,
+    mut cones: PooledPosed<GuardConeEntity, Apart<GuardEntity, CharacterEntity>>,
 ) {
     let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) else {
         return;
@@ -4488,7 +4452,6 @@ fn update_document_focus(
     }
 }
 
-#[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 fn reset_on_directory_loaded(
     mut loaded: MessageReader<DirectoryLoaded>,
@@ -4501,7 +4464,7 @@ fn reset_on_directory_loaded(
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
     mut effects: MessageWriter<MusicSfx>,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     if *mode != InteractionMode::Lightcycle {
         return;
@@ -4549,7 +4512,6 @@ fn reset_on_directory_loaded(
 /// Stacks a translucent plate above the arena for each level of the directory
 /// path (the call stack), lays the hex-dump highway along its roads, rings a
 /// quarantined vault with pylons, and spawns the memory-flood wall.
-#[allow(clippy::too_many_arguments)]
 fn decorate_directory_run(
     commands: &mut Commands,
     assets: &LightcycleAssets,
@@ -4934,7 +4896,6 @@ fn poll_document_loads(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn reset_on_document_loaded(
     mut loaded: MessageReader<DocumentLoaded>,
     mode: Res<InteractionMode>,
@@ -4942,7 +4903,7 @@ fn reset_on_document_loaded(
     assets: Res<LightcycleAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     if *mode != InteractionMode::Lightcycle {
         return;
@@ -5036,7 +4997,6 @@ fn poll_source_loads(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn reset_on_source_loaded(
     mut loaded: MessageReader<SourceLoaded>,
     mode: Res<InteractionMode>,
@@ -5044,7 +5004,7 @@ fn reset_on_source_loaded(
     assets: Res<LightcycleAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     if *mode != InteractionMode::Lightcycle {
         return;
@@ -5068,7 +5028,6 @@ fn reset_on_source_loaded(
 /// Warps into a game from the pause menu, using a synthetic file of the
 /// game's representative language. Mirrors `reset_on_source_loaded` so the
 /// swap looks identical to entering a real file.
-#[allow(clippy::type_complexity)]
 fn handle_warp_requests(
     mut requests: MessageReader<WarpRequested>,
     mut state: ResMut<LightcycleState>,
@@ -5076,7 +5035,7 @@ fn handle_warp_requests(
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
     mut pause: ResMut<PauseState>,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     let Some(request) = requests.read().next() else {
         return;
@@ -5471,8 +5430,6 @@ fn restart_run(run: &mut ActiveRun) {
     run.entering_label = None;
 }
 
-#[allow(clippy::type_complexity)]
-#[allow(clippy::too_many_arguments)]
 fn restore_directory_arena(
     mut state: ResMut<LightcycleState>,
     navigator: Res<NavigatorResource>,
@@ -5480,7 +5437,7 @@ fn restore_directory_arena(
     assets: Res<LightcycleAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
-    old_lightcycle_entities: Query<Entity, Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>>,
+    old_lightcycle_entities: SceneEntities,
 ) {
     if !state.restore_directory {
         return;
@@ -6470,15 +6427,15 @@ fn smoothstep(value: f32) -> f32 {
     value * value * (3.0 - 2.0 * value)
 }
 
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 fn animate_entry_effect(
     time: Res<Time>,
     mut state: ResMut<LightcycleState>,
     mut navigator: ResMut<NavigatorResource>,
     mut requests: MessageWriter<DirectoryRequested>,
-    mut beam: Query<&mut Transform, (With<EntryBeam>, Without<EntryHalo>, Without<CycleEntity>)>,
-    mut halos: Query<(&EntryHalo, &mut Transform), (Without<EntryBeam>, Without<CycleEntity>)>,
-    mut cycle: Query<&mut Transform, (With<CycleEntity>, Without<EntryBeam>, Without<EntryHalo>)>,
+    mut beam: Query<&mut Transform, Only<EntryBeam, EntryHalo, CycleEntity>>,
+    mut halos: Query<(&EntryHalo, &mut Transform), Apart<EntryBeam>>,
+    mut cycle: Query<&mut Transform, Only<CycleEntity, EntryBeam, EntryHalo>>,
 ) {
     let Some(fx) = state.entry_fx.as_mut() else {
         return;
@@ -7317,7 +7274,7 @@ fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
 
 // A Bevy system: the queries are the reason for both of these, and folding them
 // into a SystemParam struct would only move the noise.
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 fn update_chase_camera(
     state: Res<LightcycleState>,
     transition: Res<ModeTransition>,
@@ -7325,14 +7282,7 @@ fn update_chase_camera(
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mouse_motion: Res<AccumulatedMouseMotion>,
     mut camera: Single<&mut Transform, (With<Camera3d>, Without<CycleEntity>)>,
-    character: Query<
-        &Transform,
-        (
-            With<CharacterEntity>,
-            Without<Camera3d>,
-            Without<ChaseCamera>,
-        ),
-    >,
+    character: Query<&Transform, Only<CharacterEntity, Camera3d, ChaseCamera>>,
     mut cycle: Query<(&Transform, &mut ChaseCamera), Without<Camera3d>>,
 ) {
     let Ok((cycle, mut chase)) = cycle.single_mut() else {
