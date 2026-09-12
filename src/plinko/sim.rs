@@ -60,11 +60,10 @@ pub struct PlinkoSim {
     pub phase: PlinkoPhase,
     rng: Rng,
     seed: u64,
-    lines: usize,
 }
 
 impl PlinkoSim {
-    pub fn new(seed: u64, lines: usize) -> Self {
+    pub fn new(seed: u64) -> Self {
         let mut rng = Rng::from_state(seed | 1);
         let mut pins = Vec::new();
         for row in 0..config::PLINKO_PIN_ROWS {
@@ -76,7 +75,6 @@ impl PlinkoSim {
             }
         }
         let target = config::PLINKO_TARGET + (rng.unit() * 250.0) as u32;
-        let _ = lines;
         Self {
             aim: 0.0,
             pins,
@@ -87,7 +85,6 @@ impl PlinkoSim {
             phase: PlinkoPhase::Dropping,
             rng,
             seed,
-            lines,
         }
     }
 
@@ -191,7 +188,7 @@ impl PlinkoSim {
     }
 
     pub fn restart(&mut self) {
-        *self = Self::new(self.seed, self.lines);
+        *self = Self::new(self.seed);
     }
 }
 
@@ -201,7 +198,7 @@ mod tests {
     use crate::config;
 
     fn sim() -> PlinkoSim {
-        PlinkoSim::new(5, 200)
+        PlinkoSim::new(5)
     }
 
     #[test]

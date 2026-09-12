@@ -52,11 +52,10 @@ pub struct BomberSim {
     pub invuln: f32,
     move_clock: f32,
     seed: u64,
-    lines: usize,
 }
 
 impl BomberSim {
-    pub fn new(seed: u64, lines: usize) -> Self {
+    pub fn new(seed: u64) -> Self {
         let mut rng = Rng::from_state(seed | 1);
         let mut crates = BTreeSet::new();
         let mut tries = 0;
@@ -74,7 +73,6 @@ impl BomberSim {
             }
             crates.insert(cell);
         }
-        let _ = lines;
         Self {
             cell: (1, 1),
             crates,
@@ -85,7 +83,6 @@ impl BomberSim {
             invuln: config::BOMBER_INVULN,
             move_clock: 0.0,
             seed,
-            lines,
         }
     }
 
@@ -187,7 +184,7 @@ impl BomberSim {
     }
 
     pub fn restart(&mut self) {
-        *self = Self::new(self.seed, self.lines);
+        *self = Self::new(self.seed);
     }
 }
 
@@ -197,7 +194,7 @@ mod tests {
     use crate::config;
 
     fn sim() -> BomberSim {
-        BomberSim::new(5, 200)
+        BomberSim::new(5)
     }
 
     #[test]

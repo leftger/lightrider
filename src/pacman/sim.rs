@@ -59,13 +59,12 @@ pub struct PacSim {
     pub input: (i32, i32),
     rng: Rng,
     seed: u64,
-    lines: usize,
 }
 
 impl PacSim {
     /// The maze is fixed so every cell is always reachable; the seed only picks
     /// ghost phases, keeping the same file beatable.
-    pub fn new(seed: u64, lines: usize) -> Self {
+    pub fn new(seed: u64) -> Self {
         let mut sim = Self {
             cell: (1, 1),
             x: 0.0,
@@ -80,7 +79,6 @@ impl PacSim {
             input: (0, 0),
             rng: Rng::from_state(seed | 1),
             seed,
-            lines,
         };
         let (px, pz) = Self::center(sim.cell);
         sim.x = px;
@@ -104,7 +102,6 @@ impl PacSim {
             });
         }
         // Longer files make the ghosts a touch quicker, but never unfair.
-        let _ = lines;
         sim
     }
 
@@ -297,7 +294,7 @@ impl PacSim {
 
     /// Restarts from the same seed, as `R` does.
     pub fn restart(&mut self) {
-        *self = Self::new(self.seed, self.lines);
+        *self = Self::new(self.seed);
     }
 }
 
@@ -307,7 +304,7 @@ mod tests {
     use crate::config;
 
     fn sim() -> PacSim {
-        PacSim::new(3, 200)
+        PacSim::new(3)
     }
 
     #[test]

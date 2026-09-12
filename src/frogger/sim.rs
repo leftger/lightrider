@@ -50,11 +50,10 @@ pub struct FroggerSim {
     pub phase: FroggerPhase,
     pub invuln: f32,
     seed: u64,
-    lines: usize,
 }
 
 impl FroggerSim {
-    pub fn new(seed: u64, lines: usize) -> Self {
+    pub fn new(seed: u64) -> Self {
         let mut rng = Rng::from_state(seed | 1);
         let mut lanes = Vec::with_capacity(config::FROGGER_LANES as usize);
         for row in 1..=config::FROGGER_LANES {
@@ -67,7 +66,6 @@ impl FroggerSim {
                 gap,
             });
         }
-        let _ = lines;
         Self {
             cell: (config::FROGGER_COLS / 2, config::FROGGER_ROWS - 1),
             lanes,
@@ -75,7 +73,6 @@ impl FroggerSim {
             phase: FroggerPhase::Hopping,
             invuln: config::FROGGER_INVULN,
             seed,
-            lines,
         }
     }
 
@@ -151,7 +148,7 @@ impl FroggerSim {
     }
 
     pub fn restart(&mut self) {
-        *self = Self::new(self.seed, self.lines);
+        *self = Self::new(self.seed);
     }
 }
 
@@ -161,7 +158,7 @@ mod tests {
     use crate::config;
 
     fn sim() -> FroggerSim {
-        FroggerSim::new(5, 200)
+        FroggerSim::new(5)
     }
 
     #[test]

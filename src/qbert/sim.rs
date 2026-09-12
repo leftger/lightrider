@@ -53,11 +53,10 @@ pub struct QbertSim {
     enemy_clock: f32,
     rng: Rng,
     seed: u64,
-    lines: usize,
 }
 
 impl QbertSim {
-    pub fn new(seed: u64, lines: usize) -> Self {
+    pub fn new(seed: u64) -> Self {
         let cubes = (0..config::QBERT_ROWS).map(|row| row + 1).sum::<usize>();
         let rng = Rng::from_state(seed | 1);
         let enemies = vec![
@@ -70,7 +69,6 @@ impl QbertSim {
                 index: config::QBERT_ROWS - 1,
             },
         ];
-        let _ = lines;
         let mut sim = Self {
             row: 0,
             index: 0,
@@ -82,7 +80,6 @@ impl QbertSim {
             enemy_clock: config::QBERT_ENEMY_STEP,
             rng,
             seed,
-            lines,
         };
         sim.light(sim.row, sim.index);
         sim
@@ -194,7 +191,7 @@ impl QbertSim {
     }
 
     pub fn restart(&mut self) {
-        *self = Self::new(self.seed, self.lines);
+        *self = Self::new(self.seed);
     }
 }
 
@@ -204,7 +201,7 @@ mod tests {
     use crate::config;
 
     fn sim() -> QbertSim {
-        QbertSim::new(5, 200)
+        QbertSim::new(5)
     }
 
     #[test]

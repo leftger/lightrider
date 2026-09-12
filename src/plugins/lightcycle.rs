@@ -1081,27 +1081,17 @@ fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u8]) -> Acti
         SourceGame::Galaga => {
             SourceSim::Galaga(Box::new(GalagaSim::new(layout.seed, layout.signals.lines)))
         }
-        SourceGame::PacMan => {
-            SourceSim::PacMan(Box::new(PacSim::new(layout.seed, layout.signals.lines)))
-        }
+        SourceGame::PacMan => SourceSim::PacMan(Box::new(PacSim::new(layout.seed))),
         SourceGame::Columns => {
             SourceSim::Columns(Box::new(ColumnsSim::new(layout.seed, layout.signals.lines)))
         }
         SourceGame::Tetris => {
             SourceSim::Tetris(Box::new(TetrisSim::new(layout.seed, layout.signals.lines)))
         }
-        SourceGame::Frogger => {
-            SourceSim::Frogger(Box::new(FroggerSim::new(layout.seed, layout.signals.lines)))
-        }
-        SourceGame::Qbert => {
-            SourceSim::Qbert(Box::new(QbertSim::new(layout.seed, layout.signals.lines)))
-        }
-        SourceGame::Bomberman => {
-            SourceSim::Bomberman(Box::new(BomberSim::new(layout.seed, layout.signals.lines)))
-        }
-        SourceGame::Plinko => {
-            SourceSim::Plinko(Box::new(PlinkoSim::new(layout.seed, layout.signals.lines)))
-        }
+        SourceGame::Frogger => SourceSim::Frogger(Box::new(FroggerSim::new(layout.seed))),
+        SourceGame::Qbert => SourceSim::Qbert(Box::new(QbertSim::new(layout.seed))),
+        SourceGame::Bomberman => SourceSim::Bomberman(Box::new(BomberSim::new(layout.seed))),
+        SourceGame::Plinko => SourceSim::Plinko(Box::new(PlinkoSim::new(layout.seed))),
     };
     ActiveRun {
         sim,
@@ -1274,7 +1264,7 @@ fn apply_mode_swap(
         let path = navigator.0.current_path.clone();
         // The first ride is a grace period: the room is dressed like any other,
         // but nothing in it is hunting you yet.
-        let hazards = state.rides_started;
+        state.grace_room = !state.rides_started;
         state.rides_started = true;
         spawn_run_entities(&mut commands, &assets, &mut meshes, &run);
         decorate_directory_run(
@@ -1285,7 +1275,6 @@ fn apply_mode_swap(
             &mut flood,
             &path,
             &run,
-            hazards,
         );
         // The room you started in is a room like any other: it belongs in the
         // commit log, and having been there counts as a cache hit later.
@@ -4523,6 +4512,8 @@ fn reset_on_directory_loaded(
 
         let run = build_active_run(&event.path, event.contents.nodes.clone());
         spawn_run_entities(&mut commands, &assets, &mut meshes, &run);
+        // Opening a document is never the first ride, so its room is armed.
+        state.grace_room = false;
         decorate_directory_run(
             &mut commands,
             &assets,
@@ -4531,7 +4522,6 @@ fn reset_on_directory_loaded(
             &mut flood,
             &event.path,
             &run,
-            true,
         );
         history.commit(&event.path);
 
@@ -4568,9 +4558,10 @@ fn decorate_directory_run(
     flood: &mut FloodState,
     path: &Path,
     run: &ActiveRun,
-    hazards: bool,
 ) {
-    state.grace_room = !hazards;
+    // Whether this room hunts the rider, or is only dressed. The caller decides,
+    // because only it knows whether this ride is the first one.
+    let armed = !state.grace_room;
     let span = config::GRID_SPACING;
     let center_x = (run.arena.min.0 + run.arena.max.0) as f32 * 0.5 * span;
     let center_z = (run.arena.min.1 + run.arena.max.1) as f32 * 0.5 * span;
@@ -4650,13 +4641,13 @@ fn decorate_directory_run(
     flood.width = ((run.arena.max.0 - run.arena.min.0) as f32 + 2.0) * span;
     flood.plane = flood.min_z;
     flood.timer = 0.0;
-    flood.active = hazards;
+    flood.active = armed;
     flood.delay = if quarantined {
         config::FLOOD_DELAY_SECONDS * 0.6
     } else {
         config::FLOOD_DELAY_SECONDS
     };
-    if hazards {
+    if armed {
         commands.spawn((
             LightcycleSceneRoot,
             FloodEntity,
@@ -5498,6 +5489,8 @@ fn restore_directory_arena(
     despawn_lightcycle_entities(&mut commands, &old_lightcycle_entities);
     let run = build_active_run(&navigator.0.current_path, navigator.0.entries.clone());
     spawn_run_entities(&mut commands, &assets, &mut meshes, &run);
+    // Coming back from a minigame is not a first ride either.
+    state.grace_room = false;
     decorate_directory_run(
         &mut commands,
         &assets,
@@ -5506,7 +5499,6 @@ fn restore_directory_arena(
         &mut flood,
         &navigator.0.current_path,
         &run,
-        true,
     );
     state.clock = 0.0;
     state.crash_fx = None;
