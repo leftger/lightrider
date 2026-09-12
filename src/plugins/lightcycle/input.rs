@@ -3,7 +3,7 @@
 use super::CycleEntity;
 use super::camera::{cycle_cell_pose, pose_rotation, pose_world_position};
 use super::step::restart_run;
-use crate::bomberman::sim::{BomberPhase, BomberSim};
+use crate::bomberman::sim::BomberSim;
 use crate::config;
 use crate::disc::combat::{DiscEvents, PlayerSnapshot};
 use crate::disc::language::SourceGame;
@@ -12,6 +12,7 @@ use crate::frogger::sim::FroggerSim;
 use crate::lightcycle::logic::RunPhase;
 use crate::lightcycle::{LightcycleState, RunEnvironment};
 use crate::load::DirectoryRequested;
+use crate::minigame::GameInput;
 use crate::music::sfx::MusicSfx;
 use crate::plugins::transition::ModeTransition;
 use crate::qbert::sim::QbertSim;
@@ -144,6 +145,17 @@ pub(crate) fn read_lightcycle_input(
     // or lost the bike is handed back and drives normally.
     let field_active = run.asteroid_field_active();
 
+    // Every uniform game is fed the same frame; each maps it to its own controls.
+    let frame = GameInput {
+        left,
+        right,
+        steer,
+        move_z,
+        hop_z,
+        boost,
+        action: throw,
+    };
+
     // Which runs steer the shared bike grid this frame? Directories and
     // documents always do, disc wars and snake always do, the field only once it
     // has handed the bike back, and the off-grid games never.
@@ -184,58 +196,8 @@ pub(crate) fn read_lightcycle_input(
             if fired {
                 effects.write(MusicSfx::Zap);
             }
-        } else if let Some(level) = run.source_platformer_mut() {
-            // Held to run, tapped to jump.
-            level.set_input(steer as f32, throw);
-        } else if let Some(level) = run.source_breaker_mut() {
-            // Held to slide the bike along the bottom, tapped to serve.
-            level.set_input(steer as f32, throw);
-        } else if let Some(room) = run.source_stealth_mut() {
-            // Hold a direction to keep walking it; let go to stop.
-            room.set_input(steer, move_z);
-        } else if let Some(surfer) = run.source_surfer_mut() {
-            // Steer the hoverbike; the throttle is always open and boost is held.
-            surfer.set_input(steer as f32, boost);
-        } else if let Some(sim) = run.source_galaga_mut() {
-            // Slide along the bottom; the -Z camera mirrors X, so negate steer.
-            sim.set_input(-steer as f32, throw);
-        } else if let Some(sim) = run.source_pacman_mut() {
-            // Hold a direction to keep walking the corridor.
-            sim.set_input(steer, move_z);
-        } else if let Some(sim) = run.source_columns_mut() {
-            // A/D slides the piece, W rotates, Space hard-drops.
-            sim.set_input(i32::from(right) - i32::from(left), hop_z > 0, throw);
-        } else if let Some(sim) = run.source_tetris_mut() {
-            // A/D slides, W rotates, S soft-drops, Space hard-drops.
-            sim.set_input(
-                i32::from(right) - i32::from(left),
-                hop_z > 0,
-                move_z > 0,
-                throw,
-            );
-        } else if let Some(sim) = run.source_frogger_mut() {
-            // One hop per keypress in any of the four directions. Hop-Z is
-            // +1 for W, but the sim counts +Z as the start row, so flip it.
-            sim.hop(i32::from(right) - i32::from(left), -hop_z);
-        } else if let Some(sim) = run.source_qbert_mut() {
-            // Diagonal hops: A/D/W/S each map to a pyramid direction. The -Z
-            // camera mirrors X, so swap the east/west edges.
-            sim.hop(i32::from(left) - i32::from(right), hop_z);
-        } else if let Some(sim) = run.source_bomberman_mut() {
-            // Walk on the room grid and plant bombs with Space or click.
-            if (steer != 0 || move_z != 0) && sim.phase == BomberPhase::Walking {
-                sim.step(steer, move_z);
-            }
-            if throw {
-                sim.plant();
-            }
-        } else if let Some(sim) = run.source_plinko_mut() {
-            // Slide the rail and drop balls with Space or click.
-            let slide = sim.aim + steer as f32 * 6.0;
-            sim.set_aim(slide);
-            if throw {
-                sim.drop_ball();
-            }
+        } else if let Some(game) = run.source_sim_mut() {
+            game.input(&frame);
         } else if run.source_game() == Some(SourceGame::DiscWars) {
             // Disc wars: throw and recall. The cycle's movement is unchanged.
             let snapshot = PlayerSnapshot {

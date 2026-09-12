@@ -39,10 +39,41 @@ impl GameTick {
     }
 }
 
+/// One frame of player input, in the shared lightcycle vocabulary.
+///
+/// The plugin reads the keyboard and mouse once and hands every game the same
+/// frame; a game maps the parts it cares about onto its own controls.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct GameInput {
+    /// Held left/right, for games that slide continuously.
+    pub left: bool,
+    pub right: bool,
+    /// Held east/west axis: `-1`, `0` or `1`.
+    pub steer: i32,
+    /// Held north/south axis: `-1`, `0` or `1`.
+    pub move_z: i32,
+    /// Tapped north/south axis: `-1`, `0` or `1`.
+    pub hop_z: i32,
+    /// Held boost / throttle.
+    pub boost: bool,
+    /// Edge-triggered action: Space or left click.
+    pub action: bool,
+}
+
+impl GameInput {
+    /// `1` right, `-1` left, for games that step a whole cell per tap.
+    pub fn right_x(&self) -> i32 {
+        i32::from(self.right) - i32::from(self.left)
+    }
+}
+
 /// The step a mini-game plays. Implemented beside each sim.
 pub trait SourceGameSim {
     /// Advances the game one fixed step.
     fn tick(&mut self, dt: f32) -> GameTick;
+
+    /// Feeds one input frame to the game.
+    fn input(&mut self, input: &GameInput);
 
     /// This game's segment of the lightcycle status line, wrapped around the
     /// `inner` text the run has built so far. `ring` is the file's name and

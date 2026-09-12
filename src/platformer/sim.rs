@@ -9,7 +9,7 @@
 //! this module has nothing to do with the cell grid the bike games share.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One flat platform. `y` is its top surface, `x` its left edge.
@@ -363,6 +363,10 @@ impl SourceGameSim for PlatformerSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer as f32, input.action);
     }
 }
 

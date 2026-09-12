@@ -6,7 +6,7 @@
 //! target and the board is cleared.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -218,6 +218,15 @@ impl SourceGameSim for PlinkoSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // Slide the rail and drop balls.
+        let slide = self.aim + input.steer as f32 * 6.0;
+        self.set_aim(slide);
+        if input.action {
+            self.drop_ball();
+        }
     }
 }
 

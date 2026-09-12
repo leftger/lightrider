@@ -6,7 +6,7 @@
 //! last gem wins. Landing with a gem above the rim loses.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -333,6 +333,11 @@ impl SourceGameSim for ColumnsSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // A/D slides the piece, W rotates, Space hard-drops.
+        self.set_input(input.right_x(), input.hop_z > 0, input.action);
     }
 }
 

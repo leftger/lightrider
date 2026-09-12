@@ -171,21 +171,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_platformer_mut(&mut self) -> Option<&mut PlatformerSim> {
-        match self {
-            Self::Platformer(level) => Some(level),
-            _ => None,
-        }
-    }
-
     pub fn as_breaker(&self) -> Option<&BreakerSim> {
-        match self {
-            Self::Breaker(level) => Some(level),
-            _ => None,
-        }
-    }
-
-    pub fn as_breaker_mut(&mut self) -> Option<&mut BreakerSim> {
         match self {
             Self::Breaker(level) => Some(level),
             _ => None,
@@ -199,21 +185,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_stealth_mut(&mut self) -> Option<&mut StealthSim> {
-        match self {
-            Self::Stealth(room) => Some(room),
-            _ => None,
-        }
-    }
-
     pub fn as_surfer(&self) -> Option<&SurferSim> {
-        match self {
-            Self::Surfer(surfer) => Some(surfer),
-            _ => None,
-        }
-    }
-
-    pub fn as_surfer_mut(&mut self) -> Option<&mut SurferSim> {
         match self {
             Self::Surfer(surfer) => Some(surfer),
             _ => None,
@@ -227,21 +199,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_galaga_mut(&mut self) -> Option<&mut GalagaSim> {
-        match self {
-            Self::Galaga(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
     pub fn as_pacman(&self) -> Option<&PacSim> {
-        match self {
-            Self::PacMan(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_pacman_mut(&mut self) -> Option<&mut PacSim> {
         match self {
             Self::PacMan(sim) => Some(sim),
             _ => None,
@@ -255,21 +213,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_columns_mut(&mut self) -> Option<&mut ColumnsSim> {
-        match self {
-            Self::Columns(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
     pub fn as_tetris(&self) -> Option<&TetrisSim> {
-        match self {
-            Self::Tetris(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_tetris_mut(&mut self) -> Option<&mut TetrisSim> {
         match self {
             Self::Tetris(sim) => Some(sim),
             _ => None,
@@ -283,21 +227,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_frogger_mut(&mut self) -> Option<&mut FroggerSim> {
-        match self {
-            Self::Frogger(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
     pub fn as_qbert(&self) -> Option<&QbertSim> {
-        match self {
-            Self::Qbert(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_qbert_mut(&mut self) -> Option<&mut QbertSim> {
         match self {
             Self::Qbert(sim) => Some(sim),
             _ => None,
@@ -311,21 +241,7 @@ impl SourceSim {
         }
     }
 
-    pub fn as_bomberman_mut(&mut self) -> Option<&mut BomberSim> {
-        match self {
-            Self::Bomberman(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
     pub fn as_plinko(&self) -> Option<&PlinkoSim> {
-        match self {
-            Self::Plinko(sim) => Some(sim),
-            _ => None,
-        }
-    }
-
-    pub fn as_plinko_mut(&mut self) -> Option<&mut PlinkoSim> {
         match self {
             Self::Plinko(sim) => Some(sim),
             _ => None,
@@ -394,6 +310,14 @@ impl ActiveRun {
         }
     }
 
+    /// The uniform mini-game behind this source run, for stepping and input.
+    pub fn source_sim_mut(&mut self) -> Option<&mut dyn crate::minigame::SourceGameSim> {
+        match &mut self.environment {
+            RunEnvironment::Source { sim, .. } => sim.as_game_mut(),
+            _ => None,
+        }
+    }
+
     pub fn source_disc_mut(&mut self) -> Option<&mut DiscSim> {
         match &mut self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_disc_mut(),
@@ -443,23 +367,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_platformer_mut(&mut self) -> Option<&mut PlatformerSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_platformer_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_breaker(&self) -> Option<&BreakerSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_breaker(),
-            _ => None,
-        }
-    }
-
-    pub fn source_breaker_mut(&mut self) -> Option<&mut BreakerSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_breaker_mut(),
             _ => None,
         }
     }
@@ -471,23 +381,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_stealth_mut(&mut self) -> Option<&mut StealthSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_stealth_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_surfer(&self) -> Option<&SurferSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_surfer(),
-            _ => None,
-        }
-    }
-
-    pub fn source_surfer_mut(&mut self) -> Option<&mut SurferSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_surfer_mut(),
             _ => None,
         }
     }
@@ -499,23 +395,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_galaga_mut(&mut self) -> Option<&mut GalagaSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_galaga_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_pacman(&self) -> Option<&PacSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_pacman(),
-            _ => None,
-        }
-    }
-
-    pub fn source_pacman_mut(&mut self) -> Option<&mut PacSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_pacman_mut(),
             _ => None,
         }
     }
@@ -527,23 +409,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_columns_mut(&mut self) -> Option<&mut ColumnsSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_columns_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_tetris(&self) -> Option<&TetrisSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_tetris(),
-            _ => None,
-        }
-    }
-
-    pub fn source_tetris_mut(&mut self) -> Option<&mut TetrisSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_tetris_mut(),
             _ => None,
         }
     }
@@ -555,23 +423,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_frogger_mut(&mut self) -> Option<&mut FroggerSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_frogger_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_qbert(&self) -> Option<&QbertSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_qbert(),
-            _ => None,
-        }
-    }
-
-    pub fn source_qbert_mut(&mut self) -> Option<&mut QbertSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_qbert_mut(),
             _ => None,
         }
     }
@@ -583,23 +437,9 @@ impl ActiveRun {
         }
     }
 
-    pub fn source_bomberman_mut(&mut self) -> Option<&mut BomberSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_bomberman_mut(),
-            _ => None,
-        }
-    }
-
     pub fn source_plinko(&self) -> Option<&PlinkoSim> {
         match &self.environment {
             RunEnvironment::Source { sim, .. } => sim.as_plinko(),
-            _ => None,
-        }
-    }
-
-    pub fn source_plinko_mut(&mut self) -> Option<&mut PlinkoSim> {
-        match &mut self.environment {
-            RunEnvironment::Source { sim, .. } => sim.as_plinko_mut(),
             _ => None,
         }
     }

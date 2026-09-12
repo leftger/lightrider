@@ -6,7 +6,7 @@
 //! obstacle spends a life and sends the cycle back to the start.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One moving obstacle lane. Obstacles wrap around the row.
@@ -178,6 +178,12 @@ impl SourceGameSim for FroggerSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // One hop per keypress. Hop-Z is +1 for W, but the sim counts +Z as
+        // the start row, so flip it.
+        self.hop(input.right_x(), -input.hop_z);
     }
 }
 

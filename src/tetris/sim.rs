@@ -6,7 +6,7 @@
 //! above the rim to lose.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// The seven tetrominoes as four cell offsets each.
@@ -293,6 +293,16 @@ impl SourceGameSim for TetrisSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // A/D slides, W rotates, S soft-drops, Space hard-drops.
+        self.set_input(
+            input.right_x(),
+            input.hop_z > 0,
+            input.move_z > 0,
+            input.action,
+        );
     }
 }
 

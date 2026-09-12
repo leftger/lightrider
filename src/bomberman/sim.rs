@@ -6,7 +6,7 @@
 //! every crate unlocks the exit at the far corner; reaching it wins.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
 
@@ -218,6 +218,16 @@ impl SourceGameSim for BomberSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // Walk the room grid and plant bombs.
+        if (input.steer != 0 || input.move_z != 0) && self.phase == BomberPhase::Walking {
+            self.step(input.steer, input.move_z);
+        }
+        if input.action {
+            self.plant();
+        }
     }
 }
 

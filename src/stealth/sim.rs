@@ -13,7 +13,7 @@
 use crate::config;
 use crate::grid::chebyshev;
 use crate::lightcycle::logic::Heading;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
 
@@ -583,6 +583,10 @@ impl SourceGameSim for StealthSim {
             self.phase.label(),
             self.detection_percent()
         )
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer, input.move_z);
     }
 }
 

@@ -9,7 +9,7 @@
 //! cycle, and it is lost.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One bug in the formation. The grid slot is its `row`/`col`; the renderer
@@ -380,6 +380,11 @@ impl SourceGameSim for GalagaSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // The -Z camera mirrors X, so negate steer.
+        self.set_input(-input.steer as f32, input.action);
     }
 }
 

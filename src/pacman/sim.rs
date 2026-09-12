@@ -6,7 +6,7 @@
 //! dot to win, and lose all three lives to a ghost and the run is over.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
 
@@ -327,6 +327,10 @@ impl SourceGameSim for PacSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer, input.move_z);
     }
 }
 

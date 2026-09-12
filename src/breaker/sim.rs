@@ -7,7 +7,7 @@
 //! level, which is how this run is left.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// One brick in the wall. `col`/`row` are grid coordinates, `0` at the top-left.
@@ -323,6 +323,10 @@ impl SourceGameSim for BreakerSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer as f32, input.action);
     }
 }
 

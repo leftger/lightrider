@@ -6,7 +6,7 @@
 //! pyramid or into an enemy and a life is spent.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,6 +221,11 @@ impl SourceGameSim for QbertSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        // Diagonal hops; the -Z camera mirrors X, so swap the east/west edges.
+        self.hop(-input.right_x(), input.hop_z);
     }
 }
 

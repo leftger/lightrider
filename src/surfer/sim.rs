@@ -7,7 +7,7 @@
 //! finish gate at the far end. Running onto a bank or into a rock ends the run.
 
 use crate::config;
-use crate::minigame::{GameSound, GameTick, SourceGameSim};
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 
 /// A rock sticking out of the river. Touching one ends the run.
@@ -279,6 +279,10 @@ impl SourceGameSim for SurferSim {
         );
         status = format!("{status} | {}", self.phase.label());
         status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer as f32, input.boost);
     }
 }
 
