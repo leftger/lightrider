@@ -21,6 +21,7 @@ use crate::columns::sim::ColumnsSim;
 use crate::config;
 use crate::disc::combat::DiscSim;
 use crate::disc::language::SourceGame;
+use crate::disc::layout::ArenaShape;
 use crate::disc::layout::{build_capped_disc_arena, build_disc_arena, build_flat_arena};
 use crate::disc::plugin::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_shell};
 use crate::document::layout::build_document_arena_from_parse;
@@ -132,44 +133,12 @@ pub(crate) fn build_document_run(path: &Path, bytes: &[u8]) -> ActiveRun {
 /// plus the sim for whichever game the language hosts.
 pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u8]) -> ActiveRun {
     let game = language.game();
-    let (arena, layout) = match game {
-        // The field and the snake ring want a bounded playfield whatever the
-        // file size; only disc wars scales its coliseum with the file.
-        SourceGame::Asteroids => build_capped_disc_arena(
-            path,
-            language,
-            bytes,
-            config::asteroids::ASTEROIDS_RADIUS_CELLS,
-        ),
-        SourceGame::Snake => {
-            build_capped_disc_arena(path, language, bytes, config::snake::SNAKE_RADIUS_CELLS)
+    let (arena, layout) = match game.arena_shape() {
+        ArenaShape::Disc => build_disc_arena(path, language, bytes),
+        ArenaShape::Ring { radius_cells } => {
+            build_capped_disc_arena(path, language, bytes, radius_cells)
         }
-        SourceGame::DiscWars => build_disc_arena(path, language, bytes),
-        // The off-grid games carry a metadata-only arena; their level is their
-        // own. The half-extent only sizes the (unused) metadata box.
-        SourceGame::Platformer | SourceGame::Breaker | SourceGame::Stealth => build_flat_arena(
-            path,
-            language,
-            bytes,
-            config::platformer::PLATFORMER_HALF_EXTENT,
-        ),
-        SourceGame::RiverSurfer => {
-            build_flat_arena(path, language, bytes, config::surfer::SURFER_HALF_EXTENT)
-        }
-        SourceGame::Galaga => {
-            build_flat_arena(path, language, bytes, config::galaga::GALAGA_HALF_EXTENT)
-        }
-        // The whole arcade block shares one arena extent; each game's board is
-        // small enough to fit inside it.
-        SourceGame::PacMan
-        | SourceGame::Columns
-        | SourceGame::Tetris
-        | SourceGame::Frogger
-        | SourceGame::Qbert
-        | SourceGame::Bomberman
-        | SourceGame::Plinko => {
-            build_flat_arena(path, language, bytes, config::arcade::ARCADE_HALF_EXTENT)
-        }
+        ArenaShape::Flat { half_extent } => build_flat_arena(path, language, bytes, half_extent),
     };
     let sim = LightcycleSim::start(layout.player_spawn, layout.player_spawn_heading);
     let sim_state = match game {

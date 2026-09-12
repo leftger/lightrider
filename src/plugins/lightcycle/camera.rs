@@ -204,70 +204,12 @@ pub(crate) fn update_chase_camera(
     // The arcade block: each game gets a small fixed camera tailored to its
     // board, independent of the parked cycle. Every other source game (and
     // plain directory riding) keeps the chase camera below.
-    let arcade_game = state
+    let arcade = state
         .run
         .as_ref()
         .and_then(|run| run.source_game())
-        .filter(|game| {
-            matches!(
-                game,
-                SourceGame::PacMan
-                    | SourceGame::Columns
-                    | SourceGame::Tetris
-                    | SourceGame::Frogger
-                    | SourceGame::Qbert
-                    | SourceGame::Bomberman
-                    | SourceGame::Plinko
-            )
-        });
-    if let Some(game) = arcade_game {
-        let (translation, target) = match game {
-            SourceGame::PacMan => (
-                Vec3::new(
-                    0.0,
-                    config::arcade::PAC_CAMERA_HEIGHT,
-                    config::arcade::PAC_CAMERA_HEIGHT * config::arcade::PAC_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Frogger => (
-                Vec3::new(
-                    0.0,
-                    config::arcade::FROGGER_CAMERA_HEIGHT,
-                    config::arcade::FROGGER_CAMERA_HEIGHT * config::arcade::FROGGER_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Qbert => (
-                Vec3::new(
-                    0.0,
-                    config::arcade::QBERT_CAMERA_HEIGHT,
-                    -config::arcade::QBERT_CAMERA_HEIGHT * config::arcade::QBERT_CAMERA_LEAN,
-                ),
-                Vec3::new(0.0, 1.0, 0.0),
-            ),
-            SourceGame::Bomberman => (
-                Vec3::new(
-                    0.0,
-                    config::arcade::BOMBER_CAMERA_HEIGHT,
-                    config::arcade::BOMBER_CAMERA_HEIGHT * config::arcade::BOMBER_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Columns => (
-                Vec3::new(0.0, 10.4, config::arcade::COLUMNS_CAMERA_BACK),
-                Vec3::new(0.0, 10.4, 0.0),
-            ),
-            SourceGame::Tetris => (
-                Vec3::new(0.0, 12.0, config::arcade::TETRIS_CAMERA_BACK),
-                Vec3::new(0.0, 12.0, 0.0),
-            ),
-            SourceGame::Plinko => (
-                Vec3::new(0.0, 0.0, config::arcade::PLINKO_CAMERA_BACK),
-                Vec3::ZERO,
-            ),
-            _ => unreachable!("filtered to the arcade block above"),
-        };
+        .and_then(SourceGame::arcade_camera);
+    if let Some((translation, target)) = arcade {
         camera.translation = translation;
         camera.look_at(target, Vec3::Y);
         return;

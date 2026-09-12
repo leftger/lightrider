@@ -8,7 +8,7 @@
 
 use crate::config;
 use crate::filesystem::language::SourceLanguage;
-use bevy::prelude::Color;
+use bevy::prelude::{Color, Vec3};
 
 /// Which mini-game a source file opens.
 ///
@@ -80,6 +80,67 @@ impl SourceGame {
             Self::Bomberman => "Bomberman",
             Self::Plinko => "Plinko",
         }
+    }
+
+    /// Whether a run of this game steers the shared cycle grid. Disc wars, snake
+    /// and the asteroid field ride the grid; every off-grid game drives itself.
+    /// The field only counts once its rocks are gone, which the caller checks.
+    pub fn drives_grid(self) -> bool {
+        matches!(self, Self::DiscWars | Self::Snake | Self::Asteroids)
+    }
+
+    /// The fixed camera an arcade-block board is watched from, if this game has
+    /// one: where the camera stands and what it looks at. `None` for every game
+    /// that keeps the chase camera.
+    pub fn arcade_camera(self) -> Option<(Vec3, Vec3)> {
+        let (translation, target) = match self {
+            Self::PacMan => (
+                Vec3::new(
+                    0.0,
+                    config::arcade::PAC_CAMERA_HEIGHT,
+                    config::arcade::PAC_CAMERA_HEIGHT * config::arcade::PAC_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            Self::Frogger => (
+                Vec3::new(
+                    0.0,
+                    config::arcade::FROGGER_CAMERA_HEIGHT,
+                    config::arcade::FROGGER_CAMERA_HEIGHT * config::arcade::FROGGER_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            Self::Qbert => (
+                Vec3::new(
+                    0.0,
+                    config::arcade::QBERT_CAMERA_HEIGHT,
+                    -config::arcade::QBERT_CAMERA_HEIGHT * config::arcade::QBERT_CAMERA_LEAN,
+                ),
+                Vec3::new(0.0, 1.0, 0.0),
+            ),
+            Self::Bomberman => (
+                Vec3::new(
+                    0.0,
+                    config::arcade::BOMBER_CAMERA_HEIGHT,
+                    config::arcade::BOMBER_CAMERA_HEIGHT * config::arcade::BOMBER_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            Self::Columns => (
+                Vec3::new(0.0, 10.4, config::arcade::COLUMNS_CAMERA_BACK),
+                Vec3::new(0.0, 10.4, 0.0),
+            ),
+            Self::Tetris => (
+                Vec3::new(0.0, 12.0, config::arcade::TETRIS_CAMERA_BACK),
+                Vec3::new(0.0, 12.0, 0.0),
+            ),
+            Self::Plinko => (
+                Vec3::new(0.0, 0.0, config::arcade::PLINKO_CAMERA_BACK),
+                Vec3::ZERO,
+            ),
+            _ => return None,
+        };
+        Some((translation, target))
     }
 }
 

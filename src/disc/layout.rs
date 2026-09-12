@@ -7,6 +7,7 @@
 //! The same file therefore always produces the same ring.
 
 use crate::config;
+use crate::disc::language::SourceGame;
 use crate::filesystem::language::SourceLanguage;
 use crate::lightcycle::logic::{
     Arena, ArenaKind, CityTheme, Heading, ParentPortal, Wall, stable_path_seed,
@@ -817,6 +818,52 @@ fn mix(seed: u64, value: u64) -> u64 {
     z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
     z ^ (z >> 31)
+}
+
+/// How a source file is carved into a course.
+pub enum ArenaShape {
+    /// A coliseum that scales with the file; only disc wars needs one.
+    Disc,
+    /// A bounded ring: the field and the snake want a fixed playfield whatever
+    /// the file's size.
+    Ring { radius_cells: i32 },
+    /// A metadata-only box sized to the whole arcade block; the level itself
+    /// belongs to the game.
+    Flat { half_extent: i32 },
+}
+
+impl SourceGame {
+    /// Which arena this game's source file is carved into. The mapping lives
+    /// beside the builders it names rather than with the catalog.
+    pub fn arena_shape(self) -> ArenaShape {
+        match self {
+            Self::DiscWars => ArenaShape::Disc,
+            Self::Asteroids => ArenaShape::Ring {
+                radius_cells: config::asteroids::ASTEROIDS_RADIUS_CELLS,
+            },
+            Self::Snake => ArenaShape::Ring {
+                radius_cells: config::snake::SNAKE_RADIUS_CELLS,
+            },
+            Self::Platformer | Self::Breaker | Self::Stealth => ArenaShape::Flat {
+                half_extent: config::platformer::PLATFORMER_HALF_EXTENT,
+            },
+            Self::RiverSurfer => ArenaShape::Flat {
+                half_extent: config::surfer::SURFER_HALF_EXTENT,
+            },
+            Self::Galaga => ArenaShape::Flat {
+                half_extent: config::galaga::GALAGA_HALF_EXTENT,
+            },
+            Self::PacMan
+            | Self::Columns
+            | Self::Tetris
+            | Self::Frogger
+            | Self::Qbert
+            | Self::Bomberman
+            | Self::Plinko => ArenaShape::Flat {
+                half_extent: config::arcade::ARCADE_HALF_EXTENT,
+            },
+        }
+    }
 }
 
 #[cfg(test)]

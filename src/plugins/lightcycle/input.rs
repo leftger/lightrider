@@ -170,24 +170,9 @@ pub(crate) fn read_lightcycle_input(
     // Which runs steer the shared bike grid this frame? Directories and
     // documents always do, disc wars and snake always do, the field only once it
     // has handed the bike back, and the off-grid games never.
-    let drives_grid = match run.source_game() {
-        Some(SourceGame::DiscWars | SourceGame::Snake) | None => true,
-        Some(SourceGame::Asteroids) => !field_active,
-        Some(
-            SourceGame::Platformer
-            | SourceGame::Breaker
-            | SourceGame::Stealth
-            | SourceGame::RiverSurfer
-            | SourceGame::Galaga
-            | SourceGame::PacMan
-            | SourceGame::Columns
-            | SourceGame::Tetris
-            | SourceGame::Frogger
-            | SourceGame::Qbert
-            | SourceGame::Bomberman
-            | SourceGame::Plinko,
-        ) => false,
-    };
+    // The field hands the bike back once its rocks are gone, so it steers
+    // the grid only while the field is quiet.
+    let drives_grid = run.source_game().is_none_or(SourceGame::drives_grid) && !field_active;
     if drives_grid && run.sim.phase == RunPhase::Running && (left || right) {
         run.sim.queue_turn_input(left, right);
         effects.write(MusicSfx::Turn);
