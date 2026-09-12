@@ -11,23 +11,36 @@ use std::path::{Path, PathBuf};
 
 /// A finished read: which request it answers, what was asked for, and what came
 /// back.
-pub struct ByteLoadResult {
+pub struct ByteLoadResult<T> {
     pub generation: u64,
     pub path: PathBuf,
-    pub result: Result<Vec<u8>, String>,
+    pub result: Result<T, String>,
 }
 
 /// Tracks one background read at a time, so a result that arrives after the
 /// player has moved on can be recognised as stale.
-#[derive(Default)]
-pub struct ByteLoad {
+///
+/// The payload is generic so a directory scan, a document and a source file all
+/// share the same bookkeeping; each loader supplies its own reader and result.
+pub struct ByteLoad<T> {
     pub generation: u64,
     pub loading: bool,
-    pub pending_task: Option<Task<ByteLoadResult>>,
+    pub pending_task: Option<Task<ByteLoadResult<T>>>,
     pub last_error: Option<String>,
 }
 
-impl ByteLoad {
+impl<T> Default for ByteLoad<T> {
+    fn default() -> Self {
+        Self {
+            generation: 0,
+            loading: false,
+            pending_task: None,
+            last_error: None,
+        }
+    }
+}
+
+impl<T: Send + 'static> ByteLoad<T> {
     /// Starts a new request, invalidating whatever was in flight.
     pub fn next_generation(&mut self) -> u64 {
         self.generation += 1;
@@ -35,7 +48,7 @@ impl ByteLoad {
     }
 
     /// Takes a finished read, if one is ready.
-    pub fn poll(&mut self) -> Option<ByteLoadResult> {
+    pub fn poll(&mut self) -> Option<ByteLoadResult<T>> {
         let result = check_ready(self.pending_task.as_mut()?)?;
         self.pending_task = None;
         if result.generation == self.generation {
@@ -49,7 +62,7 @@ impl ByteLoad {
         &mut self,
         generation: u64,
         path: PathBuf,
-        read: fn(&Path) -> Result<Vec<u8>, String>,
+        read: impl FnOnce(&Path) -> Result<T, String> + Send + 'static,
     ) {
         self.loading = true;
         self.last_error = None;

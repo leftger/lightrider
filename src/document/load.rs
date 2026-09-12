@@ -11,18 +11,18 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 #[derive(Resource, Default)]
-pub struct DocumentLoadState(ByteLoad);
+pub struct DocumentLoadState(ByteLoad<Vec<u8>>);
 
 impl Deref for DocumentLoadState {
-    type Target = ByteLoad;
+    type Target = ByteLoad<Vec<u8>>;
 
-    fn deref(&self) -> &ByteLoad {
+    fn deref(&self) -> &ByteLoad<Vec<u8>> {
         &self.0
     }
 }
 
 impl DerefMut for DocumentLoadState {
-    fn deref_mut(&mut self) -> &mut ByteLoad {
+    fn deref_mut(&mut self) -> &mut ByteLoad<Vec<u8>> {
         &mut self.0
     }
 }
