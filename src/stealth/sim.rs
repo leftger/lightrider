@@ -82,7 +82,8 @@ impl Guard {
     /// `+Z`), including the sweep.
     pub fn vision_angle(&self) -> f32 {
         self.patrol.heading().angle()
-            + config::STEALTH_SCAN_SWEEP * (self.scan * config::STEALTH_SCAN_RATE).sin()
+            + config::stealth::STEALTH_SCAN_SWEEP
+                * (self.scan * config::stealth::STEALTH_SCAN_RATE).sin()
     }
 }
 
@@ -164,7 +165,10 @@ pub struct StealthSim {
 impl StealthSim {
     /// Builds a room from `seed`: cover to hide behind, lanes to slip past.
     pub fn new(seed: u64) -> Self {
-        let (half_w, half_h) = (config::STEALTH_WIDTH / 2, config::STEALTH_HEIGHT / 2);
+        let (half_w, half_h) = (
+            config::stealth::STEALTH_WIDTH / 2,
+            config::stealth::STEALTH_HEIGHT / 2,
+        );
         let mut rng = Rng::from_state(seed | 1);
 
         let start = (-half_w + 1, -half_h + 1);
@@ -172,10 +176,13 @@ impl StealthSim {
 
         let mut cover = BTreeSet::new();
         let mut tries = 0;
-        while cover.len() < config::STEALTH_COVER && tries < config::STEALTH_COVER * 40 {
+        while cover.len() < config::stealth::STEALTH_COVER
+            && tries < config::stealth::STEALTH_COVER * 40
+        {
             tries += 1;
-            let x = -half_w + 2 + (rng.unit() * (config::STEALTH_WIDTH - 4) as f32) as i32;
-            let z = -half_h + 2 + (rng.unit() * (config::STEALTH_HEIGHT - 4) as f32) as i32;
+            let x = -half_w + 2 + (rng.unit() * (config::stealth::STEALTH_WIDTH - 4) as f32) as i32;
+            let z =
+                -half_h + 2 + (rng.unit() * (config::stealth::STEALTH_HEIGHT - 4) as f32) as i32;
             let cell = (x, z);
             // Keep the doorways and the spawn clear.
             if chebyshev(cell, start) < 3 || chebyshev(cell, exit) < 3 {
@@ -272,7 +279,7 @@ impl StealthSim {
     fn open_run(&self, heading: Heading) -> i32 {
         let mut cell = self.character;
         let mut run = 0;
-        while run < config::STEALTH_PEEK_RUN {
+        while run < config::stealth::STEALTH_PEEK_RUN {
             cell = step_cell(cell, heading);
             if self.is_solid(cell) {
                 break;
@@ -294,7 +301,7 @@ impl StealthSim {
             return vec![0.0; segments + 1];
         };
         let centre = guard.vision_angle();
-        let half = config::STEALTH_VISION_HALF_ANGLE;
+        let half = config::stealth::STEALTH_VISION_HALF_ANGLE;
         let (gx, gz) = guard.cell();
         let mut radii = Vec::with_capacity(segments + 1);
         for step in 0..=segments {
@@ -302,8 +309,8 @@ impl StealthSim {
             let world = centre - (-half + t * half * 2.0);
             let (dx, dz) = (world.cos(), world.sin());
             let mut reach = 0.0;
-            while reach < config::STEALTH_VISION_RANGE {
-                reach += config::STEALTH_SIGHT_SAMPLE;
+            while reach < config::stealth::STEALTH_VISION_RANGE {
+                reach += config::stealth::STEALTH_SIGHT_SAMPLE;
                 let cell = (
                     gx + (dx * reach).round() as i32,
                     gz + (dz * reach).round() as i32,
@@ -311,11 +318,11 @@ impl StealthSim {
                 if self.is_solid(cell) {
                     // Stop short, so the rim sits against the obstacle rather
                     // than inside it.
-                    reach -= config::STEALTH_SIGHT_SAMPLE;
+                    reach -= config::stealth::STEALTH_SIGHT_SAMPLE;
                     break;
                 }
             }
-            radii.push(reach.clamp(0.0, config::STEALTH_VISION_RANGE));
+            radii.push(reach.clamp(0.0, config::stealth::STEALTH_VISION_RANGE));
         }
         radii
     }
@@ -334,11 +341,13 @@ impl StealthSim {
         if distance < 0.001 {
             return true;
         }
-        if distance > config::STEALTH_VISION_RANGE {
+        if distance > config::stealth::STEALTH_VISION_RANGE {
             return false;
         }
         let angle = dz.atan2(dx);
-        if angle_delta(angle, guard.vision_angle()).abs() > config::STEALTH_VISION_HALF_ANGLE {
+        if angle_delta(angle, guard.vision_angle()).abs()
+            > config::stealth::STEALTH_VISION_HALF_ANGLE
+        {
             return false;
         }
         self.line_of_sight(guard.cell(), to)
@@ -348,7 +357,7 @@ impl StealthSim {
     fn line_of_sight(&self, from: (i32, i32), to: (i32, i32)) -> bool {
         let (dx, dz) = ((to.0 - from.0) as f32, (to.1 - from.1) as f32);
         let distance = (dx * dx + dz * dz).sqrt();
-        let steps = (distance / config::STEALTH_SIGHT_SAMPLE).ceil() as i32;
+        let steps = (distance / config::stealth::STEALTH_SIGHT_SAMPLE).ceil() as i32;
         for step in 1..steps {
             let t = step as f32 / steps as f32;
             let cell = (
@@ -446,21 +455,21 @@ impl StealthSim {
                 .filter(|guard| self.guard_sees(guard, self.character))
                 .map(|guard| chebyshev(guard.cell(), self.character) as f32)
                 .fold(f32::MAX, f32::min);
-            let closeness = (1.0 - nearest / config::STEALTH_VISION_RANGE).clamp(0.0, 1.0);
-            let rate = config::STEALTH_DETECT_RATE * (1.0 + closeness);
+            let closeness = (1.0 - nearest / config::stealth::STEALTH_VISION_RANGE).clamp(0.0, 1.0);
+            let rate = config::stealth::STEALTH_DETECT_RATE * (1.0 + closeness);
             self.detection = (self.detection + rate * dt).min(1.0);
             if self.detection >= 1.0 {
                 self.phase = StealthPhase::Caught;
                 events.caught = true;
             }
         } else {
-            self.detection = (self.detection - config::STEALTH_DECAY * dt).max(0.0);
+            self.detection = (self.detection - config::stealth::STEALTH_DECAY * dt).max(0.0);
         }
         self.seen = seen;
 
         self.move_clock += dt;
-        while self.move_clock >= config::STEALTH_STEP_SECONDS {
-            self.move_clock -= config::STEALTH_STEP_SECONDS;
+        while self.move_clock >= config::stealth::STEALTH_STEP_SECONDS {
+            self.move_clock -= config::stealth::STEALTH_STEP_SECONDS;
             if self.phase != StealthPhase::Sneaking {
                 break;
             }
@@ -658,7 +667,7 @@ mod tests {
         assert!(room.guard_sees(&guard, (3, 0)));
         assert!(!room.guard_sees(&guard, (-3, 0)));
         // Out of range is never seen.
-        let far = (config::STEALTH_VISION_RANGE as i32 + 4, 0);
+        let far = (config::stealth::STEALTH_VISION_RANGE as i32 + 4, 0);
         assert!(!room.guard_sees(&guard, far));
     }
 
@@ -735,7 +744,7 @@ mod tests {
             ((0, -1), Heading::NegZ),
         ] {
             room.set_input(keys.0, keys.1);
-            room.update(config::STEALTH_STEP_SECONDS);
+            room.update(config::stealth::STEALTH_STEP_SECONDS);
             assert_eq!(room.heading, expected, "input {keys:?}");
         }
     }
@@ -747,7 +756,7 @@ mod tests {
         room.cover.clear();
         let (x, z) = room.character;
         room.set_input(1, 0);
-        let events = room.update(config::STEALTH_STEP_SECONDS);
+        let events = room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert!(events.stepped, "the step should have landed");
         assert!(room.walking, "and it should read as walking");
         assert_eq!(room.character, (x + 1, z), "one cell east");
@@ -761,7 +770,7 @@ mod tests {
         let before = room.character;
         for _ in 0..30 {
             room.set_input(0, 0);
-            room.update(config::STEALTH_STEP_SECONDS);
+            room.update(config::stealth::STEALTH_STEP_SECONDS);
         }
         assert_eq!(room.character, before, "standing still should not drift");
         assert!(!room.walking);
@@ -775,7 +784,7 @@ mod tests {
         let (x, z) = room.character;
         room.cover.insert((x + 1, z));
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.character, (x, z), "cover should block the step");
         assert!(!room.walking, "and it is not walking into it either");
         assert_eq!(
@@ -792,15 +801,15 @@ mod tests {
         room.guards.clear();
         room.cover.clear();
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.heading, Heading::PosX);
         // Adding south while still holding east keeps walking east.
         room.set_input(1, 1);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.heading, Heading::PosX);
         // Letting go of east hands over to the axis still held.
         room.set_input(0, 1);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.heading, Heading::PosZ);
     }
 
@@ -811,7 +820,7 @@ mod tests {
         // Push at the west wall for a long time.
         for _ in 0..200 {
             room.set_input(-1, 0);
-            room.update(config::STEALTH_STEP_SECONDS);
+            room.update(config::stealth::STEALTH_STEP_SECONDS);
         }
         assert!(
             room.in_bounds(room.character),
@@ -829,7 +838,7 @@ mod tests {
         let (x, z) = room.character;
         room.cover.insert((x + 1, z));
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(
             room.hug,
             Some(Heading::PosX),
@@ -848,7 +857,7 @@ mod tests {
         room.guards.clear();
         room.cover.clear();
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.hug, None);
         assert_eq!(room.peek, None);
     }
@@ -862,7 +871,7 @@ mod tests {
         let mut escaped = false;
         for _ in 0..60 {
             room.set_input(1, 0);
-            if room.update(config::STEALTH_STEP_SECONDS).escaped {
+            if room.update(config::stealth::STEALTH_STEP_SECONDS).escaped {
                 escaped = true;
                 break;
             }
@@ -880,7 +889,7 @@ mod tests {
         room.cover.insert((1, 0)); // the wall being hugged
         room.cover.insert((0, 1)); // so +Z runs into cover at once
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.hug, Some(Heading::PosX));
         assert_eq!(
             room.peek,
@@ -893,7 +902,7 @@ mod tests {
         room.cover.clear();
         room.cover.insert((1, 0));
         room.cover.insert((0, -1));
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.peek, Some(Heading::PosZ));
     }
 
@@ -941,7 +950,7 @@ mod tests {
         room.cover.insert((0, 1));
         room.cover.insert((0, -1));
         room.set_input(1, 0);
-        room.update(config::STEALTH_STEP_SECONDS);
+        room.update(config::stealth::STEALTH_STEP_SECONDS);
         assert_eq!(room.hug, Some(Heading::PosX));
         assert_eq!(room.peek, None, "nothing to look past");
     }
@@ -953,7 +962,7 @@ mod tests {
         room.cover.clear();
         // On the lane through the origin, facing +X, sweeping from zero phase.
         room.guards.push(guard_at(0));
-        let segments = config::STEALTH_CONE_SEGMENTS;
+        let segments = config::stealth::STEALTH_CONE_SEGMENTS;
 
         let open = room.vision_radii(0, segments);
         assert_eq!(
@@ -963,7 +972,7 @@ mod tests {
         );
         assert!(
             open.iter()
-                .all(|reach| *reach > config::STEALTH_VISION_RANGE - 0.5),
+                .all(|reach| *reach > config::stealth::STEALTH_VISION_RANGE - 0.5),
             "with nothing in the way every ray should carry to the range, got {open:?}"
         );
 
@@ -971,7 +980,7 @@ mod tests {
         let blocked = room.vision_radii(0, segments);
         let middle = blocked[segments / 2];
         assert!(
-            middle < config::STEALTH_VISION_RANGE,
+            middle < config::stealth::STEALTH_VISION_RANGE,
             "the blocked ray should stop short, got {middle}"
         );
         assert!(

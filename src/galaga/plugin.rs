@@ -38,11 +38,11 @@ pub(crate) fn spawn_galaga_field(
             BugEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.galaga_bug_material.clone()),
-            Transform::from_xyz(bug.x, config::GALAGA_BUG_HEIGHT * 0.5, bug.z).with_scale(
+            Transform::from_xyz(bug.x, config::galaga::GALAGA_BUG_HEIGHT * 0.5, bug.z).with_scale(
                 Vec3::new(
-                    config::GALAGA_BUG_RADIUS * 2.0,
-                    config::GALAGA_BUG_HEIGHT,
-                    config::GALAGA_BUG_RADIUS * 2.0,
+                    config::galaga::GALAGA_BUG_RADIUS * 2.0,
+                    config::galaga::GALAGA_BUG_HEIGHT,
+                    config::galaga::GALAGA_BUG_RADIUS * 2.0,
                 ),
             ),
             if bug.alive {
@@ -53,7 +53,7 @@ pub(crate) fn spawn_galaga_field(
             Pickable::IGNORE,
         ));
     }
-    for index in 0..config::GALAGA_MAX_BEAMS {
+    for index in 0..config::galaga::GALAGA_MAX_BEAMS {
         let live = sim.beams.get(index);
         commands.spawn((
             LightcycleSceneRoot,
@@ -89,7 +89,8 @@ pub(crate) fn sync_galaga_entities(
     for (entity, mut transform, mut visibility) in &mut bugs {
         match sim.bugs.get(entity.index) {
             Some(bug) if bug.alive => {
-                transform.translation = Vec3::new(bug.x, config::GALAGA_BUG_HEIGHT * 0.5, bug.z);
+                transform.translation =
+                    Vec3::new(bug.x, config::galaga::GALAGA_BUG_HEIGHT * 0.5, bug.z);
                 *visibility = Visibility::Visible;
             }
             _ => *visibility = Visibility::Hidden,
@@ -100,7 +101,7 @@ pub(crate) fn sync_galaga_entities(
         match sim.beams.get(entity.index) {
             Some(beam) => {
                 transform.translation = Vec3::new(beam.x, 0.35, beam.z);
-                transform.scale = Vec3::new(0.12, 0.12, config::GALAGA_BEAM_LENGTH);
+                transform.scale = Vec3::new(0.12, 0.12, config::galaga::GALAGA_BEAM_LENGTH);
                 *visibility = Visibility::Visible;
             }
             None => *visibility = Visibility::Hidden,

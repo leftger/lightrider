@@ -46,7 +46,8 @@ pub(crate) fn spawn_crash_effect(
     let Some(run) = state.run.as_ref() else {
         return;
     };
-    let origin = cycle_world_position(&run.sim) + Vec3::Y * config::LIGHTCYCLE_CYCLE_HEIGHT * 0.5;
+    let origin = cycle_world_position(&run.sim)
+        + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5;
     let count = 18;
 
     for index in 0..count {
@@ -153,14 +154,14 @@ pub(crate) fn spawn_entry_effect(
         Mesh3d(assets.entry_beam_mesh.clone()),
         MeshMaterial3d(assets.entry_beam_material.clone()),
         Transform::from_translation(
-            origin + Vec3::Y * (config::LIGHTCYCLE_ENTRY_BEAM_HEIGHT * 0.5),
+            origin + Vec3::Y * (config::lightcycle::LIGHTCYCLE_ENTRY_BEAM_HEIGHT * 0.5),
         )
         .with_scale(Vec3::new(0.02, 1.0, 0.02)),
         Pickable::IGNORE,
     ));
 
-    for index in 0..config::LIGHTCYCLE_ENTRY_HALO_COUNT {
-        let phase = index as f32 / config::LIGHTCYCLE_ENTRY_HALO_COUNT as f32;
+    for index in 0..config::lightcycle::LIGHTCYCLE_ENTRY_HALO_COUNT {
+        let phase = index as f32 / config::lightcycle::LIGHTCYCLE_ENTRY_HALO_COUNT as f32;
         commands.spawn((
             LightcycleSceneRoot,
             EntryTransportEntity,
@@ -187,7 +188,7 @@ pub(crate) fn entry_effect_envelope(progress: f32) -> f32 {
 /// Height and scale of one halo in the repeating upward sweep.
 pub(crate) fn entry_halo_pose(progress: f32, phase: f32) -> (f32, f32) {
     let sweep = (progress * 2.0 + phase).fract();
-    let height = 0.35 + sweep * config::LIGHTCYCLE_ENTRY_HALO_HEIGHT;
+    let height = 0.35 + sweep * config::lightcycle::LIGHTCYCLE_ENTRY_HALO_HEIGHT;
     let ring_envelope = (std::f32::consts::PI * sweep).sin().max(0.0);
     let scale = entry_effect_envelope(progress) * (0.35 + ring_envelope * 0.85);
     (height, scale)
@@ -226,11 +227,11 @@ pub(crate) fn animate_entry_effect(
     // system each frame, so this offset cannot accumulate.
     if let Ok(mut transform) = cycle.single_mut() {
         let lift = smoothstep((progress - 0.28) / 0.72);
-        transform.translation.y += lift * config::LIGHTCYCLE_ENTRY_HALO_HEIGHT * 0.72;
+        transform.translation.y += lift * config::lightcycle::LIGHTCYCLE_ENTRY_HALO_HEIGHT * 0.72;
         transform.scale = Vec3::splat(1.0 - lift * 0.72);
     }
 
-    if !fx.requested && progress >= config::LIGHTCYCLE_ENTRY_FX_REQUEST_AT {
+    if !fx.requested && progress >= config::lightcycle::LIGHTCYCLE_ENTRY_FX_REQUEST_AT {
         fx.requested = true;
         let target = fx.target.clone();
         navigator.0.begin_navigate_to(&target);

@@ -42,8 +42,8 @@ pub(crate) fn spawn_stealth_room(
 ) {
     let _ = meshes;
     let (half_w, half_h) = (
-        config::STEALTH_WIDTH as f32 * 0.5,
-        config::STEALTH_HEIGHT as f32 * 0.5,
+        config::stealth::STEALTH_WIDTH as f32 * 0.5,
+        config::stealth::STEALTH_HEIGHT as f32 * 0.5,
     );
     let span = config::GRID_SPACING;
     let width = half_w * 2.0 * span;
@@ -67,12 +67,14 @@ pub(crate) fn spawn_stealth_room(
             LightcycleSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.stealth_wall_material.clone()),
-            Transform::from_translation(position + Vec3::Y * config::STEALTH_WALL_HEIGHT * 0.5)
-                .with_scale(Vec3::new(
-                    span * 0.96,
-                    config::STEALTH_WALL_HEIGHT,
-                    span * 0.96,
-                )),
+            Transform::from_translation(
+                position + Vec3::Y * config::stealth::STEALTH_WALL_HEIGHT * 0.5,
+            )
+            .with_scale(Vec3::new(
+                span * 0.96,
+                config::stealth::STEALTH_WALL_HEIGHT,
+                span * 0.96,
+            )),
             Pickable::IGNORE,
         ));
     }
@@ -94,7 +96,7 @@ pub(crate) fn spawn_stealth_room(
     let body = |assets: &LightcycleAssets, scale: f32| {
         children![(
             WorldAssetRoot(assets.tron_scene.clone()),
-            Transform::from_rotation(Quat::from_rotation_y(config::TRON_MODEL_YAW))
+            Transform::from_rotation(Quat::from_rotation_y(config::character::TRON_MODEL_YAW))
                 .with_scale(Vec3::splat(scale)),
         )]
     };
@@ -107,7 +109,7 @@ pub(crate) fn spawn_stealth_room(
         Transform::from_translation(start).with_rotation(facing(room.heading.angle())),
         Visibility::default(),
         Pickable::IGNORE,
-        body(assets, config::STEALTH_CHARACTER_SCALE),
+        body(assets, config::stealth::STEALTH_CHARACTER_SCALE),
     ));
 
     for (index, guard) in room.guards.iter().enumerate() {
@@ -122,7 +124,7 @@ pub(crate) fn spawn_stealth_room(
             Pickable::IGNORE,
             body(
                 assets,
-                config::STEALTH_CHARACTER_SCALE * config::STEALTH_GUARD_SCALE,
+                config::stealth::STEALTH_CHARACTER_SCALE * config::stealth::STEALTH_GUARD_SCALE,
             ),
         ));
         commands.spawn((
@@ -132,7 +134,7 @@ pub(crate) fn spawn_stealth_room(
             MeshMaterial3d(assets.stealth_cone_material.clone()),
             Transform::from_translation(position + Vec3::Y * 0.08)
                 .with_rotation(facing(guard.vision_angle()))
-                .with_scale(Vec3::splat(config::STEALTH_CONE_REACH)),
+                .with_scale(Vec3::splat(config::stealth::STEALTH_CONE_REACH)),
             Pickable::IGNORE,
         ));
     }
@@ -192,53 +194,55 @@ pub(crate) fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
     // `run * spacing` along the wall from the character.
     let mut cell = room.character;
     let mut run = 0;
-    while run < config::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
+    while run < config::stealth::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
         cell = step_cell(cell, across);
         run += 1;
     }
 
-    if run <= config::STEALTH_HUG_CORNER_STEPS {
+    if run <= config::stealth::STEALTH_HUG_CORNER_STEPS {
         // A reachable corner: stand past it and out from the hugged face. The
         // farther the corner is, the farther out the camera has to stand for
         // the corner and the corridor behind it to stay inside the frame.
         let gap = run as f32 * spacing;
-        let out = config::STEALTH_HUG_CAMERA_OUT
-            + run.saturating_sub(1) as f32 * config::STEALTH_HUG_CAMERA_OUT_STEP;
+        let out = config::stealth::STEALTH_HUG_CAMERA_OUT
+            + run.saturating_sub(1) as f32 * config::stealth::STEALTH_HUG_CAMERA_OUT_STEP;
         let offset = Vec3::new(
-            px * (gap + config::STEALTH_HUG_CAMERA_PAST) - wx * out,
+            px * (gap + config::stealth::STEALTH_HUG_CAMERA_PAST) - wx * out,
             0.0,
-            pz * (gap + config::STEALTH_HUG_CAMERA_PAST) - wz * out,
+            pz * (gap + config::stealth::STEALTH_HUG_CAMERA_PAST) - wz * out,
         );
         // Aim at the wall-top corner halfway to the gap cell centre: the
         // character is then on one side of the view and the corridor around
         // the corner on the other.
         let look = Vec3::new(
             (px * gap + wx * spacing) * 0.5,
-            config::STEALTH_WALL_HEIGHT,
+            config::stealth::STEALTH_WALL_HEIGHT,
             (pz * gap + wz * spacing) * 0.5,
         );
         Some(HugShot {
             offset,
             look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+            height: config::stealth::STEALTH_HUG_CAMERA_HEIGHT,
         })
     } else {
         // No corner in reach: trail the character along the wall and look down
         // the corridor ahead, with the wall beside him sharing the frame.
         let offset = Vec3::new(
-            -px * config::STEALTH_HUG_CAMERA_BACK - wx * config::STEALTH_HUG_CAMERA_OUT,
+            -px * config::stealth::STEALTH_HUG_CAMERA_BACK
+                - wx * config::stealth::STEALTH_HUG_CAMERA_OUT,
             0.0,
-            -pz * config::STEALTH_HUG_CAMERA_BACK - wz * config::STEALTH_HUG_CAMERA_OUT,
+            -pz * config::stealth::STEALTH_HUG_CAMERA_BACK
+                - wz * config::stealth::STEALTH_HUG_CAMERA_OUT,
         );
         let look = Vec3::new(
-            px * config::STEALTH_HUG_CAMERA_AIM,
-            config::STEALTH_CAMERA_LOOK,
-            pz * config::STEALTH_HUG_CAMERA_AIM,
+            px * config::stealth::STEALTH_HUG_CAMERA_AIM,
+            config::stealth::STEALTH_CAMERA_LOOK,
+            pz * config::stealth::STEALTH_HUG_CAMERA_AIM,
         );
         Some(HugShot {
             offset,
             look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+            height: config::stealth::STEALTH_HUG_CAMERA_HEIGHT,
         })
     }
 }

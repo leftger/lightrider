@@ -66,21 +66,21 @@ pub struct ColumnsSim {
 impl ColumnsSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let mut sim = Self {
-            board: vec![None; config::COLUMNS_COLS * config::COLUMNS_ROWS],
-            col: config::COLUMNS_COLS as i32 / 2,
+            board: vec![None; config::arcade::COLUMNS_COLS * config::arcade::COLUMNS_ROWS],
+            col: config::arcade::COLUMNS_COLS as i32 / 2,
             piece: [0, 1, 2],
             bottom: 2,
             phase: ColumnsPhase::Falling,
             score: 0,
             input: ColumnsInput::default(),
-            fall_clock: config::COLUMNS_FALL_SECONDS,
+            fall_clock: config::arcade::COLUMNS_FALL_SECONDS,
             rng: Rng::from_state(seed | 1),
             seed,
             lines,
         };
         // Seed a few rows so there is something to match right away, shaped by
         // the file's length so longer files start a little busier.
-        let rows = config::COLUMNS_SEED_ROWS + lines.min(400) / 130;
+        let rows = config::arcade::COLUMNS_SEED_ROWS + lines.min(400) / 130;
         for _ in 0..rows {
             sim.seed_row();
         }
@@ -89,7 +89,7 @@ impl ColumnsSim {
     }
 
     fn next_piece(&mut self) -> [u8; 3] {
-        let colours = config::COLUMNS_GEM_COLORS as u8;
+        let colours = config::arcade::COLUMNS_GEM_COLORS as u8;
         [
             (self.rng.unit() * colours as f32) as u8 % colours,
             (self.rng.unit() * colours as f32) as u8 % colours,
@@ -99,8 +99,8 @@ impl ColumnsSim {
 
     /// Adds one seeded row at the bottom, pushing the rest toward the top.
     fn seed_row(&mut self) {
-        let cols = config::COLUMNS_COLS;
-        let rows = config::COLUMNS_ROWS;
+        let cols = config::arcade::COLUMNS_COLS;
+        let rows = config::arcade::COLUMNS_ROWS;
         for row in 1..rows {
             for col in 0..cols {
                 self.board[col + (row - 1) * cols] = self.board[col + row * cols];
@@ -108,8 +108,8 @@ impl ColumnsSim {
         }
         for col in 0..cols {
             self.board[col + (rows - 1) * cols] = Some(
-                (self.rng.unit() * config::COLUMNS_GEM_COLORS as f32) as u8
-                    % config::COLUMNS_GEM_COLORS as u8,
+                (self.rng.unit() * config::arcade::COLUMNS_GEM_COLORS as f32) as u8
+                    % config::arcade::COLUMNS_GEM_COLORS as u8,
             );
         }
     }
@@ -127,13 +127,13 @@ impl ColumnsSim {
 
     fn cell(&self, col: i32, row: i32) -> Option<u8> {
         if col < 0
-            || col >= config::COLUMNS_COLS as i32
+            || col >= config::arcade::COLUMNS_COLS as i32
             || row < 0
-            || row >= config::COLUMNS_ROWS as i32
+            || row >= config::arcade::COLUMNS_ROWS as i32
         {
             return None;
         }
-        self.board[col as usize + row as usize * config::COLUMNS_COLS]
+        self.board[col as usize + row as usize * config::arcade::COLUMNS_COLS]
     }
 
     fn piece_cells(&self) -> [(i32, i32); 3] {
@@ -145,16 +145,16 @@ impl ColumnsSim {
     }
 
     fn piece_landed(&self) -> bool {
-        self.bottom + 1 >= config::COLUMNS_ROWS as i32
+        self.bottom + 1 >= config::arcade::COLUMNS_ROWS as i32
             || self.cell(self.col, self.bottom + 1).is_some()
     }
 
     fn land(&mut self) -> bool {
         for (index, (col, row)) in self.piece_cells().into_iter().enumerate() {
-            self.board[col as usize + row as usize * config::COLUMNS_COLS] =
+            self.board[col as usize + row as usize * config::arcade::COLUMNS_COLS] =
                 Some(self.piece[index]);
         }
-        self.col = config::COLUMNS_COLS as i32 / 2;
+        self.col = config::arcade::COLUMNS_COLS as i32 / 2;
         self.bottom = 2;
         self.piece = self.next_piece();
         // The stack reached the spawn rows: the next piece has nowhere to go.
@@ -173,8 +173,8 @@ impl ColumnsSim {
     pub fn render_board(&self) -> Vec<Option<u8>> {
         let mut rendered = self.board.clone();
         for (index, &(col, row)) in self.piece_cells().iter().enumerate() {
-            if row >= 0 && row < config::COLUMNS_ROWS as i32 {
-                rendered[col as usize + row as usize * config::COLUMNS_COLS] =
+            if row >= 0 && row < config::arcade::COLUMNS_ROWS as i32 {
+                rendered[col as usize + row as usize * config::arcade::COLUMNS_COLS] =
                     Some(self.piece[index]);
             }
         }
@@ -196,8 +196,8 @@ impl ColumnsSim {
     }
 
     fn clear_matches(&mut self) -> u32 {
-        let cols = config::COLUMNS_COLS;
-        let rows = config::COLUMNS_ROWS;
+        let cols = config::arcade::COLUMNS_COLS;
+        let rows = config::arcade::COLUMNS_ROWS;
         let mut remove = vec![false; cols * rows];
         for row in 0..rows {
             for col in 0..cols {
@@ -235,8 +235,8 @@ impl ColumnsSim {
     }
 
     fn apply_gravity(&mut self) {
-        let cols = config::COLUMNS_COLS;
-        let rows = config::COLUMNS_ROWS;
+        let cols = config::arcade::COLUMNS_COLS;
+        let rows = config::arcade::COLUMNS_ROWS;
         for col in 0..cols {
             let mut write = rows as i32 - 1;
             for row in (0..rows as i32).rev() {
@@ -260,7 +260,7 @@ impl ColumnsSim {
 
         if input.slide != 0 {
             let next = self.col + input.slide;
-            if next >= 0 && next < config::COLUMNS_COLS as i32 {
+            if next >= 0 && next < config::arcade::COLUMNS_COLS as i32 {
                 self.col = next;
             }
         }
@@ -285,10 +285,10 @@ impl ColumnsSim {
                 events.landed = true;
                 let matched = self.resolve_matches();
                 events.matched = matched;
-                self.fall_clock = config::COLUMNS_FALL_SECONDS;
+                self.fall_clock = config::arcade::COLUMNS_FALL_SECONDS;
             } else {
                 self.bottom += 1;
-                self.fall_clock = config::COLUMNS_FALL_SECONDS;
+                self.fall_clock = config::arcade::COLUMNS_FALL_SECONDS;
             }
         }
 
@@ -397,17 +397,17 @@ mod tests {
     #[test]
     fn matching_clears_gems_and_gravity_fills_in() {
         let mut well = sim();
-        well.board = vec![None; config::COLUMNS_COLS * config::COLUMNS_ROWS];
+        well.board = vec![None; config::arcade::COLUMNS_COLS * config::arcade::COLUMNS_ROWS];
         // Three reds in a column.
         well.board[0] = Some(0);
-        well.board[config::COLUMNS_COLS] = Some(0);
-        well.board[2 * config::COLUMNS_COLS] = Some(0);
-        well.board[3 * config::COLUMNS_COLS] = Some(1); // above them, must fall
+        well.board[config::arcade::COLUMNS_COLS] = Some(0);
+        well.board[2 * config::arcade::COLUMNS_COLS] = Some(0);
+        well.board[3 * config::arcade::COLUMNS_COLS] = Some(1); // above them, must fall
         let cleared = well.clear_matches();
         assert_eq!(cleared, 3);
         well.apply_gravity();
         assert_eq!(
-            well.board[(config::COLUMNS_ROWS - 1) * config::COLUMNS_COLS],
+            well.board[(config::arcade::COLUMNS_ROWS - 1) * config::arcade::COLUMNS_COLS],
             Some(1),
             "the gem above should fall to the floor"
         );
@@ -416,7 +416,7 @@ mod tests {
     #[test]
     fn clearing_the_well_wins() {
         let mut well = sim();
-        well.board = vec![None; config::COLUMNS_COLS * config::COLUMNS_ROWS];
+        well.board = vec![None; config::arcade::COLUMNS_COLS * config::arcade::COLUMNS_ROWS];
         let events = well.update(1.0 / 60.0);
         assert!(events.cleared);
         assert_eq!(well.phase, ColumnsPhase::Won);

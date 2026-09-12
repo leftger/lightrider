@@ -76,18 +76,18 @@ pub(crate) fn build_active_run(path: &Path, nodes: Vec<FileNode>) -> ActiveRun {
     let parent_gate = path
         .parent()
         .is_some()
-        .then(|| GatePlacement::for_path(path, config::LIGHTCYCLE_PORTAL_WIDTH_CELLS));
+        .then(|| GatePlacement::for_path(path, config::lightcycle::LIGHTCYCLE_PORTAL_WIDTH_CELLS));
     let mut arena = Arena::from_nodes(
         cells.keys().copied(),
         parent_gate,
-        config::LIGHTCYCLE_ARENA_PADDING,
-        config::LIGHTCYCLE_MIN_ARENA_SPAN,
+        config::lightcycle::LIGHTCYCLE_ARENA_PADDING,
+        config::lightcycle::LIGHTCYCLE_MIN_ARENA_SPAN,
     );
     arena.generate_city(
         path,
         cells.keys().copied(),
-        config::LIGHTCYCLE_CITY_STRUCTURE_SEED_CHANCE,
-        config::LIGHTCYCLE_TOWER_STRIDE,
+        config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SEED_CHANCE,
+        config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
     );
 
     let sim = spawn_sim(&arena, &cells);
@@ -130,22 +130,30 @@ pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u
     let (arena, layout) = match game {
         // The field and the snake ring want a bounded playfield whatever the
         // file size; only disc wars scales its coliseum with the file.
-        SourceGame::Asteroids => {
-            build_capped_disc_arena(path, language, bytes, config::ASTEROIDS_RADIUS_CELLS)
-        }
+        SourceGame::Asteroids => build_capped_disc_arena(
+            path,
+            language,
+            bytes,
+            config::asteroids::ASTEROIDS_RADIUS_CELLS,
+        ),
         SourceGame::Snake => {
-            build_capped_disc_arena(path, language, bytes, config::SNAKE_RADIUS_CELLS)
+            build_capped_disc_arena(path, language, bytes, config::snake::SNAKE_RADIUS_CELLS)
         }
         SourceGame::DiscWars => build_disc_arena(path, language, bytes),
         // The off-grid games carry a metadata-only arena; their level is their
         // own. The half-extent only sizes the (unused) metadata box.
-        SourceGame::Platformer | SourceGame::Breaker | SourceGame::Stealth => {
-            build_flat_arena(path, language, bytes, config::PLATFORMER_HALF_EXTENT)
-        }
+        SourceGame::Platformer | SourceGame::Breaker | SourceGame::Stealth => build_flat_arena(
+            path,
+            language,
+            bytes,
+            config::platformer::PLATFORMER_HALF_EXTENT,
+        ),
         SourceGame::RiverSurfer => {
-            build_flat_arena(path, language, bytes, config::SURFER_HALF_EXTENT)
+            build_flat_arena(path, language, bytes, config::surfer::SURFER_HALF_EXTENT)
         }
-        SourceGame::Galaga => build_flat_arena(path, language, bytes, config::GALAGA_HALF_EXTENT),
+        SourceGame::Galaga => {
+            build_flat_arena(path, language, bytes, config::galaga::GALAGA_HALF_EXTENT)
+        }
         // The whole arcade block shares one arena extent; each game's board is
         // small enough to fit inside it.
         SourceGame::PacMan
@@ -154,7 +162,9 @@ pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u
         | SourceGame::Frogger
         | SourceGame::Qbert
         | SourceGame::Bomberman
-        | SourceGame::Plinko => build_flat_arena(path, language, bytes, config::ARCADE_HALF_EXTENT),
+        | SourceGame::Plinko => {
+            build_flat_arena(path, language, bytes, config::arcade::ARCADE_HALF_EXTENT)
+        }
     };
     let sim = LightcycleSim::start(layout.player_spawn, layout.player_spawn_heading);
     let sim_state = match game {
@@ -175,7 +185,7 @@ pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u
             layout.seed,
             layout.player_spawn,
             &ring_food_cells(&arena),
-            config::SNAKE_FOOD_TARGET,
+            config::snake::SNAKE_FOOD_TARGET,
         )),
         SourceGame::Platformer => SourceSim::Platformer(Box::new(PlatformerSim::new(
             layout.seed,
@@ -227,8 +237,8 @@ pub(crate) fn spawn_sim(arena: &Arena, cells: &HashMap<(i32, i32), usize>) -> Li
 
     if let Some((spawn, heading)) = arena.spawn_with_runway(
         blocked,
-        config::LIGHTCYCLE_SPAWN_SEARCH_RADIUS,
-        config::LIGHTCYCLE_SPAWN_RUNWAY_CELLS,
+        config::lightcycle::LIGHTCYCLE_SPAWN_SEARCH_RADIUS,
+        config::lightcycle::LIGHTCYCLE_SPAWN_RUNWAY_CELLS,
     ) {
         return LightcycleSim::start(spawn, heading);
     }
@@ -236,7 +246,7 @@ pub(crate) fn spawn_sim(arena: &Arena, cells: &HashMap<(i32, i32), usize>) -> Li
     // Nowhere to ride at all: hold the run until a restart or another folder
     // replaces the map.
     let cell = arena
-        .nearest_empty_cell(blocked, config::LIGHTCYCLE_SPAWN_SEARCH_RADIUS)
+        .nearest_empty_cell(blocked, config::lightcycle::LIGHTCYCLE_SPAWN_SEARCH_RADIUS)
         .unwrap_or_else(|| arena.center());
     LightcycleSim::ready(cell, Heading::PosX)
 }
@@ -344,7 +354,7 @@ pub(crate) fn apply_mode_swap(
         history.commit(&path);
         let hit = !cache.visited.insert(path);
         state.cache_boost = if hit {
-            config::CACHE_BOOST_SECONDS
+            config::lightcycle::CACHE_BOOST_SECONDS
         } else {
             0.0
         };
@@ -375,8 +385,10 @@ pub(crate) fn spawn_run_entities(
         Pickable::IGNORE,
         children![(
             WorldAssetRoot(assets.cycle_scene.clone()),
-            Transform::from_rotation(Quat::from_rotation_y(config::LIGHTCYCLE_MODEL_YAW))
-                .with_scale(Vec3::splat(config::LIGHTCYCLE_MODEL_SCALE)),
+            Transform::from_rotation(Quat::from_rotation_y(
+                config::lightcycle::LIGHTCYCLE_MODEL_YAW
+            ))
+            .with_scale(Vec3::splat(config::lightcycle::LIGHTCYCLE_MODEL_SCALE)),
         )],
     ));
 
@@ -498,15 +510,15 @@ pub(crate) fn apply_district_ambience(
     clear.0 = Color::LinearRgba(mix_linear(
         config::BACKGROUND_COLOR.into(),
         accent,
-        config::DISTRICT_SKY_MIX,
+        config::lightcycle::DISTRICT_SKY_MIX,
     ));
     light.color = Color::LinearRgba(mix_linear(
         LinearRgba::WHITE,
         accent,
-        config::DISTRICT_LIGHT_MIX,
+        config::lightcycle::DISTRICT_LIGHT_MIX,
     ));
     // Districts differ in brightness as well as hue, deterministically.
-    let spread = (index as f32 - 1.5) * config::DISTRICT_LIGHT_SPREAD;
+    let spread = (index as f32 - 1.5) * config::lightcycle::DISTRICT_LIGHT_SPREAD;
     light.illuminance = DirectionalLight::default().illuminance * (1.0 + spread);
 }
 

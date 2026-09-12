@@ -181,7 +181,7 @@ pub(crate) fn spawn_disc_arena(
         MeshMaterial3d(assets.disc_opponent_material.clone()),
         Transform::from_translation(
             config::ground_position(disc.opponent.cell.0, disc.opponent.cell.1)
-                + Vec3::Y * (config::RECOGNIZER_HEIGHT * 0.5),
+                + Vec3::Y * (config::disc::RECOGNIZER_HEIGHT * 0.5),
         ),
         opponent_visible,
         Pickable::IGNORE,

@@ -33,7 +33,7 @@ use bevy::prelude::{Cuboid, Mesh, Vec2, Vec3};
 use std::collections::BTreeSet;
 use std::path::Path;
 
-const RADIUS: f32 = config::LIGHTCYCLE_TURN_RADIUS;
+const RADIUS: f32 = config::lightcycle::LIGHTCYCLE_TURN_RADIUS;
 
 /// Direction the cycle asset's nose points in its own model space.
 ///
@@ -125,7 +125,7 @@ fn a_corner_one_cell_on_stands_the_camera_out_farther() {
     // how far out it stands, and it must grow for a corner that is a cell
     // away or the corridor behind it slips out of frame.
     assert!(
-        -shot.offset.x > config::STEALTH_HUG_CAMERA_OUT,
+        -shot.offset.x > config::stealth::STEALTH_HUG_CAMERA_OUT,
         "the camera should stand out farther than at the corner, got {:?}",
         shot.offset
     );
@@ -243,7 +243,7 @@ fn lane_markings_cover_a_whole_district() {
                 }
             }
         }
-        assert!(roads.len() <= config::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT);
+        assert!(roads.len() <= config::lightcycle::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT);
         let mut quads = Vec::new();
         for cell in &roads {
             push_marking_quads(*cell, &roads, &mut quads);
@@ -359,8 +359,8 @@ fn the_trail_stops_at_the_cycle_tail_not_the_cell_center() {
     let tail = *points.last().unwrap();
 
     let expected = (
-        pose.position.0 - pose.direction.x * config::LIGHTCYCLE_TRAIL_TAIL,
-        pose.position.1 - pose.direction.y * config::LIGHTCYCLE_TRAIL_TAIL,
+        pose.position.0 - pose.direction.x * config::lightcycle::LIGHTCYCLE_TRAIL_TAIL,
+        pose.position.1 - pose.direction.y * config::lightcycle::LIGHTCYCLE_TRAIL_TAIL,
     );
     assert!((tail.0 - expected.0).abs() < 1e-4);
     assert!((tail.1 - expected.1).abs() < 1e-4);
@@ -398,8 +398,8 @@ fn the_trail_is_a_meniscus_at_the_tail_and_full_height_behind_it() {
         heights[0] > heights[1],
         "oldest point should be full height"
     );
-    assert!((heights[0] - config::LIGHTCYCLE_TRAIL_HEIGHT).abs() < 1e-4);
-    assert!((heights[1] - config::LIGHTCYCLE_TRAIL_SPAWN_HEIGHT).abs() < 1e-4);
+    assert!((heights[0] - config::lightcycle::LIGHTCYCLE_TRAIL_HEIGHT).abs() < 1e-4);
+    assert!((heights[1] - config::lightcycle::LIGHTCYCLE_TRAIL_SPAWN_HEIGHT).abs() < 1e-4);
 }
 
 /// A zero-vertex mesh makes Bevy's allocator skip the allocation but still
@@ -477,14 +477,14 @@ fn gate_frame_pulses_between_its_trough_and_peak() {
 
 #[test]
 fn gate_bars_sweep_up_the_opening_and_wrap_at_the_lintel() {
-    let travel = config::LIGHTCYCLE_PORTAL_HEIGHT;
+    let travel = config::lightcycle::LIGHTCYCLE_PORTAL_HEIGHT;
     let bar = GateScanBar {
         offset: 0.0,
         travel,
     };
 
     // Long enough to cover more than one full sweep of the opening.
-    let steps = (2.5 / config::LIGHTCYCLE_PORTAL_BAR_SPEED / 0.05) as usize;
+    let steps = (2.5 / config::lightcycle::LIGHTCYCLE_PORTAL_BAR_SPEED / 0.05) as usize;
     let heights: Vec<_> = (0..steps)
         .map(|step| gate_bar_height(&bar, step as f32 * 0.05))
         .collect();
@@ -499,8 +499,8 @@ fn gate_bars_sweep_up_the_opening_and_wrap_at_the_lintel() {
 
 #[test]
 fn gate_bars_stay_evenly_spaced_up_the_opening() {
-    let travel = config::LIGHTCYCLE_PORTAL_HEIGHT;
-    let count = config::LIGHTCYCLE_PORTAL_BAR_COUNT;
+    let travel = config::lightcycle::LIGHTCYCLE_PORTAL_HEIGHT;
+    let count = config::lightcycle::LIGHTCYCLE_PORTAL_BAR_COUNT;
     let bars: Vec<_> = (0..count)
         .map(|index| GateScanBar {
             offset: index as f32 / count as f32,
@@ -530,7 +530,8 @@ fn cycle_faces_travel_direction_and_stays_upright_in_every_heading() {
             lean: 0.0,
         };
         let rotation = pose_rotation(&pose);
-        let model_yaw = bevy::prelude::Quat::from_rotation_y(config::LIGHTCYCLE_MODEL_YAW);
+        let model_yaw =
+            bevy::prelude::Quat::from_rotation_y(config::lightcycle::LIGHTCYCLE_MODEL_YAW);
 
         let travel = super::camera::pose_forward(&pose);
         let nose = rotation * model_yaw * MODEL_NOSE_AXIS;
@@ -580,9 +581,11 @@ fn heading_glyph_meshes_are_non_empty() {
 fn glyph_budget_caps_characters_per_line_and_overall() {
     let long = "A".repeat(80);
     let heading = heading_block(true, &long);
-    let (_, used) =
-        crate::document::plugin::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
-    assert_eq!(used, config::DOCUMENT_HEADING_GLYPHS);
+    let (_, used) = crate::document::plugin::document_glyph_line_mesh(
+        &heading,
+        config::document::DOCUMENT_MAX_GLYPHS,
+    );
+    assert_eq!(used, config::document::DOCUMENT_HEADING_GLYPHS);
 
     let paragraph = crate::document::layout::PlacedBlock {
         kind: crate::document::parse::DocBlockKind::Paragraph,
@@ -593,9 +596,11 @@ fn glyph_budget_caps_characters_per_line_and_overall() {
         landmark: (1, 0),
         along_x: true,
     };
-    let (_, used) =
-        crate::document::plugin::document_glyph_line_mesh(&paragraph, config::DOCUMENT_MAX_GLYPHS);
-    assert_eq!(used, config::DOCUMENT_PARAGRAPH_GLYPHS);
+    let (_, used) = crate::document::plugin::document_glyph_line_mesh(
+        &paragraph,
+        config::document::DOCUMENT_MAX_GLYPHS,
+    );
+    assert_eq!(used, config::document::DOCUMENT_PARAGRAPH_GLYPHS);
 
     let leftover = crate::document::plugin::document_glyph_line_mesh(&heading, 3).1;
     assert_eq!(leftover, 3);
@@ -691,17 +696,17 @@ fn page_rules_span_the_document_arena() {
 #[test]
 fn directory_and_document_palettes_and_portals_differ() {
     assert_ne!(
-        config::DOCUMENT_FLOOR_COLOR,
-        config::LIGHTCYCLE_CITY_FLOOR_COLOR
+        config::document::DOCUMENT_FLOOR_COLOR,
+        config::lightcycle::LIGHTCYCLE_CITY_FLOOR_COLOR
     );
     assert_ne!(
-        config::DOCUMENT_FOLIO_COLOR,
-        config::LIGHTCYCLE_PORTAL_COLOR
+        config::document::DOCUMENT_FOLIO_COLOR,
+        config::lightcycle::LIGHTCYCLE_PORTAL_COLOR
     );
-    assert_ne!(config::MARKDOWN_TOWER_COLOR, config::FILE_COLOR);
+    assert_ne!(config::document::MARKDOWN_TOWER_COLOR, config::FILE_COLOR);
     assert_ne!(
-        config::DOCUMENT_INK_COLOR,
-        config::LIGHTCYCLE_CITY_FLOOR_COLOR
+        config::document::DOCUMENT_INK_COLOR,
+        config::lightcycle::LIGHTCYCLE_CITY_FLOOR_COLOR
     );
 }
 
@@ -747,8 +752,8 @@ fn an_unrotated_chase_rig_sits_behind_and_above_the_cycle() {
     assert!(
         offset.abs_diff_eq(
             Vec3::new(
-                -config::LIGHTCYCLE_CAMERA_DISTANCE,
-                config::LIGHTCYCLE_CAMERA_HEIGHT,
+                -config::lightcycle::LIGHTCYCLE_CAMERA_DISTANCE,
+                config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT,
                 0.0
             ),
             1e-4
@@ -775,7 +780,7 @@ fn the_flight_lands_on_the_rig_the_chase_camera_will_hold() {
     let cycle = pose_world_position(&cycle_cell_pose(&run.sim));
 
     assert!((landing.translation.distance(cycle) - chase_rig_radius()).abs() < 1e-4);
-    assert!((landing.translation.y - config::LIGHTCYCLE_CAMERA_HEIGHT).abs() < 1e-4);
+    assert!((landing.translation.y - config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT).abs() < 1e-4);
     assert!(
         (landing.rotation * Vec3::NEG_Z)
             .abs_diff_eq((focus - landing.translation).normalize(), 1e-5)
@@ -786,7 +791,10 @@ fn the_flight_lands_on_the_rig_the_chase_camera_will_hold() {
     assert!(road.abs_diff_eq(pose_forward(&cycle_cell_pose(&run.sim)), 1e-5));
     assert!((road.length() - 1.0).abs() < 1e-5 && road.y.abs() < 1e-5);
     assert!(
-        focus.abs_diff_eq(cycle + road * config::LIGHTCYCLE_CAMERA_LOOKAHEAD, 1e-4),
+        focus.abs_diff_eq(
+            cycle + road * config::lightcycle::LIGHTCYCLE_CAMERA_LOOKAHEAD,
+            1e-4
+        ),
         "the shot has to be aimed down the road ahead of the cycle"
     );
 }
@@ -862,8 +870,8 @@ fn releasing_the_button_settles_free_look_back_behind_the_cycle() {
     assert!(view_forward.abs_diff_eq(Vec3::X, 1e-5));
     assert!(offset.abs_diff_eq(
         Vec3::new(
-            -config::LIGHTCYCLE_CAMERA_DISTANCE,
-            config::LIGHTCYCLE_CAMERA_HEIGHT,
+            -config::lightcycle::LIGHTCYCLE_CAMERA_DISTANCE,
+            config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT,
             0.0
         ),
         1e-4
@@ -906,17 +914,19 @@ fn entry_beam_rises_brightly_then_collapses() {
 #[test]
 fn entry_halos_sweep_up_the_beam_at_staggered_heights() {
     let progress = 0.25;
-    let poses: Vec<_> = (0..config::LIGHTCYCLE_ENTRY_HALO_COUNT)
+    let poses: Vec<_> = (0..config::lightcycle::LIGHTCYCLE_ENTRY_HALO_COUNT)
         .map(|index| {
             entry_halo_pose(
                 progress,
-                index as f32 / config::LIGHTCYCLE_ENTRY_HALO_COUNT as f32,
+                index as f32 / config::lightcycle::LIGHTCYCLE_ENTRY_HALO_COUNT as f32,
             )
         })
         .collect();
 
     assert!(poses.iter().all(|(height, scale)| {
-        *height >= 0.35 && *height <= config::LIGHTCYCLE_ENTRY_HALO_HEIGHT + 0.35 && *scale > 0.0
+        *height >= 0.35
+            && *height <= config::lightcycle::LIGHTCYCLE_ENTRY_HALO_HEIGHT + 0.35
+            && *scale > 0.0
     }));
     assert!(
         poses
@@ -930,12 +940,12 @@ fn entry_halos_sweep_up_the_beam_at_staggered_heights() {
 fn directory_request_waits_until_near_the_transport_apex() {
     let mut fx = crate::lightcycle::EntryFx::new(
         std::path::PathBuf::from("/next"),
-        config::LIGHTCYCLE_ENTRY_FX_DURATION,
+        config::lightcycle::LIGHTCYCLE_ENTRY_FX_DURATION,
     );
     fx.elapsed = fx.duration * 0.5;
-    assert!(fx.progress() < config::LIGHTCYCLE_ENTRY_FX_REQUEST_AT);
+    assert!(fx.progress() < config::lightcycle::LIGHTCYCLE_ENTRY_FX_REQUEST_AT);
     fx.elapsed = fx.duration * 0.9;
-    assert!(fx.progress() >= config::LIGHTCYCLE_ENTRY_FX_REQUEST_AT);
+    assert!(fx.progress() >= config::lightcycle::LIGHTCYCLE_ENTRY_FX_REQUEST_AT);
 }
 
 #[test]
@@ -992,7 +1002,7 @@ fn each_source_language_builds_only_its_own_game() {
         "snake drives on the grid, so it keeps the chase camera"
     );
     let snake = snake.source_snake().expect("snake state");
-    assert_eq!(snake.food.len(), config::SNAKE_FOOD_TARGET);
+    assert_eq!(snake.food.len(), config::snake::SNAKE_FOOD_TARGET);
     assert!(!snake.exit_open, "the exit starts locked");
 
     // The three games that build their own space off the grid.
@@ -1066,7 +1076,7 @@ fn a_fresh_session_has_not_ridden_yet_so_the_opening_room_is_grace() {
 
 #[test]
 fn the_collectors_sweep_crosses_the_whole_arena() {
-    let duration = config::GC_SWEEP_SECONDS;
+    let duration = config::lightcycle::GC_SWEEP_SECONDS;
     assert_eq!(gc_sweep_plane(duration, duration, -4.0, 8.0), -4.0);
     assert_eq!(gc_sweep_plane(0.0, duration, -4.0, 8.0), 8.0);
     let middle = gc_sweep_plane(duration * 0.5, duration, -4.0, 8.0);
@@ -1088,8 +1098,10 @@ fn a_plunge_starts_and_ends_at_the_resting_height() {
 fn a_plunge_rests_at_the_bottom_in_the_middle_and_never_overshoots() {
     // Level 0's window starts at the top of the event, so its timeline is
     // the event scaled by the stagger span.
-    let span = 1.0 - config::STACK_PLUNGE_STAGGER * (config::STACK_FRAME_MAX - 1) as f32;
-    let hold = config::STACK_PLUNGE_HOLD;
+    let span = 1.0
+        - config::lightcycle::STACK_PLUNGE_STAGGER
+            * (config::lightcycle::STACK_FRAME_MAX - 1) as f32;
+    let hold = config::lightcycle::STACK_PLUNGE_HOLD;
     let leg = (1.0 - hold) * 0.5;
     let down_end = leg * span;
     let up_start = (leg + hold) * span;
@@ -1134,7 +1146,7 @@ fn deeper_frames_lag_the_dive_and_finish_with_it() {
         stack_plunge(3, early) < stack_plunge(0, early),
         "a deeper frame starts its dive later"
     );
-    for level in 0..config::STACK_FRAME_MAX {
+    for level in 0..config::lightcycle::STACK_FRAME_MAX {
         assert_eq!(
             stack_plunge(level, 1.0),
             0.0,
@@ -1149,19 +1161,25 @@ fn the_plunge_clock_runs_between_events() {
     let mut motion = StackMotion::default();
     assert_eq!(motion.plunge, None, "it starts idle");
     // Nothing happens until the interval is up.
-    assert_eq!(motion.advance(config::STACK_PLUNGE_INTERVAL * 0.5), None);
+    assert_eq!(
+        motion.advance(config::lightcycle::STACK_PLUNGE_INTERVAL * 0.5),
+        None
+    );
     // Then the event runs for its own duration.
     assert_eq!(
-        motion.advance(config::STACK_PLUNGE_INTERVAL * 0.5),
+        motion.advance(config::lightcycle::STACK_PLUNGE_INTERVAL * 0.5),
         Some(0.0)
     );
     let progress = motion
-        .advance(config::STACK_PLUNGE_SECONDS * 0.5)
+        .advance(config::lightcycle::STACK_PLUNGE_SECONDS * 0.5)
         .expect("still plunging");
     assert!((progress - 0.5).abs() < 0.01, "progress was {progress}");
     // And it ends, resetting the interval.
-    assert_eq!(motion.advance(config::STACK_PLUNGE_SECONDS), None);
-    assert_eq!(motion.timer, config::STACK_PLUNGE_INTERVAL);
+    assert_eq!(
+        motion.advance(config::lightcycle::STACK_PLUNGE_SECONDS),
+        None
+    );
+    assert_eq!(motion.timer, config::lightcycle::STACK_PLUNGE_INTERVAL);
 }
 
 #[test]
@@ -1183,7 +1201,7 @@ fn a_stack_frame_is_an_open_outline() {
 
 #[test]
 fn stack_frames_glide_within_their_radius_and_ripple() {
-    let radius = config::STACK_FRAME_GLIDE;
+    let radius = config::lightcycle::STACK_FRAME_GLIDE;
     let mut moved = false;
     for step in 0..400 {
         let t = step as f32 * 0.05;
@@ -1203,7 +1221,7 @@ fn stack_frames_glide_within_their_radius_and_ripple() {
 
 #[test]
 fn stack_frames_hover_within_their_travel_and_ripple() {
-    let peak = config::STACK_FRAME_HOVER;
+    let peak = config::lightcycle::STACK_FRAME_HOVER;
     let mut seen_low = false;
     let mut seen_high = false;
     for step in 0..200 {
@@ -1225,7 +1243,7 @@ fn stack_frames_hover_within_their_travel_and_ripple() {
 
 #[test]
 fn stack_plates_rock_within_their_limit() {
-    let limit = config::STACK_FRAME_ROCK;
+    let limit = config::lightcycle::STACK_FRAME_ROCK;
     for step in 0..200 {
         let t = step as f32 * 0.05;
         let (x, z) = stack_frame_rock(2, t);

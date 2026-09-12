@@ -90,38 +90,43 @@ impl SurferSim {
     /// Lays out a river course from `seed`, scaled by how many lines the source
     /// file holds.
     pub fn new(seed: u64, lines: usize) -> Self {
-        let length = (lines as f32 * config::SURFER_METRES_PER_LINE)
-            .clamp(config::SURFER_MIN_LENGTH, config::SURFER_MAX_LENGTH);
+        let length = (lines as f32 * config::surfer::SURFER_METRES_PER_LINE).clamp(
+            config::surfer::SURFER_MIN_LENGTH,
+            config::surfer::SURFER_MAX_LENGTH,
+        );
         let mut rng = Rng::from_state(seed | 1);
-        let width = config::SURFER_HALF_WIDTH;
+        let width = config::surfer::SURFER_HALF_WIDTH;
 
-        let usable = length - config::SURFER_START_CLEAR - config::SURFER_FINISH_MARGIN;
-        let rock_count = ((usable / config::SURFER_ROCK_SPACING).floor() as usize)
-            .clamp(4, config::SURFER_MAX_ROCKS);
+        let usable =
+            length - config::surfer::SURFER_START_CLEAR - config::surfer::SURFER_FINISH_MARGIN;
+        let rock_count = ((usable / config::surfer::SURFER_ROCK_SPACING).floor() as usize)
+            .clamp(4, config::surfer::SURFER_MAX_ROCKS);
         let mut rocks = Vec::with_capacity(rock_count);
         for index in 0..rock_count {
             let t = (index as f32 + 0.5) / rock_count as f32;
             // A little jitter around the even spacing, but never so much that
             // two rocks crowd into one stretch of clear water.
-            let jitter = (rng.unit() * 2.0 - 1.0) * config::SURFER_ROCK_SPACING * 0.12;
-            let z = (config::SURFER_START_CLEAR + t * usable + jitter).clamp(
-                config::SURFER_START_CLEAR,
-                length - config::SURFER_FINISH_MARGIN,
+            let jitter = (rng.unit() * 2.0 - 1.0) * config::surfer::SURFER_ROCK_SPACING * 0.12;
+            let z = (config::surfer::SURFER_START_CLEAR + t * usable + jitter).clamp(
+                config::surfer::SURFER_START_CLEAR,
+                length - config::surfer::SURFER_FINISH_MARGIN,
             );
-            let radius = config::SURFER_ROCK_RADIUS * (0.85 + rng.unit() * 0.35);
+            let radius = config::surfer::SURFER_ROCK_RADIUS * (0.85 + rng.unit() * 0.35);
             // Rocks alternate sides and stay far enough off both banks that the
             // other side of the river is always a passable line.
-            let max_sway =
-                width - radius - config::SURFER_BOAT_RADIUS - config::SURFER_ROCK_CLEAR_GAP;
+            let max_sway = width
+                - radius
+                - config::surfer::SURFER_BOAT_RADIUS
+                - config::surfer::SURFER_ROCK_CLEAR_GAP;
             let side = if index % 2 == 0 { 1.0 } else { -1.0 };
             let sway = side * max_sway * (0.5 + rng.unit() * 0.4);
             let x = centerline_at(z, seed) + sway;
             rocks.push(Rock { x, z, radius });
         }
 
-        let mut gates = Vec::with_capacity(config::SURFER_GATES);
-        for index in 0..config::SURFER_GATES {
-            let t = (index as f32 + 0.5) / config::SURFER_GATES as f32;
+        let mut gates = Vec::with_capacity(config::surfer::SURFER_GATES);
+        for index in 0..config::surfer::SURFER_GATES {
+            let t = (index as f32 + 0.5) / config::surfer::SURFER_GATES as f32;
             let z = length * (0.18 + 0.66 * t);
             let sway = (rng.unit() * 2.0 - 1.0) * width * 0.35;
             gates.push(BoostGate {
@@ -135,8 +140,8 @@ impl SurferSim {
             x: centerline_at(0.0, seed),
             z: 0.0,
             heading: std::f32::consts::FRAC_PI_2,
-            speed: config::SURFER_BASE_SPEED,
-            height: config::SURFER_HOVER_HEIGHT,
+            speed: config::surfer::SURFER_BASE_SPEED,
+            height: config::surfer::SURFER_HOVER_HEIGHT,
             phase: SurferPhase::Riding,
             length,
             width,
@@ -177,13 +182,13 @@ impl SurferSim {
             return events;
         }
 
-        self.heading += input.steer.clamp(-1.0, 1.0) * config::SURFER_TURN_RATE * dt;
+        self.heading += input.steer.clamp(-1.0, 1.0) * config::surfer::SURFER_TURN_RATE * dt;
         let target = if input.boost {
-            config::SURFER_BOOST_SPEED
+            config::surfer::SURFER_BOOST_SPEED
         } else {
-            config::SURFER_BASE_SPEED
+            config::surfer::SURFER_BASE_SPEED
         };
-        let blend = 1.0 - (-config::SURFER_ACCEL * dt).exp();
+        let blend = 1.0 - (-config::surfer::SURFER_ACCEL * dt).exp();
         self.speed += (target - self.speed) * blend;
 
         let (dx, dz) = (self.heading.cos(), self.heading.sin());
@@ -191,13 +196,17 @@ impl SurferSim {
         self.x += dx * self.speed * dt;
         self.z += dz * self.speed * dt;
         self.time += dt;
-        self.height = config::SURFER_HOVER_HEIGHT
-            + config::SURFER_WAVE_AMPLITUDE
-                * (self.time * config::SURFER_WAVE_RATE + self.x * config::SURFER_WAVE_SPACE).sin();
+        self.height = config::surfer::SURFER_HOVER_HEIGHT
+            + config::surfer::SURFER_WAVE_AMPLITUDE
+                * (self.time * config::surfer::SURFER_WAVE_RATE
+                    + self.x * config::surfer::SURFER_WAVE_SPACE)
+                    .sin();
 
         // The bank is the river's edge. The bike beaches the moment its body
         // reaches the edge, not when its centre crosses it.
-        if (self.x - self.centerline(self.z)).abs() > self.width - config::SURFER_BOAT_RADIUS {
+        if (self.x - self.centerline(self.z)).abs()
+            > self.width - config::surfer::SURFER_BOAT_RADIUS
+        {
             self.phase = SurferPhase::Crashed;
             events.banked = true;
             return events;
@@ -207,7 +216,7 @@ impl SurferSim {
         for rock in &self.rocks {
             let dx = self.x - rock.x;
             let dz = self.z - rock.z;
-            let reach = config::SURFER_BOAT_RADIUS + rock.radius;
+            let reach = config::surfer::SURFER_BOAT_RADIUS + rock.radius;
             if dx * dx + dz * dz <= reach * reach {
                 self.phase = SurferPhase::Crashed;
                 events.hit_rock = true;
@@ -221,10 +230,10 @@ impl SurferSim {
                 continue;
             }
             if (prev_z < gate.z && self.z >= gate.z)
-                && (self.x - gate.x).abs() < config::SURFER_GATE_SPAN
+                && (self.x - gate.x).abs() < config::surfer::SURFER_GATE_SPAN
             {
                 gate.taken = true;
-                self.speed = self.speed.max(config::SURFER_BOOST_SPEED);
+                self.speed = self.speed.max(config::surfer::SURFER_BOOST_SPEED);
                 events.boosted = true;
             }
         }
@@ -246,8 +255,8 @@ impl SurferSim {
 /// The seeded sine the river follows. Deterministic per file.
 fn centerline_at(z: f32, seed: u64) -> f32 {
     let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
-    let wave = std::f32::consts::TAU / config::SURFER_RIVER_WAVELENGTH;
-    config::SURFER_RIVER_AMP * (wave * z + phase).sin()
+    let wave = std::f32::consts::TAU / config::surfer::SURFER_RIVER_WAVELENGTH;
+    config::surfer::SURFER_RIVER_AMP * (wave * z + phase).sin()
 }
 
 impl SourceGameSim for SurferSim {
@@ -302,7 +311,7 @@ mod tests {
         assert_eq!(a.length, b.length);
         assert_eq!(a.rocks, b.rocks);
         assert_eq!(a.gates, b.gates);
-        assert!(a.length >= config::SURFER_MIN_LENGTH);
+        assert!(a.length >= config::surfer::SURFER_MIN_LENGTH);
         assert!(!a.rocks.is_empty());
         assert!(!a.gates.is_empty());
     }
@@ -310,7 +319,7 @@ mod tests {
     #[test]
     fn a_longer_file_makes_a_longer_river() {
         assert!(sim(600).length > sim(200).length);
-        assert!(sim(20_000).length <= config::SURFER_MAX_LENGTH);
+        assert!(sim(20_000).length <= config::surfer::SURFER_MAX_LENGTH);
     }
 
     #[test]
@@ -333,7 +342,10 @@ mod tests {
                 let sway = (rock.x - course.centerline(rock.z)).abs();
                 let open_side = course.width - sway - rock.radius;
                 assert!(
-                    open_side >= config::SURFER_BOAT_RADIUS + config::SURFER_ROCK_CLEAR_GAP - 0.001,
+                    open_side
+                        >= config::surfer::SURFER_BOAT_RADIUS
+                            + config::surfer::SURFER_ROCK_CLEAR_GAP
+                            - 0.001,
                     "seed {seed} rock at z={} leaves only {open_side} of clear water on the open side",
                     rock.z
                 );
@@ -349,7 +361,7 @@ mod tests {
             for pair in course.rocks.windows(2) {
                 let gap = pair[1].z - pair[0].z;
                 assert!(
-                    gap >= config::SURFER_ROCK_SPACING * 0.7,
+                    gap >= config::surfer::SURFER_ROCK_SPACING * 0.7,
                     "seed {seed} squeezes two rocks {gap} apart, leaving no room to dodge"
                 );
             }
@@ -394,7 +406,7 @@ mod tests {
         for _ in 0..60 {
             course.update(1.0 / 60.0);
         }
-        assert!(course.speed > config::SURFER_BASE_SPEED + 1.0);
+        assert!(course.speed > config::surfer::SURFER_BASE_SPEED + 1.0);
     }
 
     #[test]
@@ -404,7 +416,7 @@ mod tests {
         course.heading = std::f32::consts::FRAC_PI_2;
         course.x = gate.x;
         course.z = gate.z - 1.0;
-        course.speed = config::SURFER_BASE_SPEED;
+        course.speed = config::surfer::SURFER_BASE_SPEED;
         let mut boosted = false;
         for _ in 0..120 {
             course.set_input(0.0, false);

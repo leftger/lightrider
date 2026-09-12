@@ -59,11 +59,11 @@ pub(crate) fn reset_on_directory_loaded(
         // the rest of the run, plus the disk-head seek on the hop in.
         let hit = !cache.visited.insert(event.path.clone());
         state.cache_boost = if hit {
-            config::CACHE_BOOST_SECONDS
+            config::lightcycle::CACHE_BOOST_SECONDS
         } else {
             0.0
         };
-        state.gc_timer = config::GC_INTERVAL_SECONDS;
+        state.gc_timer = config::lightcycle::GC_INTERVAL_SECONDS;
         state.gc_pause = 0.0;
         state.gc_sweep = 0.0;
         effects.write(MusicSfx::Seek);

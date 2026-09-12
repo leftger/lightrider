@@ -73,10 +73,10 @@ impl PacSim {
             heading: (0, 0),
             dots: BTreeSet::new(),
             ghosts: Vec::new(),
-            lives: config::PAC_LIVES,
+            lives: config::arcade::PAC_LIVES,
             score: 0,
             phase: PacPhase::Playing,
-            invuln: config::PAC_INVULN,
+            invuln: config::arcade::PAC_INVULN,
             input: (0, 0),
             rng: Rng::from_state(seed | 1),
             seed,
@@ -84,8 +84,8 @@ impl PacSim {
         let (px, pz) = Self::center(sim.cell);
         sim.x = px;
         sim.z = pz;
-        for row in 0..config::PAC_ROWS {
-            for col in 0..config::PAC_COLS {
+        for row in 0..config::arcade::PAC_ROWS {
+            for col in 0..config::arcade::PAC_COLS {
                 let cell = (col, row);
                 if !Self::solid(cell) && !Self::spawn_cells().contains(&cell) {
                     sim.dots.insert(cell);
@@ -108,8 +108,10 @@ impl PacSim {
 
     /// World centre of a maze cell.
     pub fn center(cell: (i32, i32)) -> (f32, f32) {
-        let x = (cell.0 as f32 - (config::PAC_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
-        let z = (cell.1 as f32 - (config::PAC_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let x =
+            (cell.0 as f32 - (config::arcade::PAC_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let z =
+            (cell.1 as f32 - (config::arcade::PAC_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
         (x, z)
     }
 
@@ -125,9 +127,9 @@ impl PacSim {
     /// True when nothing can walk into the cell.
     pub fn solid(cell: (i32, i32)) -> bool {
         cell.0 <= 0
-            || cell.0 >= config::PAC_COLS - 1
+            || cell.0 >= config::arcade::PAC_COLS - 1
             || cell.1 <= 0
-            || cell.1 >= config::PAC_ROWS - 1
+            || cell.1 >= config::arcade::PAC_ROWS - 1
             || Self::internal_walls().contains(&cell)
     }
 
@@ -162,7 +164,7 @@ impl PacSim {
                     self.phase = PacPhase::Caught;
                     return events;
                 }
-                self.invuln = config::PAC_INVULN;
+                self.invuln = config::arcade::PAC_INVULN;
                 self.reset_actors();
             }
         }
@@ -197,8 +199,8 @@ impl PacSim {
             return;
         }
         let (dx, dz) = self.heading;
-        self.x += dx as f32 * config::PAC_PLAYER_SPEED * dt;
-        self.z += dz as f32 * config::PAC_PLAYER_SPEED * dt;
+        self.x += dx as f32 * config::arcade::PAC_PLAYER_SPEED * dt;
+        self.z += dz as f32 * config::arcade::PAC_PLAYER_SPEED * dt;
 
         // Snap to the centre of the cell we are travelling into, then eat and
         // re-evaluate the corridor.
@@ -239,8 +241,8 @@ impl PacSim {
             return;
         }
         let (dx, dz) = dir;
-        self.ghosts[index].x += dx as f32 * config::PAC_GHOST_SPEED * dt;
-        self.ghosts[index].z += dz as f32 * config::PAC_GHOST_SPEED * dt;
+        self.ghosts[index].x += dx as f32 * config::arcade::PAC_GHOST_SPEED * dt;
+        self.ghosts[index].z += dz as f32 * config::arcade::PAC_GHOST_SPEED * dt;
         self.ghosts[index].dir = dir;
         let next = (target.0 + dx, target.1 + dz);
         let (nx, nz) = Self::center(next);
@@ -349,8 +351,8 @@ mod tests {
         assert!(!field.dots.is_empty());
         // Every open cell other than spawns holds a dot.
         let mut open = 0;
-        for row in 0..config::PAC_ROWS {
-            for col in 0..config::PAC_COLS {
+        for row in 0..config::arcade::PAC_ROWS {
+            for col in 0..config::arcade::PAC_COLS {
                 if !PacSim::solid((col, row)) {
                     open += 1;
                 }
@@ -385,7 +387,7 @@ mod tests {
         field.ghosts[0].z = field.z;
         let events = field.update(1.0 / 60.0);
         assert!(events.lost_life);
-        assert_eq!(field.lives, config::PAC_LIVES - 1);
+        assert_eq!(field.lives, config::arcade::PAC_LIVES - 1);
     }
 
     #[test]

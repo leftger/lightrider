@@ -29,8 +29,8 @@ pub(crate) fn spawn_plinko_board(
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.qbert_cube_dim.clone()),
         Transform::from_xyz(0.0, 0.0, -0.35).with_scale(Vec3::new(
-            config::PLINKO_WIDTH + 1.5,
-            config::PLINKO_HEIGHT + 1.5,
+            config::arcade::PLINKO_WIDTH + 1.5,
+            config::arcade::PLINKO_HEIGHT + 1.5,
             0.2,
         )),
         Visibility::Visible,
@@ -41,11 +41,8 @@ pub(crate) fn spawn_plinko_board(
         LightcycleSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.stealth_wall_material.clone()),
-        Transform::from_xyz(0.0, config::PLINKO_HEIGHT * 0.5 + 0.35, 0.0).with_scale(Vec3::new(
-            config::PLINKO_WIDTH + 1.0,
-            0.6,
-            0.6,
-        )),
+        Transform::from_xyz(0.0, config::arcade::PLINKO_HEIGHT * 0.5 + 0.35, 0.0)
+            .with_scale(Vec3::new(config::arcade::PLINKO_WIDTH + 1.0, 0.6, 0.6)),
         Visibility::Visible,
         Pickable::IGNORE,
     ));
@@ -65,19 +62,20 @@ pub(crate) fn spawn_plinko_board(
             LightcycleSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.disc_accent_materials[slot].clone()),
-            Transform::from_xyz(x, -config::PLINKO_HEIGHT * 0.5 - 1.0, 0.0)
+            Transform::from_xyz(x, -config::arcade::PLINKO_HEIGHT * 0.5 - 1.0, 0.0)
                 .with_scale(Vec3::new(1.9, 1.3, 0.9)),
             Visibility::Visible,
             Pickable::IGNORE,
         ));
     }
-    for index in 0..config::PLINKO_BALLS {
+    for index in 0..config::arcade::PLINKO_BALLS {
         commands.spawn((
             LightcycleSceneRoot,
             PlinkoBallEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.plinko_ball_material.clone()),
-            Transform::from_xyz(0.0, config::PLINKO_HEIGHT * 0.5, 0.0).with_scale(Vec3::splat(1.1)),
+            Transform::from_xyz(0.0, config::arcade::PLINKO_HEIGHT * 0.5, 0.0)
+                .with_scale(Vec3::splat(1.1)),
             Visibility::Hidden,
             Pickable::IGNORE,
         ));

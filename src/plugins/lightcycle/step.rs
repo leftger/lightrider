@@ -62,7 +62,8 @@ pub(crate) fn restart_run(run: &mut ActiveRun) {
                     **field = fresh;
                 }
                 SourceSim::Snake(snake) => {
-                    *snake = SnakeSim::new(seed, spawn, &food_cells, config::SNAKE_FOOD_TARGET);
+                    *snake =
+                        SnakeSim::new(seed, spawn, &food_cells, config::snake::SNAKE_FOOD_TARGET);
                 }
                 // Each sim re-rolls itself from its own stored seed, so a
                 // restart lays out exactly the same level.
@@ -126,12 +127,13 @@ pub(crate) fn step_lightcycle(
     }
 
     state.clock += time.delta_secs();
-    let max_catch_up = config::LIGHTCYCLE_FIXED_STEP * config::LIGHTCYCLE_MAX_SUBSTEPS as f32;
+    let max_catch_up = config::lightcycle::LIGHTCYCLE_FIXED_STEP
+        * config::lightcycle::LIGHTCYCLE_MAX_SUBSTEPS as f32;
     if state.clock > max_catch_up {
         state.clock = max_catch_up;
     }
 
-    let fixed_step = config::LIGHTCYCLE_FIXED_STEP;
+    let fixed_step = config::lightcycle::LIGHTCYCLE_FIXED_STEP;
     // Directory arenas run the collector on a timer: when it fires the world
     // stalls for a beat, then the sweep passes and play resumes. A revisit to
     // an already-opened directory rides a cache-hit surge instead.
@@ -144,9 +146,9 @@ pub(crate) fn step_lightcycle(
         } else {
             state.gc_timer -= dt;
             if state.gc_timer <= 0.0 {
-                state.gc_timer = config::GC_INTERVAL_SECONDS;
-                state.gc_pause = config::GC_PAUSE_SECONDS;
-                state.gc_sweep = config::GC_SWEEP_SECONDS;
+                state.gc_timer = config::lightcycle::GC_INTERVAL_SECONDS;
+                state.gc_pause = config::lightcycle::GC_PAUSE_SECONDS;
+                state.gc_sweep = config::lightcycle::GC_SWEEP_SECONDS;
                 effects.write(MusicSfx::Seek);
             }
         }
@@ -155,20 +157,20 @@ pub(crate) fn step_lightcycle(
     // Bullet time stretches the simulated step without changing the real-time
     // cadence, so the bike, its disc, and the opponent all slow together.
     let mut step = if source_run && state.slow_motion {
-        fixed_step * config::DISC_BULLET_TIME_SCALE
+        fixed_step * config::disc::DISC_BULLET_TIME_SCALE
     } else {
         fixed_step
     };
     if !source_run && state.gc_pause > 0.0 {
-        step *= config::GC_SLOW_SCALE;
+        step *= config::lightcycle::GC_SLOW_SCALE;
     }
     if !source_run && state.cache_boost > 0.0 {
-        let heat = state.cache_boost / config::CACHE_BOOST_SECONDS;
-        step *= 1.0 + (config::CACHE_BOOST_SCALE - 1.0) * heat;
+        let heat = state.cache_boost / config::lightcycle::CACHE_BOOST_SECONDS;
+        step *= 1.0 + (config::lightcycle::CACHE_BOOST_SCALE - 1.0) * heat;
     }
     let mut substeps = 0;
 
-    while state.clock >= fixed_step && substeps < config::LIGHTCYCLE_MAX_SUBSTEPS {
+    while state.clock >= fixed_step && substeps < config::lightcycle::LIGHTCYCLE_MAX_SUBSTEPS {
         state.clock -= fixed_step;
         substeps += 1;
 
@@ -176,8 +178,9 @@ pub(crate) fn step_lightcycle(
             let arena = &run.arena;
             let sim = &mut run.sim;
             match &run.environment {
-                RunEnvironment::Directory { nodes, cells } => {
-                    sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, sim| {
+                RunEnvironment::Directory { nodes, cells } => sim.advance(
+                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                    |next, sim| {
                         classify_next_content(
                             next,
                             arena,
@@ -187,10 +190,11 @@ pub(crate) fn step_lightcycle(
                             |index| nodes[index].is_markdown(),
                             |index| nodes[index].is_source(),
                         )
-                    })
-                }
-                RunEnvironment::Document { .. } => {
-                    sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, sim| {
+                    },
+                ),
+                RunEnvironment::Document { .. } => sim.advance(
+                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                    |next, sim| {
                         classify_next_content(
                             next,
                             arena,
@@ -200,16 +204,17 @@ pub(crate) fn step_lightcycle(
                             |_| false,
                             |_| false,
                         )
-                    })
-                }
+                    },
+                ),
                 RunEnvironment::Source { sim: source, .. } => match source {
                     // Parked while the rocks are live: nothing to advance, and
                     // the field itself is stepped after the loop.
                     SourceSim::Asteroids(field) if field.is_active() => StepOutcome::Moved,
                     // Once the field is decided the cycle is handed back, so it
                     // drives again and can ride out through the gate.
-                    SourceSim::Asteroids(_) => {
-                        sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
+                    SourceSim::Asteroids(_) => sim.advance(
+                        step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                        |next, state| {
                             classify_next_content(
                                 next,
                                 arena,
@@ -219,15 +224,16 @@ pub(crate) fn step_lightcycle(
                                 |_| false,
                                 |_| false,
                             )
-                        })
-                    }
+                        },
+                    ),
                     // Snake drives the ordinary grid, but the exit is a solid
                     // wall until enough power-ups have been eaten. The tail is
                     // capped after every step so it stays finite.
                     SourceSim::Snake(snake) => {
                         let locked = !snake.exit_open;
-                        let outcome =
-                            sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
+                        let outcome = sim.advance(
+                            step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                            |next, state| {
                                 if locked && is_ring_gate(arena, next) {
                                     return CellContent::Wall;
                                 }
@@ -240,7 +246,8 @@ pub(crate) fn step_lightcycle(
                                     |_| false,
                                     |_| false,
                                 )
-                            });
+                            },
+                        );
                         snake.trim_tail(sim);
                         outcome
                     }
@@ -263,23 +270,26 @@ pub(crate) fn step_lightcycle(
                         // in the same grid model the cycle already uses.
                         let opponent = disc.opponent_cell();
                         let opponent_disc = disc.opponent_disc_cell();
-                        sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
-                            if Some(next) == opponent {
-                                return CellContent::Opponent;
-                            }
-                            if Some(next) == opponent_disc {
-                                return CellContent::OpponentDisc;
-                            }
-                            classify_next_content(
-                                next,
-                                arena,
-                                state,
-                                &HashMap::new(),
-                                |_| false,
-                                |_| false,
-                                |_| false,
-                            )
-                        })
+                        sim.advance(
+                            step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                            |next, state| {
+                                if Some(next) == opponent {
+                                    return CellContent::Opponent;
+                                }
+                                if Some(next) == opponent_disc {
+                                    return CellContent::OpponentDisc;
+                                }
+                                classify_next_content(
+                                    next,
+                                    arena,
+                                    state,
+                                    &HashMap::new(),
+                                    |_| false,
+                                    |_| false,
+                                    |_| false,
+                                )
+                            },
+                        )
                     }
                 },
             }
@@ -334,7 +344,7 @@ pub(crate) fn step_lightcycle(
                     effects.write(MusicSfx::Beam);
                     state.entry_fx = Some(crate::lightcycle::EntryFx::new(
                         path,
-                        config::LIGHTCYCLE_ENTRY_FX_DURATION,
+                        config::lightcycle::LIGHTCYCLE_ENTRY_FX_DURATION,
                     ));
                 } else {
                     run.sim.phase = RunPhase::Crashed;
@@ -413,7 +423,7 @@ pub(crate) fn step_lightcycle(
 
         if run.sim.phase == RunPhase::Crashed && state.crash_fx.is_none() {
             state.crash_fx = Some(crate::lightcycle::CrashFx::new(
-                config::LIGHTCYCLE_CRASH_FX_DURATION,
+                config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
             ));
             effects.write(MusicSfx::Crash);
         }

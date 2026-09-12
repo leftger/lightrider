@@ -21,18 +21,19 @@ pub(crate) struct GemEntity {
 pub(crate) fn spawn_gem_well(commands: &mut Commands, assets: &LightcycleAssets, sim: &ColumnsSim) {
     let rendered = sim.render_board();
     for (index, colour) in rendered.iter().copied().enumerate() {
-        let col = index % config::COLUMNS_COLS;
-        let row = index / config::COLUMNS_COLS;
-        let x = (col as f32 - (config::COLUMNS_COLS - 1) as f32 * 0.5) * 1.6;
+        let col = index % config::arcade::COLUMNS_COLS;
+        let row = index / config::arcade::COLUMNS_COLS;
+        let x = (col as f32 - (config::arcade::COLUMNS_COLS - 1) as f32 * 0.5) * 1.6;
         // Row 0 is the top of the well, so higher rows sit lower on screen.
         // The whole well is lifted above the arena floor.
-        let y = ((config::COLUMNS_ROWS - 1) - row) as f32 * 1.6 + 0.8;
+        let y = ((config::arcade::COLUMNS_ROWS - 1) - row) as f32 * 1.6 + 0.8;
         commands.spawn((
             LightcycleSceneRoot,
             GemEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(
-                assets.gem_materials[colour.unwrap_or(0) as usize % config::COLUMNS_GEM_COLORS]
+                assets.gem_materials
+                    [colour.unwrap_or(0) as usize % config::arcade::COLUMNS_GEM_COLORS]
                     .clone(),
             ),
             Transform::from_xyz(x, y, 0.0).with_scale(Vec3::splat(1.5)),
@@ -46,9 +47,9 @@ pub(crate) fn spawn_gem_well(commands: &mut Commands, assets: &LightcycleAssets,
     }
 
     // A visible frame marks the playfield: side walls plus a floor bar.
-    let board_half = config::COLUMNS_COLS as f32 * 0.8;
+    let board_half = config::arcade::COLUMNS_COLS as f32 * 0.8;
     let wall_x = board_half + 0.55;
-    let board_height = config::COLUMNS_ROWS as f32 * 1.6;
+    let board_height = config::arcade::COLUMNS_ROWS as f32 * 1.6;
     let wall_scale = Vec3::new(0.4, board_height + 0.6, 0.5);
     for x in [-wall_x, wall_x] {
         commands.spawn((
@@ -87,15 +88,16 @@ pub(crate) fn sync_columns_entities(
     for (entity, mut transform, mut visibility, mut material) in &mut gems {
         match rendered.get(entity.index) {
             Some(Some(colour)) => {
-                let col = entity.index % config::COLUMNS_COLS;
-                let row = entity.index / config::COLUMNS_COLS;
+                let col = entity.index % config::arcade::COLUMNS_COLS;
+                let row = entity.index / config::arcade::COLUMNS_COLS;
                 transform.translation = Vec3::new(
-                    (col as f32 - (config::COLUMNS_COLS - 1) as f32 * 0.5) * 1.6,
-                    ((config::COLUMNS_ROWS - 1) - row) as f32 * 1.6 + 0.8,
+                    (col as f32 - (config::arcade::COLUMNS_COLS - 1) as f32 * 0.5) * 1.6,
+                    ((config::arcade::COLUMNS_ROWS - 1) - row) as f32 * 1.6 + 0.8,
                     0.0,
                 );
-                material.0 =
-                    assets.gem_materials[*colour as usize % config::COLUMNS_GEM_COLORS].clone();
+                material.0 = assets.gem_materials
+                    [*colour as usize % config::arcade::COLUMNS_GEM_COLORS]
+                    .clone();
                 *visibility = Visibility::Visible;
             }
             _ => *visibility = Visibility::Hidden,

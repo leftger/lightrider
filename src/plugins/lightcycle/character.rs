@@ -74,17 +74,24 @@ pub(crate) fn fit_guard_cones(
         return;
     };
     for (mut cone, mut transform, mut mesh) in &mut cones {
-        let radii = room.vision_radii(cone.index, config::STEALTH_CONE_SEGMENTS);
+        let radii = room.vision_radii(cone.index, config::stealth::STEALTH_CONE_SEGMENTS);
         match cone.mesh.clone() {
             Some(handle) => {
                 if let Some(mut geometry) = meshes.get_mut(&handle) {
-                    refit_cone(&mut geometry, config::STEALTH_VISION_HALF_ANGLE, &radii);
+                    refit_cone(
+                        &mut geometry,
+                        config::stealth::STEALTH_VISION_HALF_ANGLE,
+                        &radii,
+                    );
                 }
             }
             None => {
                 // The radii are in cells, so the scale drops to one cell from the
                 // fixed reach the placeholder fan was drawn at.
-                let handle = meshes.add(cone_mesh(config::STEALTH_VISION_HALF_ANGLE, &radii));
+                let handle = meshes.add(cone_mesh(
+                    config::stealth::STEALTH_VISION_HALF_ANGLE,
+                    &radii,
+                ));
                 mesh.0 = handle.clone();
                 transform.scale = Vec3::splat(config::GRID_SPACING);
                 cone.mesh = Some(handle);
@@ -107,7 +114,7 @@ pub(crate) fn prepare_character_walk(
     }
     let Some(clip) = gltfs
         .get(&assets.tron_gltf)
-        .and_then(|gltf| gltf.named_animations.get(config::WALK_CLIP))
+        .and_then(|gltf| gltf.named_animations.get(config::character::WALK_CLIP))
         .cloned()
     else {
         return;
@@ -150,13 +157,13 @@ pub(crate) fn drive_character_walk(
             "walk animation: {} character player(s), {} other, {:?} clip, asset carries {clips:?}",
             character.iter().len(),
             guards.iter().len(),
-            config::WALK_CLIP,
+            config::character::WALK_CLIP,
         );
     }
     // The patrol step rate, and the character's own ground speed in world units
     // per second. The guards walk continuously, so their clip must not stop
     // just because the player is waiting for them to pass.
-    let step_speed = config::STEALTH_WALK_SPEED;
+    let step_speed = config::stealth::STEALTH_WALK_SPEED;
     let character_speed = if let Some(room) = run.source_sim::<StealthSim>() {
         if room.walking { step_speed } else { 0.0 }
     } else if let Some(level) = run.source_sim::<PlatformerSim>() {
@@ -209,7 +216,7 @@ pub(crate) fn walk_players<'a>(
             }
             continue;
         }
-        let rate = (speed / config::WALK_CLIP_GROUND).clamp(0.3, 2.5);
+        let rate = (speed / config::character::WALK_CLIP_GROUND).clamp(0.3, 2.5);
         let active = player.play(walk.0);
         // Bevy's default repeat mode is `Never`: the clip plays once and then
         // parks on its last frame, which reads as a character sliding along

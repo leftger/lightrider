@@ -124,21 +124,21 @@ fn sync_radar(
     }
 
     // The grid is fixed for the run, so it is built once and only recoloured.
-    let half_x = config::STEALTH_WIDTH / 2;
-    let half_z = config::STEALTH_HEIGHT / 2;
-    let cell = config::RADAR_CELL_SIZE;
+    let half_x = config::stealth::STEALTH_WIDTH / 2;
+    let half_z = config::stealth::STEALTH_HEIGHT / 2;
+    let cell = config::radar::RADAR_CELL_SIZE;
     commands
         .spawn((
             RadarPanel,
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Px(config::RADAR_MARGIN),
-                right: Val::Px(config::RADAR_MARGIN),
+                top: Val::Px(config::radar::RADAR_MARGIN),
+                right: Val::Px(config::radar::RADAR_MARGIN),
                 width: Val::Px((half_x * 2 - 1) as f32 * cell),
                 height: Val::Px((half_z * 2 - 1) as f32 * cell),
                 ..default()
             },
-            BackgroundColor(config::RADAR_PANEL_COLOR),
+            BackgroundColor(config::radar::RADAR_PANEL_COLOR),
             Pickable::IGNORE,
         ))
         .with_children(|panel| {
@@ -154,11 +154,11 @@ fn sync_radar(
                             position_type: PositionType::Absolute,
                             left: Val::Px(across),
                             top: Val::Px(down),
-                            width: Val::Px(cell - config::RADAR_CELL_GAP),
-                            height: Val::Px(cell - config::RADAR_CELL_GAP),
+                            width: Val::Px(cell - config::radar::RADAR_CELL_GAP),
+                            height: Val::Px(cell - config::radar::RADAR_CELL_GAP),
                             ..default()
                         },
-                        BackgroundColor(config::RADAR_FLOOR_COLOR),
+                        BackgroundColor(config::radar::RADAR_FLOOR_COLOR),
                         Pickable::IGNORE,
                     ));
                 }
@@ -314,15 +314,15 @@ fn update_radar(state: Res<LightcycleState>, mut cells: Query<(&RadarCell, &mut 
         let guard_here = room.guards.iter().any(|guard| guard.cell() == at);
         let seen = room.guards.iter().any(|guard| room.guard_sees(guard, at));
         shade.0 = if at == room.character {
-            config::RADAR_PLAYER_COLOR
+            config::radar::RADAR_PLAYER_COLOR
         } else if guard_here {
-            config::RADAR_GUARD_COLOR
+            config::radar::RADAR_GUARD_COLOR
         } else if seen {
-            config::RADAR_CONE_COLOR
+            config::radar::RADAR_CONE_COLOR
         } else if room.is_solid(at) {
-            config::RADAR_SOLID_COLOR
+            config::radar::RADAR_SOLID_COLOR
         } else {
-            config::RADAR_FLOOR_COLOR
+            config::radar::RADAR_FLOOR_COLOR
         };
     }
 }

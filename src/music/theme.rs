@@ -124,66 +124,66 @@ impl ModeProfile {
     pub fn tempo_multiplier(self) -> f32 {
         match self {
             Self::Calm => 1.0,
-            Self::Action => config::MUSIC_ACTION_TEMPO_MULTIPLIER,
+            Self::Action => config::music::MUSIC_ACTION_TEMPO_MULTIPLIER,
         }
     }
 
     pub fn voice_budget(self) -> usize {
         match self {
-            Self::Calm => config::MUSIC_CALM_VOICE_BUDGET,
-            Self::Action => config::MUSIC_ACTION_VOICE_BUDGET,
+            Self::Calm => config::music::MUSIC_CALM_VOICE_BUDGET,
+            Self::Action => config::music::MUSIC_ACTION_VOICE_BUDGET,
         }
     }
 
     pub fn proximity_radius(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_PROXIMITY_RADIUS,
-            Self::Action => config::MUSIC_ACTION_PROXIMITY_RADIUS,
+            Self::Calm => config::music::MUSIC_CALM_PROXIMITY_RADIUS,
+            Self::Action => config::music::MUSIC_ACTION_PROXIMITY_RADIUS,
         }
     }
 
     pub fn gain_ceiling(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_GAIN_CEILING,
-            Self::Action => config::MUSIC_ACTION_GAIN_CEILING,
+            Self::Calm => config::music::MUSIC_CALM_GAIN_CEILING,
+            Self::Action => config::music::MUSIC_ACTION_GAIN_CEILING,
         }
     }
 
     pub fn smoothing_tau(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_SMOOTHING_TAU,
-            Self::Action => config::MUSIC_ACTION_SMOOTHING_TAU,
+            Self::Calm => config::music::MUSIC_CALM_SMOOTHING_TAU,
+            Self::Action => config::music::MUSIC_ACTION_SMOOTHING_TAU,
         }
     }
 
     /// Seconds between arpeggiator notes at `bpm`.
     pub fn arp_interval(self, bpm: f32) -> f32 {
         let beats = match self {
-            Self::Calm => config::MUSIC_CALM_ARP_BEATS,
-            Self::Action => config::MUSIC_ACTION_ARP_BEATS,
+            Self::Calm => config::music::MUSIC_CALM_ARP_BEATS,
+            Self::Action => config::music::MUSIC_ACTION_ARP_BEATS,
         };
         if bpm > 0.0 { 60.0 / bpm / beats } else { 1.0 }
     }
 
     pub fn arp_decay_tau(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_ARP_TAU,
-            Self::Action => config::MUSIC_ACTION_ARP_TAU,
+            Self::Calm => config::music::MUSIC_CALM_ARP_TAU,
+            Self::Action => config::music::MUSIC_ACTION_ARP_TAU,
         }
     }
 
     pub fn arp_gain(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_ARP_GAIN,
-            Self::Action => config::MUSIC_ACTION_ARP_GAIN,
+            Self::Calm => config::music::MUSIC_CALM_ARP_GAIN,
+            Self::Action => config::music::MUSIC_ACTION_ARP_GAIN,
         }
     }
 
     /// Cycles per second of the base-voice filter sweep.
     pub fn sweep_rate(self) -> f32 {
         match self {
-            Self::Calm => config::MUSIC_CALM_SWEEP_RATE,
-            Self::Action => config::MUSIC_ACTION_SWEEP_RATE,
+            Self::Calm => config::music::MUSIC_CALM_SWEEP_RATE,
+            Self::Action => config::music::MUSIC_ACTION_SWEEP_RATE,
         }
     }
 }
@@ -208,12 +208,13 @@ impl MusicTheme {
     /// Maps a raw seed into musical parameters. The bit slices are independent
     /// so root, scale, tempo, and family do not move together.
     pub fn from_seed(seed: u64) -> Self {
-        let bpm_steps = (config::MUSIC_CALM_BPM_MAX - config::MUSIC_CALM_BPM_MIN).round() as u64;
+        let bpm_steps =
+            (config::music::MUSIC_CALM_BPM_MAX - config::music::MUSIC_CALM_BPM_MIN).round() as u64;
         Self {
             seed,
             root_midi: 45 + (seed % 12) as u8, // A2..G#3
             scale: Scale::from_seed(seed >> 4),
-            base_bpm: config::MUSIC_CALM_BPM_MIN + ((seed >> 16) % (bpm_steps + 1)) as f32,
+            base_bpm: config::music::MUSIC_CALM_BPM_MIN + ((seed >> 16) % (bpm_steps + 1)) as f32,
             family: TimbreFamily::from_seed(seed),
             reverb: 0.35 + ((seed >> 24) % 30) as f32 / 100.0,
         }
@@ -249,10 +250,10 @@ impl MusicTheme {
 
     /// Base filter cutoff for one entry before proximity opens it up.
     pub fn node_cutoff(&self, node_seed: u64) -> f32 {
-        let base = config::MUSIC_VOICE_CUTOFF_MIN + ((node_seed >> 12) % 900) as f32;
+        let base = config::music::MUSIC_VOICE_CUTOFF_MIN + ((node_seed >> 12) % 900) as f32;
         base.clamp(
-            config::MUSIC_VOICE_CUTOFF_MIN,
-            config::MUSIC_VOICE_CUTOFF_MIN + 900.0,
+            config::music::MUSIC_VOICE_CUTOFF_MIN,
+            config::music::MUSIC_VOICE_CUTOFF_MIN + 900.0,
         )
     }
 }

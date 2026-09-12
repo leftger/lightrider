@@ -93,13 +93,13 @@ pub(crate) fn read_lightcycle_input(
         match history.rewind() {
             Some(path) => {
                 history.notice = "REWIND".to_string();
-                history.notice_timer = config::HISTORY_NOTICE_SECONDS;
+                history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;
                 effects.write(MusicSfx::Seek);
                 requests.write(DirectoryRequested { path });
             }
             None => {
                 history.notice = "AT THE FIRST COMMIT".to_string();
-                history.notice_timer = config::HISTORY_NOTICE_SECONDS;
+                history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;
             }
         }
         return;
@@ -108,13 +108,13 @@ pub(crate) fn read_lightcycle_input(
         match history.fast_forward() {
             Some(path) => {
                 history.notice = "FAST-FORWARD".to_string();
-                history.notice_timer = config::HISTORY_NOTICE_SECONDS;
+                history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;
                 effects.write(MusicSfx::Seek);
                 requests.write(DirectoryRequested { path });
             }
             None => {
                 history.notice = "NOTHING TO REDO".to_string();
-                history.notice_timer = config::HISTORY_NOTICE_SECONDS;
+                history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;
             }
         }
         return;
@@ -247,7 +247,7 @@ pub(crate) fn read_lightcycle_input(
         // inheriting a sweep that was half way across the old one.
         state.gc_pause = 0.0;
         state.gc_sweep = 0.0;
-        state.gc_timer = config::GC_INTERVAL_SECONDS;
+        state.gc_timer = config::lightcycle::GC_INTERVAL_SECONDS;
         state.clock = 0.0;
         state.crash_fx = None;
         state.entry_fx = None;
@@ -289,9 +289,9 @@ pub(crate) fn update_cycle_transform(
     // In the breaker the bike is the paddle: it slides along the bottom of the
     // court and rebounds the ball.
     if let Some(level) = run.source_sim::<BreakerSim>() {
-        transform.translation = Vec3::new(level.paddle_x, config::BREAKER_PADDLE_Y, 0.0);
+        transform.translation = Vec3::new(level.paddle_x, config::breaker::BREAKER_PADDLE_Y, 0.0);
         transform.rotation = Quat::IDENTITY;
-        transform.scale = Vec3::splat(config::BREAKER_PADDLE_SCALE);
+        transform.scale = Vec3::splat(config::breaker::BREAKER_PADDLE_SCALE);
         return;
     }
     transform.scale = Vec3::ONE;
@@ -310,7 +310,7 @@ pub(crate) fn update_cycle_transform(
     // The Galaga field parks the bike on the bottom edge, facing up the field,
     // and slides it side to side.
     if let Some(sim) = run.source_sim::<GalagaSim>() {
-        transform.translation = Vec3::new(sim.player_x, 0.0, config::GALAGA_PLAYER_Z);
+        transform.translation = Vec3::new(sim.player_x, 0.0, config::galaga::GALAGA_PLAYER_Z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;
     }
@@ -335,7 +335,7 @@ pub(crate) fn update_cycle_transform(
         return;
     }
     if let Some(sim) = run.source_sim::<PlinkoSim>() {
-        transform.translation = Vec3::new(sim.aim, config::PLINKO_HEIGHT * 0.5 - 1.0, 0.0);
+        transform.translation = Vec3::new(sim.aim, config::arcade::PLINKO_HEIGHT * 0.5 - 1.0, 0.0);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Y);
         return;
     }
@@ -357,9 +357,10 @@ pub(crate) fn update_cycle_transform(
     // Q*bert perches the bike on its current cube.
     if let Some(sim) = run.source_sim::<QbertSim>() {
         let (x, z) = QbertSim::cube_position(sim.row, sim.index);
-        let y =
-            (config::QBERT_ROWS as f32 - 1.0 - sim.row as f32) * config::QBERT_CUBE_HEIGHT * 0.5
-                + config::QBERT_CUBE_HEIGHT * 0.6;
+        let y = (config::arcade::QBERT_ROWS as f32 - 1.0 - sim.row as f32)
+            * config::arcade::QBERT_CUBE_HEIGHT
+            * 0.5
+            + config::arcade::QBERT_CUBE_HEIGHT * 0.6;
         transform.translation = Vec3::new(x, y, z);
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;

@@ -31,14 +31,14 @@ pub(crate) fn spawn_bomber_room(
     _meshes: &mut Assets<Mesh>,
     sim: &BomberSim,
 ) {
-    for row in 0..config::BOMBER_ROWS {
-        for col in 0..config::BOMBER_COLS {
+    for row in 0..config::arcade::BOMBER_ROWS {
+        for col in 0..config::arcade::BOMBER_COLS {
             let cell = (col, row);
             let (x, z) = BomberSim::center(cell);
             let is_border = col == 0
-                || col == config::BOMBER_COLS - 1
+                || col == config::arcade::BOMBER_COLS - 1
                 || row == 0
-                || row == config::BOMBER_ROWS - 1;
+                || row == config::arcade::BOMBER_ROWS - 1;
             if is_border {
                 commands.spawn((
                     LightcycleSceneRoot,
@@ -70,7 +70,7 @@ pub(crate) fn spawn_bomber_room(
         Visibility::Visible,
         Pickable::IGNORE,
     ));
-    for index in 0..config::BOMBER_MAX_BOMBS {
+    for index in 0..config::arcade::BOMBER_MAX_BOMBS {
         commands.spawn((
             LightcycleSceneRoot,
             BomberBombEntity { index },

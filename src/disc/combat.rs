@@ -108,7 +108,7 @@ impl Default for DiscEffects {
             heavy: false,
             widens: 0,
             invuln: 0.0,
-            hazard_fuse: config::DISC_HAZARD_FUSE,
+            hazard_fuse: config::disc::DISC_HAZARD_FUSE,
         }
     }
 }
@@ -126,9 +126,11 @@ impl DiscEffects {
             PickupKind::Heavy => self.heavy = true,
             PickupKind::Widen => self.widens += 1,
             PickupKind::Spike => self.spike = true,
-            PickupKind::Shield => self.shield = (self.shield + 1).min(config::DISC_SHIELD_MAX),
-            PickupKind::Phase => self.invuln = config::DISC_PHASE_SECONDS,
-            PickupKind::Recharge => self.hazard_fuse = config::DISC_HAZARD_FUSE,
+            PickupKind::Shield => {
+                self.shield = (self.shield + 1).min(config::disc::DISC_SHIELD_MAX)
+            }
+            PickupKind::Phase => self.invuln = config::disc::DISC_PHASE_SECONDS,
+            PickupKind::Recharge => self.hazard_fuse = config::disc::DISC_HAZARD_FUSE,
         }
     }
 }
@@ -196,7 +198,7 @@ impl DiscSim {
                 ),
                 alive: true,
                 move_clock: 0.0,
-                throw_clock: config::DISC_SPAWN_GRACE,
+                throw_clock: config::disc::DISC_SPAWN_GRACE,
                 windup: 0.0,
                 disc: None,
             },
@@ -250,8 +252,8 @@ impl DiscSim {
         }
         let glitch = if self.effects.glitch { 1 } else { 0 };
         let fork = if self.effects.fork { 1 } else { 0 };
-        let range = config::DISC_RANGE
-            + self.effects.widens * config::DISC_RANGE_BONUS
+        let range = config::disc::DISC_RANGE
+            + self.effects.widens * config::disc::DISC_RANGE_BONUS
             + if self.effects.heavy { 1 } else { 0 };
         self.player_disc = Some(Disc {
             cell: player.cell,
@@ -263,9 +265,9 @@ impl DiscSim {
             fork_left: fork,
             spike: self.effects.spike,
             speed: if self.effects.heavy {
-                config::DISC_SPEED * config::DISC_HEAVY_SPEED_SCALE
+                config::disc::DISC_SPEED * config::disc::DISC_HEAVY_SPEED_SCALE
             } else {
-                config::DISC_SPEED
+                config::disc::DISC_SPEED
             },
         });
         // The one-shot throw blessings are spent.
@@ -285,7 +287,7 @@ impl DiscSim {
         }
         disc.returning = true;
         disc.heading = disc.heading.opposite();
-        disc.budget = config::DISC_RANGE;
+        disc.budget = config::disc::DISC_RANGE;
         events.player_recalled = true;
         true
     }
@@ -357,11 +359,11 @@ impl DiscSim {
         self.last_cell = Some(player.cell);
 
         if layout.safe_pads.contains(&player.cell) {
-            self.effects.hazard_fuse = config::DISC_HAZARD_FUSE;
+            self.effects.hazard_fuse = config::disc::DISC_HAZARD_FUSE;
             return;
         }
         if !layout.hazards.contains(&player.cell) {
-            self.effects.hazard_fuse = config::DISC_HAZARD_FUSE;
+            self.effects.hazard_fuse = config::disc::DISC_HAZARD_FUSE;
             return;
         }
 
@@ -492,22 +494,22 @@ impl DiscSim {
             // Charge in the open before firing, so the shot is telegraphed.
             charging = true;
             self.opponent.windup += dt;
-            if self.opponent.windup >= config::DISC_OPPONENT_WINDUP {
+            if self.opponent.windup >= config::disc::DISC_OPPONENT_WINDUP {
                 self.opponent.windup = 0.0;
                 charging = false;
                 self.opponent.disc = Some(Disc {
                     cell: self.opponent.cell,
                     heading: crate::disc::layout::heading_toward(self.opponent.cell, player.cell),
                     progress: 0.0,
-                    budget: config::DISC_RANGE,
+                    budget: config::disc::DISC_RANGE,
                     returning: false,
                     glitch_left: 0,
                     fork_left: 0,
                     spike: false,
-                    speed: config::DISC_SPEED * 0.9,
+                    speed: config::disc::DISC_SPEED * 0.9,
                 });
                 self.opponent.throw_clock =
-                    config::DISC_OPPONENT_THROW_COOLDOWN * (1.0 - 0.3 * self.aggression);
+                    config::disc::DISC_OPPONENT_THROW_COOLDOWN * (1.0 - 0.3 * self.aggression);
                 events.opponent_threw = true;
             }
         } else {
@@ -518,7 +520,7 @@ impl DiscSim {
         // rather than a drive-by that also walks it off its own firing line.
         if !charging {
             self.opponent.move_clock +=
-                config::DISC_OPPONENT_SPEED * (1.0 + 0.3 * self.aggression) * dt;
+                config::disc::DISC_OPPONENT_SPEED * (1.0 + 0.3 * self.aggression) * dt;
         }
         let mut guard = 0;
         while self.opponent.move_clock >= 1.0 && guard < 4 {
@@ -544,7 +546,7 @@ impl DiscSim {
             let aligned =
                 disc.cell.0 == self.opponent.cell.0 || disc.cell.1 == self.opponent.cell.1;
             let close =
-                chebyshev(disc.cell, self.opponent.cell) <= config::DISC_OPPONENT_DODGE_RANGE;
+                chebyshev(disc.cell, self.opponent.cell) <= config::disc::DISC_OPPONENT_DODGE_RANGE;
             // Only flinch at a disc that is actually about to arrive; a distant
             // throw should not make it abandon its own firing line.
             (aligned && close)
@@ -574,13 +576,13 @@ impl DiscSim {
             return;
         }
         self.player_score += 1;
-        if self.player_score >= config::DISC_WIN_SCORE {
+        if self.player_score >= config::disc::DISC_WIN_SCORE {
             self.phase = DiscPhase::Won;
             self.player_disc = None;
             events.match_over = Some(DiscPhase::Won);
             return;
         }
-        self.round_delay = config::DISC_ROUND_DELAY;
+        self.round_delay = config::disc::DISC_ROUND_DELAY;
         self.pending_respawn = true;
     }
 
@@ -589,17 +591,17 @@ impl DiscSim {
             return;
         }
         self.opponent_score += 1;
-        if self.opponent_score >= config::DISC_WIN_SCORE {
+        if self.opponent_score >= config::disc::DISC_WIN_SCORE {
             self.phase = DiscPhase::Lost;
             events.match_over = Some(DiscPhase::Lost);
             return;
         }
-        self.round_delay = config::DISC_ROUND_DELAY;
+        self.round_delay = config::disc::DISC_ROUND_DELAY;
         self.pending_respawn = true;
     }
 
     fn respawn_round(&mut self, layout: &DiscLayout) {
-        self.round = (self.round + 1).min(config::DISC_WIN_SCORE * 2 - 1);
+        self.round = (self.round + 1).min(config::disc::DISC_WIN_SCORE * 2 - 1);
         self.player_disc = None;
         self.effects.reset();
         self.last_cell = Some(self.player_spawn);
@@ -611,7 +613,7 @@ impl DiscSim {
             ),
             alive: true,
             move_clock: 0.0,
-            throw_clock: config::DISC_SPAWN_GRACE,
+            throw_clock: config::disc::DISC_SPAWN_GRACE,
             windup: 0.0,
             disc: None,
         };
@@ -671,7 +673,7 @@ fn advance_disc(
             } else if !disc.returning {
                 disc.returning = true;
                 disc.heading = disc.heading.opposite();
-                disc.budget = config::DISC_RANGE;
+                disc.budget = config::disc::DISC_RANGE;
                 continue;
             } else {
                 return DiscFlight::Expired;
@@ -685,7 +687,7 @@ fn advance_disc(
         // steps a whole cell at a time, an exact-cell rule makes a moving target
         // nearly unhittable. Its own disc keeps the exact rule.
         let slack = match target_kind {
-            DiscTarget::Opponent => config::DISC_PLAYER_HIT_SLACK,
+            DiscTarget::Opponent => config::disc::DISC_PLAYER_HIT_SLACK,
             DiscTarget::Player => 0,
         };
         if chebyshev(disc.cell, target) <= slack {
@@ -701,7 +703,7 @@ fn advance_disc(
             }
             disc.returning = true;
             disc.heading = disc.heading.opposite();
-            disc.budget = config::DISC_RANGE;
+            disc.budget = config::disc::DISC_RANGE;
         }
     }
     DiscFlight::Flying
@@ -931,7 +933,8 @@ mod tests {
         }
         let threw_at = threw_at.expect("the opponent should eventually shoot");
         assert!(
-            threw_at >= config::DISC_SPAWN_GRACE + config::DISC_OPPONENT_WINDUP - dt * 2.0,
+            threw_at
+                >= config::disc::DISC_SPAWN_GRACE + config::disc::DISC_OPPONENT_WINDUP - dt * 2.0,
             "shot came at {threw_at}s with no telegraph"
         );
     }
@@ -1039,12 +1042,12 @@ mod tests {
             cell: (layout.player_spawn.0 + 1, layout.player_spawn.1),
             heading: Heading::NegX,
             progress: 0.0,
-            budget: config::DISC_RANGE,
+            budget: config::disc::DISC_RANGE,
             returning: false,
             glitch_left: 0,
             fork_left: 0,
             spike: false,
-            speed: config::DISC_SPEED,
+            speed: config::disc::DISC_SPEED,
         });
 
         let mut events = super::DiscEvents::default();
@@ -1070,12 +1073,12 @@ mod tests {
             cell: (layout.player_spawn.0 + 1, layout.player_spawn.1),
             heading: Heading::NegX,
             progress: 0.0,
-            budget: config::DISC_RANGE,
+            budget: config::disc::DISC_RANGE,
             returning: false,
             glitch_left: 0,
             fork_left: 0,
             spike: false,
-            speed: config::DISC_SPEED,
+            speed: config::disc::DISC_SPEED,
         });
         let mut events = super::DiscEvents::default();
         for _ in 0..30 {
@@ -1133,7 +1136,7 @@ mod tests {
             events = sim.update(1.0 / 60.0, snapshot(&p), &arena, &layout);
         }
         assert!(events.player_derezz.is_none(), "gaps recharge the fuse");
-        assert_eq!(sim.effects.hazard_fuse, config::DISC_HAZARD_FUSE - 1);
+        assert_eq!(sim.effects.hazard_fuse, config::disc::DISC_HAZARD_FUSE - 1);
     }
 
     fn disc(cell: (i32, i32), heading: Heading, returning: bool, spike: bool) -> super::Disc {
@@ -1141,12 +1144,12 @@ mod tests {
             cell,
             heading,
             progress: 0.0,
-            budget: config::DISC_RANGE,
+            budget: config::disc::DISC_RANGE,
             returning,
             glitch_left: 0,
             fork_left: 0,
             spike,
-            speed: config::DISC_SPEED,
+            speed: config::disc::DISC_SPEED,
         }
     }
 

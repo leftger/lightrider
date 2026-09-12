@@ -86,16 +86,19 @@ pub struct BreakerSim {
 impl BreakerSim {
     /// Lays out a wall of bricks from `seed`.
     pub fn new(seed: u64) -> Self {
-        let (width, height) = (config::BREAKER_WIDTH, config::BREAKER_HEIGHT);
-        let cols = config::BREAKER_COLS;
-        let rows = config::BREAKER_ROWS;
+        let (width, height) = (
+            config::breaker::BREAKER_WIDTH,
+            config::breaker::BREAKER_HEIGHT,
+        );
+        let cols = config::breaker::BREAKER_COLS;
+        let rows = config::breaker::BREAKER_ROWS;
         let mut rng = Rng::from_state(seed | 1);
         let mut bricks = Vec::with_capacity((cols * rows) as usize);
         for row in 0..rows {
             for col in 0..cols {
                 // Punch a few gaps so the wall is not a solid slab, but keep the
                 // bottom rows mostly intact.
-                let hole = rng.unit() < config::BREAKER_HOLE_CHANCE;
+                let hole = rng.unit() < config::breaker::BREAKER_HOLE_CHANCE;
                 bricks.push(Brick {
                     col,
                     row,
@@ -108,7 +111,7 @@ impl BreakerSim {
             bricks,
             ball: Ball {
                 x: 0.0,
-                y: config::BREAKER_PADDLE_Y + config::BREAKER_BALL_RADIUS,
+                y: config::breaker::BREAKER_PADDLE_Y + config::breaker::BREAKER_BALL_RADIUS,
                 vx: 0.0,
                 vy: 0.0,
                 held: true,
@@ -116,7 +119,7 @@ impl BreakerSim {
             paddle_x: 0.0,
             phase: BreakerPhase::Ready,
             court: (width, height),
-            paddle_width: config::BREAKER_PADDLE_WIDTH,
+            paddle_width: config::breaker::BREAKER_PADDLE_WIDTH,
             input: BreakerInput::default(),
             seed,
         }
@@ -137,16 +140,16 @@ impl BreakerSim {
 
     /// Left edge of a brick in court space.
     pub fn brick_box(&self, brick: &Brick) -> (f32, f32, f32, f32) {
-        let stride = config::BREAKER_BRICK_WIDTH + config::BREAKER_BRICK_GAP;
-        let wall =
-            self.court.0 - (config::BREAKER_COLS as f32 * stride - config::BREAKER_BRICK_GAP);
+        let stride = config::breaker::BREAKER_BRICK_WIDTH + config::breaker::BREAKER_BRICK_GAP;
+        let wall = self.court.0
+            - (config::breaker::BREAKER_COLS as f32 * stride - config::breaker::BREAKER_BRICK_GAP);
         let x = -self.court.0 * 0.5 + wall * 0.5 + brick.col as f32 * stride;
-        let y = self.court.1 - config::BREAKER_WALL_TOP - brick.row as f32 * stride;
+        let y = self.court.1 - config::breaker::BREAKER_WALL_TOP - brick.row as f32 * stride;
         (
             x,
-            y - config::BREAKER_BRICK_HEIGHT,
-            config::BREAKER_BRICK_WIDTH,
-            config::BREAKER_BRICK_HEIGHT,
+            y - config::breaker::BREAKER_BRICK_HEIGHT,
+            config::breaker::BREAKER_BRICK_WIDTH,
+            config::breaker::BREAKER_BRICK_HEIGHT,
         )
     }
 
@@ -163,19 +166,20 @@ impl BreakerSim {
         // Slide, clamped so the paddle stays inside the court.
         let half = self.court.0 * 0.5 - self.paddle_width * 0.5;
         self.paddle_x = (self.paddle_x
-            + input.slide.clamp(-1.0, 1.0) * config::BREAKER_PADDLE_SPEED * dt)
+            + input.slide.clamp(-1.0, 1.0) * config::breaker::BREAKER_PADDLE_SPEED * dt)
             .clamp(-half, half);
 
         if self.phase == BreakerPhase::Ready {
             self.ball.x = self.paddle_x;
-            self.ball.y = config::BREAKER_PADDLE_Y + config::BREAKER_BALL_RADIUS;
+            self.ball.y = config::breaker::BREAKER_PADDLE_Y + config::breaker::BREAKER_BALL_RADIUS;
             if input.launch {
                 self.ball.held = false;
                 // Off the paddle at a slight angle so it never travels straight
                 // up and stalls.
-                let angle = config::BREAKER_LAUNCH_ANGLE;
-                self.ball.vx = angle.sin() * config::BREAKER_BALL_SPEED * self.launch_bias();
-                self.ball.vy = angle.cos() * config::BREAKER_BALL_SPEED;
+                let angle = config::breaker::BREAKER_LAUNCH_ANGLE;
+                self.ball.vx =
+                    angle.sin() * config::breaker::BREAKER_BALL_SPEED * self.launch_bias();
+                self.ball.vy = angle.cos() * config::breaker::BREAKER_BALL_SPEED;
                 self.phase = BreakerPhase::Running;
                 events.launched = true;
             }
@@ -189,7 +193,9 @@ impl BreakerSim {
 
         // Move in small slices so a fast ball cannot tunnel through a brick.
         let speed = (self.ball.vx * self.ball.vx + self.ball.vy * self.ball.vy).sqrt();
-        let steps = ((speed * dt) / config::BREAKER_MAX_STEP).ceil().max(1.0) as u32;
+        let steps = ((speed * dt) / config::breaker::BREAKER_MAX_STEP)
+            .ceil()
+            .max(1.0) as u32;
         let slice = dt / steps as f32;
         for _ in 0..steps {
             if matches!(self.phase, BreakerPhase::Cleared | BreakerPhase::Missed) {
@@ -202,7 +208,7 @@ impl BreakerSim {
 
     /// One collision slice.
     fn advance(&mut self, dt: f32, events: &mut BreakerEvents) {
-        let radius = config::BREAKER_BALL_RADIUS;
+        let radius = config::breaker::BREAKER_BALL_RADIUS;
         self.ball.x += self.ball.vx * dt;
         self.ball.y += self.ball.vy * dt;
 
@@ -224,18 +230,20 @@ impl BreakerSim {
         // The bike: reflect, with the angle set by where it landed.
         let paddle_half = self.paddle_width * 0.5;
         if self.ball.vy < 0.0
-            && self.ball.y - radius <= config::BREAKER_PADDLE_Y + config::BREAKER_PADDLE_HEIGHT
-            && self.ball.y + radius >= config::BREAKER_PADDLE_Y
+            && self.ball.y - radius
+                <= config::breaker::BREAKER_PADDLE_Y + config::breaker::BREAKER_PADDLE_HEIGHT
+            && self.ball.y + radius >= config::breaker::BREAKER_PADDLE_Y
             && (self.ball.x - self.paddle_x).abs() <= paddle_half + radius
         {
             let offset = ((self.ball.x - self.paddle_x) / paddle_half).clamp(-1.0, 1.0);
-            let deflect = offset * config::BREAKER_MAX_DEFLECT;
+            let deflect = offset * config::breaker::BREAKER_MAX_DEFLECT;
             let speed = (self.ball.vx * self.ball.vx + self.ball.vy * self.ball.vy)
                 .sqrt()
-                .max(config::BREAKER_BALL_SPEED);
+                .max(config::breaker::BREAKER_BALL_SPEED);
             self.ball.vx = deflect * speed;
             self.ball.vy = (1.0 - deflect * deflect).max(0.0).sqrt() * speed;
-            self.ball.y = config::BREAKER_PADDLE_Y + config::BREAKER_PADDLE_HEIGHT + radius;
+            self.ball.y =
+                config::breaker::BREAKER_PADDLE_Y + config::breaker::BREAKER_PADDLE_HEIGHT + radius;
             events.bounced_off_paddle = true;
         }
 
@@ -427,9 +435,9 @@ mod tests {
         let brick = level.bricks[0];
         let (bx, by, bw, _) = level.brick_box(&brick);
         level.ball.x = bx + bw * 0.5;
-        level.ball.y = by - config::BREAKER_BALL_RADIUS - 0.01;
+        level.ball.y = by - config::breaker::BREAKER_BALL_RADIUS - 0.01;
         level.ball.vx = 0.0;
-        level.ball.vy = config::BREAKER_BALL_SPEED;
+        level.ball.vy = config::breaker::BREAKER_BALL_SPEED;
         let events = level.update(1.0 / 60.0);
         assert_eq!(events.broke_bricks, 1);
         assert_eq!(level.phase, BreakerPhase::Cleared);
@@ -445,7 +453,7 @@ mod tests {
         level.ball.x = -level.court.0 * 0.5 + 1.0;
         level.ball.y = 1.0;
         level.ball.vx = 0.0;
-        level.ball.vy = -config::BREAKER_BALL_SPEED;
+        level.ball.vy = -config::breaker::BREAKER_BALL_SPEED;
         let mut missed = false;
         for _ in 0..600 {
             if level.update(1.0 / 60.0).missed {
@@ -462,9 +470,10 @@ mod tests {
         let mut level = sim(7);
         serve(&mut level);
         level.ball.x = level.paddle_x;
-        level.ball.y = config::BREAKER_PADDLE_Y + config::BREAKER_PADDLE_HEIGHT + 0.3;
+        level.ball.y =
+            config::breaker::BREAKER_PADDLE_Y + config::breaker::BREAKER_PADDLE_HEIGHT + 0.3;
         level.ball.vx = 0.0;
-        level.ball.vy = -config::BREAKER_BALL_SPEED;
+        level.ball.vy = -config::breaker::BREAKER_BALL_SPEED;
         let events = level.update(1.0 / 60.0);
         assert!(
             events.bounced_off_paddle,

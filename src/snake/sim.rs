@@ -48,7 +48,7 @@ impl SnakeSim {
             food: scatter(seed, spawn, candidates, target.max(1)),
             eaten: 0,
             target: target.max(1),
-            max_tail: config::SNAKE_TAIL_START,
+            max_tail: config::snake::SNAKE_TAIL_START,
             exit_open: false,
             dead: false,
         }
@@ -71,7 +71,7 @@ impl SnakeSim {
         };
         slot.eaten = true;
         self.eaten += 1;
-        self.max_tail += config::SNAKE_TAIL_GROWTH;
+        self.max_tail += config::snake::SNAKE_TAIL_GROWTH;
         events.ate = true;
         if self.eaten >= self.target && !self.exit_open {
             self.exit_open = true;
@@ -115,7 +115,7 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
         tries += 1;
         let index = (rng.unit() * candidates.len() as f32) as usize % candidates.len();
         let cell = candidates[index];
-        if chebyshev(cell, spawn) < config::SNAKE_MIN_FOOD_DISTANCE {
+        if chebyshev(cell, spawn) < config::snake::SNAKE_MIN_FOOD_DISTANCE {
             continue;
         }
         if food.iter().any(|food| food.cell == cell) {
@@ -165,7 +165,7 @@ mod tests {
         assert_eq!(sim.food.len(), 6);
         for (index, food) in sim.food.iter().enumerate() {
             assert!(
-                chebyshev(food.cell, (0, 0)) >= config::SNAKE_MIN_FOOD_DISTANCE,
+                chebyshev(food.cell, (0, 0)) >= config::snake::SNAKE_MIN_FOOD_DISTANCE,
                 "food landed on top of the rider"
             );
             for other in &sim.food[index + 1..] {
@@ -192,7 +192,7 @@ mod tests {
         let first = sim.eat(food[0]);
         assert!(first.ate);
         assert!(!first.opened_exit);
-        assert_eq!(sim.max_tail, start + config::SNAKE_TAIL_GROWTH);
+        assert_eq!(sim.max_tail, start + config::snake::SNAKE_TAIL_GROWTH);
         assert_eq!(sim.remaining(), 2);
 
         // Eating the same cell again does nothing.
@@ -214,8 +214,8 @@ mod tests {
         let body: Vec<(i32, i32)> = (0..12).map(|x| (x, 0)).collect();
         cycle.trail = body.clone();
         let dropped = sim.trim_tail(&mut cycle);
-        assert_eq!(dropped, body.len() - config::SNAKE_TAIL_START);
-        assert_eq!(cycle.trail.len(), config::SNAKE_TAIL_START);
+        assert_eq!(dropped, body.len() - config::snake::SNAKE_TAIL_START);
+        assert_eq!(cycle.trail.len(), config::snake::SNAKE_TAIL_START);
         // The newest cells survive; the oldest fall off the back.
         assert!(cycle.trail.contains(&(11, 0)));
         assert!(!cycle.trail.contains(&(0, 0)));

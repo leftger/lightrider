@@ -58,16 +58,18 @@ pub struct QbertSim {
 
 impl QbertSim {
     pub fn new(seed: u64) -> Self {
-        let cubes = (0..config::QBERT_ROWS).map(|row| row + 1).sum::<usize>();
+        let cubes = (0..config::arcade::QBERT_ROWS)
+            .map(|row| row + 1)
+            .sum::<usize>();
         let rng = Rng::from_state(seed | 1);
         let enemies = vec![
             Enemy {
-                row: config::QBERT_ROWS - 1,
+                row: config::arcade::QBERT_ROWS - 1,
                 index: 0,
             },
             Enemy {
-                row: config::QBERT_ROWS - 1,
-                index: config::QBERT_ROWS - 1,
+                row: config::arcade::QBERT_ROWS - 1,
+                index: config::arcade::QBERT_ROWS - 1,
             },
         ];
         let mut sim = Self {
@@ -75,10 +77,10 @@ impl QbertSim {
             index: 0,
             lit: vec![false; cubes],
             enemies,
-            lives: config::QBERT_LIVES,
+            lives: config::arcade::QBERT_LIVES,
             phase: QbertPhase::Hopping,
-            invuln: config::QBERT_INVULN,
-            enemy_clock: config::QBERT_ENEMY_STEP,
+            invuln: config::arcade::QBERT_INVULN,
+            enemy_clock: config::arcade::QBERT_ENEMY_STEP,
             rng,
             seed,
         };
@@ -93,8 +95,10 @@ impl QbertSim {
 
     /// World position of a cube, for the renderer.
     pub fn cube_position(row: usize, index: usize) -> (f32, f32) {
-        let x = (index as f32 - row as f32 * 0.5) * config::QBERT_CUBE_SPACING;
-        let z = (config::QBERT_ROWS as f32 - 1.0 - row as f32) * config::QBERT_CUBE_SPACING * 0.85;
+        let x = (index as f32 - row as f32 * 0.5) * config::arcade::QBERT_CUBE_SPACING;
+        let z = (config::arcade::QBERT_ROWS as f32 - 1.0 - row as f32)
+            * config::arcade::QBERT_CUBE_SPACING
+            * 0.85;
         (x, z)
     }
 
@@ -121,7 +125,7 @@ impl QbertSim {
         let Some((row, index)) = next else {
             return;
         };
-        if row < config::QBERT_ROWS && index <= row {
+        if row < config::arcade::QBERT_ROWS && index <= row {
             self.row = row;
             self.index = index;
             self.light(row, index);
@@ -138,7 +142,7 @@ impl QbertSim {
 
         self.enemy_clock -= dt;
         if self.enemy_clock <= 0.0 {
-            self.enemy_clock = config::QBERT_ENEMY_STEP;
+            self.enemy_clock = config::arcade::QBERT_ENEMY_STEP;
             for index in 0..self.enemies.len() {
                 let (row, col) = (self.enemies[index].row, self.enemies[index].index);
                 let options = self.neighbours(row, col);
@@ -162,7 +166,7 @@ impl QbertSim {
                 self.phase = QbertPhase::Lost;
                 return events;
             }
-            self.invuln = config::QBERT_INVULN;
+            self.invuln = config::arcade::QBERT_INVULN;
             self.row = 0;
             self.index = 0;
         }
@@ -176,7 +180,7 @@ impl QbertSim {
 
     fn neighbours(&self, row: usize, index: usize) -> Vec<(usize, usize)> {
         let mut options = Vec::new();
-        if row + 1 < config::QBERT_ROWS {
+        if row + 1 < config::arcade::QBERT_ROWS {
             options.push((row + 1, index));
             options.push((row + 1, index + 1));
         }
@@ -271,7 +275,7 @@ mod tests {
     fn enemies_move_on_their_clock() {
         let mut game = sim();
         let before = game.enemies.clone();
-        game.update(config::QBERT_ENEMY_STEP);
+        game.update(config::arcade::QBERT_ENEMY_STEP);
         assert_ne!(game.enemies, before, "enemies should hop on the clock");
     }
 
@@ -294,7 +298,7 @@ mod tests {
         };
         let events = game.update(1.0 / 60.0);
         assert!(events.lost_life);
-        assert_eq!(game.lives, config::QBERT_LIVES - 1);
+        assert_eq!(game.lives, config::arcade::QBERT_LIVES - 1);
     }
 
     #[test]

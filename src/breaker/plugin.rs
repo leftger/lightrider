@@ -32,7 +32,7 @@ pub(crate) fn spawn_breaker_court(
 ) {
     let (width, height) = level.court;
     let thickness = 0.8;
-    let depth = config::PLATFORMER_DEPTH;
+    let depth = config::platformer::PLATFORMER_DEPTH;
     // Side walls and ceiling.
     for (x, y, w, h) in [
         (
@@ -88,7 +88,7 @@ pub(crate) fn spawn_breaker_court(
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.ball_material.clone()),
         Transform::from_translation(Vec3::new(level.ball.x, level.ball.y, 0.0))
-            .with_scale(Vec3::splat(config::BREAKER_BALL_RADIUS * 2.0)),
+            .with_scale(Vec3::splat(config::breaker::BREAKER_BALL_RADIUS * 2.0)),
         Pickable::IGNORE,
     ));
 }

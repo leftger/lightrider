@@ -51,7 +51,7 @@ pub struct DocumentLoadFailed {
 }
 
 fn load_document_bytes(path: &std::path::Path) -> Result<Vec<u8>, String> {
-    read_capped(path, config::DOCUMENT_MAX_BYTES, "document")
+    read_capped(path, config::document::DOCUMENT_MAX_BYTES, "document")
 }
 
 #[cfg(test)]

@@ -68,9 +68,10 @@ pub(crate) fn sync_disc_entities(
             transform.translation =
                 config::ground_position(disc.opponent.cell.0, disc.opponent.cell.1)
                     + Vec3::new(dx as f32, 0.0, dz as f32) * (progress * config::GRID_SPACING)
-                    + Vec3::Y * (config::RECOGNIZER_HEIGHT * 0.5);
+                    + Vec3::Y * (config::disc::RECOGNIZER_HEIGHT * 0.5);
             // Swell while winding up, so its shot is telegraphed.
-            let charge = (disc.opponent.windup / config::DISC_OPPONENT_WINDUP).clamp(0.0, 1.0);
+            let charge =
+                (disc.opponent.windup / config::disc::DISC_OPPONENT_WINDUP).clamp(0.0, 1.0);
             transform.scale =
                 Vec3::new(1.0 + charge * 0.35, 1.0 - charge * 0.2, 1.0 + charge * 0.35);
             *visibility = Visibility::Visible;
@@ -120,7 +121,7 @@ pub(crate) fn sync_character_entities(
             // has fallen behind, so a frame hitch does not leave it trailing.
             let to_target = pose.target - anim.base;
             let distance = to_target.length();
-            let travel = config::STEALTH_WALK_SPEED.max(distance * 2.0) * dt;
+            let travel = config::stealth::STEALTH_WALK_SPEED.max(distance * 2.0) * dt;
             if distance <= travel {
                 pose.target
             } else {

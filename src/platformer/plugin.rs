@@ -22,7 +22,7 @@ pub(crate) fn spawn_platformer_level(
     level: &PlatformerSim,
 ) {
     let _ = meshes;
-    let depth = config::PLATFORMER_DEPTH;
+    let depth = config::platformer::PLATFORMER_DEPTH;
     let lip = assets.disc_accent_materials[disc_language_index(language)].clone();
 
     // A dark slab behind the level so the platforms read against something.
@@ -79,8 +79,8 @@ pub(crate) fn spawn_platformer_level(
         Pickable::IGNORE,
         children![(
             WorldAssetRoot(assets.tron_scene.clone()),
-            Transform::from_rotation(Quat::from_rotation_y(config::TRON_MODEL_YAW))
-                .with_scale(Vec3::splat(config::TRON_MODEL_SCALE)),
+            Transform::from_rotation(Quat::from_rotation_y(config::character::TRON_MODEL_YAW))
+                .with_scale(Vec3::splat(config::character::TRON_MODEL_SCALE)),
         )],
     ));
 }

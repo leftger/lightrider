@@ -53,7 +53,10 @@ impl MusicState {
     /// Starts the audio thread with the requested initial settings.
     pub fn with_settings(enabled: bool, volume: f32) -> Self {
         let handle = AudioHandle::start();
-        let volume = volume.clamp(config::MUSIC_MIN_VOLUME, config::MUSIC_MAX_VOLUME);
+        let volume = volume.clamp(
+            config::music::MUSIC_MIN_VOLUME,
+            config::music::MUSIC_MAX_VOLUME,
+        );
         handle.set_volume(volume);
         handle.set_enabled(enabled);
         Self {
@@ -237,7 +240,7 @@ fn update_proximity(
     let arp_voice = arp.update(dt * arp_rate, theme, *profile);
     let sweep = 0.5 + 0.5 * (time.elapsed_secs() * profile.sweep_rate() * TAU).sin();
 
-    let publish_interval = 1.0 / config::MUSIC_PARAMS_HZ.max(1.0);
+    let publish_interval = 1.0 / config::music::MUSIC_PARAMS_HZ.max(1.0);
     *param_clock += dt;
     if *param_clock < publish_interval {
         return;
@@ -290,12 +293,16 @@ fn read_music_keys(keys: Res<ButtonInput<KeyCode>>, mut music: ResMut<MusicState
         music.enabled = !music.enabled;
     }
     if keys.just_pressed(KeyCode::BracketLeft) {
-        music.volume = (music.volume - config::MUSIC_VOLUME_STEP)
-            .clamp(config::MUSIC_MIN_VOLUME, config::MUSIC_MAX_VOLUME);
+        music.volume = (music.volume - config::music::MUSIC_VOLUME_STEP).clamp(
+            config::music::MUSIC_MIN_VOLUME,
+            config::music::MUSIC_MAX_VOLUME,
+        );
     }
     if keys.just_pressed(KeyCode::BracketRight) {
-        music.volume = (music.volume + config::MUSIC_VOLUME_STEP)
-            .clamp(config::MUSIC_MIN_VOLUME, config::MUSIC_MAX_VOLUME);
+        music.volume = (music.volume + config::music::MUSIC_VOLUME_STEP).clamp(
+            config::music::MUSIC_MIN_VOLUME,
+            config::music::MUSIC_MAX_VOLUME,
+        );
     }
 }
 

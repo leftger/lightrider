@@ -279,13 +279,13 @@ fn build_arena(
     let lines = signals.lines.max(1) as i32;
     let practice = signals.lines <= 3 && signals.functions == 0;
     let computed = if practice {
-        config::DISC_RADIUS_MIN
+        config::disc::DISC_RADIUS_MIN
     } else {
-        (config::DISC_RADIUS_MIN
+        (config::disc::DISC_RADIUS_MIN
             + lines / 24
             + signals.functions as i32 / 2
             + signals.unsafe_count as i32 / 3)
-            .clamp(config::DISC_RADIUS_MIN, config::DISC_RADIUS_MAX)
+            .clamp(config::disc::DISC_RADIUS_MIN, config::disc::DISC_RADIUS_MAX)
     };
     let radius = match max_radius {
         // Never so small that the carved ring or its gate has no room.
@@ -296,7 +296,7 @@ fn build_arena(
     let center = (0, 0);
     let gate_wall = gate_wall(seed);
     let corridor = gate_corridor(center, radius, gate_wall);
-    let half = radius + config::DISC_GATE_DEPTH + 1;
+    let half = radius + config::disc::DISC_GATE_DEPTH + 1;
 
     let playable = |cell: (i32, i32)| {
         let dx = cell.0 - center.0;
@@ -313,7 +313,7 @@ fn build_arena(
 
     let gallery_count = signals
         .functions
-        .min(config::DISC_MAX_GALLERIES)
+        .min(config::disc::DISC_MAX_GALLERIES)
         .min(signals.function_lines.len());
     for index in 0..gallery_count {
         let hash = mix(seed ^ 0x9e37_79b9_7f4a_7c15, index as u64 + 1);
@@ -343,8 +343,10 @@ fn build_arena(
             .get(index)
             .cloned()
             .unwrap_or_else(|| format!("fn {}", language.name()));
-        let preview =
-            crate::document::parse::truncate_chars(&text, config::DOCUMENT_PARAGRAPH_GLYPHS);
+        let preview = crate::document::parse::truncate_chars(
+            &text,
+            config::document::DOCUMENT_PARAGRAPH_GLYPHS,
+        );
         blocks.push(DiscBlock {
             text,
             preview,
@@ -378,7 +380,8 @@ fn build_arena(
     let hazard_count = if practice {
         0
     } else {
-        (signals.unsafe_count * 2 + signals.todos + signals.panics).min(config::DISC_MAX_HAZARDS)
+        (signals.unsafe_count * 2 + signals.todos + signals.panics)
+            .min(config::disc::DISC_MAX_HAZARDS)
     };
     for _ in 0..hazard_count {
         if let Some(cell) = take_cell(&candidates, &mut floor_reserved) {
@@ -387,7 +390,7 @@ fn build_arena(
     }
 
     let mut safe_pads = BTreeSet::new();
-    for _ in 0..signals.tests.min(config::DISC_MAX_SAFE_PADS) {
+    for _ in 0..signals.tests.min(config::disc::DISC_MAX_SAFE_PADS) {
         if let Some(cell) = take_cell(&candidates, &mut floor_reserved) {
             safe_pads.insert(cell);
         }
@@ -395,7 +398,7 @@ fn build_arena(
 
     let mut pickups = Vec::new();
     for kind in pickup_kinds(&signals) {
-        if pickups.len() >= config::DISC_MAX_PICKUPS {
+        if pickups.len() >= config::disc::DISC_MAX_PICKUPS {
             break;
         }
         if let Some(cell) = take_cell(&candidates, &mut floor_reserved) {
@@ -556,7 +559,7 @@ pub fn tokenize_source(text: &str, language: SourceLanguage) -> SourceSignals {
 
         if is_function_line(line, language) {
             signals.functions += 1;
-            if signals.function_lines.len() < config::DISC_MAX_GALLERIES * 2 {
+            if signals.function_lines.len() < config::disc::DISC_MAX_GALLERIES * 2 {
                 signals.function_lines.push(line.to_string());
             }
         }
@@ -683,7 +686,7 @@ fn gate_wall(seed: u64) -> Wall {
 
 fn gate_corridor(center: (i32, i32), radius: i32, wall: Wall) -> Vec<(i32, i32)> {
     let (dx, dz) = cardinal_delta(wall);
-    (0..=config::DISC_GATE_DEPTH)
+    (0..=config::disc::DISC_GATE_DEPTH)
         .map(|step| {
             let distance = radius + step;
             (center.0 + dx * distance, center.1 + dz * distance)
@@ -776,7 +779,7 @@ fn content_hash(signals: &SourceSignals) -> u64 {
     for line in signals
         .function_lines
         .iter()
-        .take(config::DISC_MAX_GALLERIES)
+        .take(config::disc::DISC_MAX_GALLERIES)
     {
         for byte in line.as_bytes() {
             push(u64::from(*byte));
@@ -840,7 +843,7 @@ mod tests {
             Wall::NegX => (-1, 0),
             Wall::PosX => (1, 0),
         };
-        for step in 1..=config::DISC_GATE_DEPTH {
+        for step in 1..=config::disc::DISC_GATE_DEPTH {
             let cell = (
                 layout.center.0 + dx * (layout.radius + step),
                 layout.center.1 + dz * (layout.radius + step),
@@ -851,8 +854,8 @@ mod tests {
             );
         }
         let outer = (
-            layout.center.0 + dx * (layout.radius + config::DISC_GATE_DEPTH),
-            layout.center.1 + dz * (layout.radius + config::DISC_GATE_DEPTH),
+            layout.center.0 + dx * (layout.radius + config::disc::DISC_GATE_DEPTH),
+            layout.center.1 + dz * (layout.radius + config::disc::DISC_GATE_DEPTH),
         );
         assert!(
             portal.contains(outer),
@@ -916,7 +919,7 @@ mod tests {
         let (arena, layout) =
             build_disc_arena(Path::new("/src/stub.rs"), SourceLanguage::Rust, b"");
         assert!(layout.practice);
-        assert_eq!(layout.radius, config::DISC_RADIUS_MIN);
+        assert_eq!(layout.radius, config::disc::DISC_RADIUS_MIN);
         assert!(arena.parent_portal.is_some());
     }
 
@@ -954,8 +957,8 @@ mod tests {
             SourceLanguage::Rust,
             source.as_bytes(),
         );
-        assert!(layout.pickups.len() <= config::DISC_MAX_PICKUPS);
-        assert!(layout.hazards.len() <= config::DISC_MAX_HAZARDS);
+        assert!(layout.pickups.len() <= config::disc::DISC_MAX_PICKUPS);
+        assert!(layout.hazards.len() <= config::disc::DISC_MAX_HAZARDS);
     }
 
     #[test]

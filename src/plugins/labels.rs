@@ -153,8 +153,8 @@ fn update_labels(
         let height = entry.calculate_height();
         let (grid_x, grid_z) = if lightcycle_mode {
             (
-                entry.grid_pos.0 * config::LIGHTCYCLE_TOWER_STRIDE,
-                entry.grid_pos.1 * config::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.0 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.1 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
             )
         } else {
             entry.grid_pos
@@ -197,8 +197,8 @@ fn update_labels(
         let height = entry.calculate_height();
         let (grid_x, grid_z) = if lightcycle_mode {
             (
-                entry.grid_pos.0 * config::LIGHTCYCLE_TOWER_STRIDE,
-                entry.grid_pos.1 * config::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.0 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.1 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
             )
         } else {
             entry.grid_pos

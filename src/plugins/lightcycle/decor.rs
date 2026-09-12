@@ -49,9 +49,9 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
         return;
     };
 
-    let height = config::LIGHTCYCLE_PORTAL_HEIGHT;
-    let frame = config::LIGHTCYCLE_PORTAL_FRAME_THICKNESS;
-    let depth = config::LIGHTCYCLE_WALL_THICKNESS * 3.0;
+    let height = config::lightcycle::LIGHTCYCLE_PORTAL_HEIGHT;
+    let frame = config::lightcycle::LIGHTCYCLE_PORTAL_FRAME_THICKNESS;
+    let depth = config::lightcycle::LIGHTCYCLE_WALL_THICKNESS * 3.0;
     let (span_min, span_max) = gate_world_span(&portal);
     let opening = span_max - span_min;
     let center = (span_min + span_max) * 0.5;
@@ -109,7 +109,7 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
             Vec3::new(opening + frame, frame, depth),
         );
 
-        let bars = config::LIGHTCYCLE_PORTAL_BAR_COUNT;
+        let bars = config::lightcycle::LIGHTCYCLE_PORTAL_BAR_COUNT;
         for index in 0..bars {
             frames.spawn((
                 GateScanBar {
@@ -120,7 +120,7 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
                 MeshMaterial3d(bar_material.clone()),
                 Transform::from_scale(Vec3::new(
                     opening - frame,
-                    config::LIGHTCYCLE_PORTAL_BAR_HEIGHT,
+                    config::lightcycle::LIGHTCYCLE_PORTAL_BAR_HEIGHT,
                     depth * 0.5,
                 )),
                 Pickable::IGNORE,
@@ -132,13 +132,13 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
 /// Brightness of the gate frame at `elapsed`, from 0 at the pulse's trough to 1
 /// at its peak.
 pub(crate) fn gate_pulse(elapsed: f32) -> f32 {
-    0.5 + 0.5 * (elapsed * config::LIGHTCYCLE_PORTAL_PULSE_SPEED).sin()
+    0.5 + 0.5 * (elapsed * config::lightcycle::LIGHTCYCLE_PORTAL_PULSE_SPEED).sin()
 }
 
 /// Height a bar has swept to within its opening, wrapping back to the ground
 /// once it reaches the lintel.
 pub(crate) fn gate_bar_height(bar: &GateScanBar, elapsed: f32) -> f32 {
-    (bar.offset + elapsed * config::LIGHTCYCLE_PORTAL_BAR_SPEED).fract() * bar.travel
+    (bar.offset + elapsed * config::lightcycle::LIGHTCYCLE_PORTAL_BAR_SPEED).fract() * bar.travel
 }
 
 /// Pulses the gate frame and sweeps its light bars upward, so a gate reads as
@@ -155,14 +155,14 @@ pub(crate) fn animate_parent_gate(
     let (handle, dim, bright) = if document {
         (
             &assets.document_folio_material,
-            config::DOCUMENT_FOLIO_DIM_COLOR,
-            config::DOCUMENT_FOLIO_COLOR,
+            config::document::DOCUMENT_FOLIO_DIM_COLOR,
+            config::document::DOCUMENT_FOLIO_COLOR,
         )
     } else {
         (
             &assets.portal_material,
-            config::LIGHTCYCLE_PORTAL_DIM_COLOR,
-            config::LIGHTCYCLE_PORTAL_COLOR,
+            config::lightcycle::LIGHTCYCLE_PORTAL_DIM_COLOR,
+            config::lightcycle::LIGHTCYCLE_PORTAL_COLOR,
         )
     };
 
@@ -227,12 +227,14 @@ pub(crate) fn animate_stack_frames(
 /// Levels lag the one above them, so the stack cascades: the top frame leads the
 /// dive and is first back, and the deepest frame arrives last.
 pub fn stack_plunge(level: usize, progress: f32) -> f32 {
-    let lag = level as f32 * config::STACK_PLUNGE_STAGGER;
+    let lag = level as f32 * config::lightcycle::STACK_PLUNGE_STAGGER;
     // The stagger is spread across the event, so the last level still finishes
     // exactly as the event does.
-    let span = 1.0 - config::STACK_PLUNGE_STAGGER * (config::STACK_FRAME_MAX - 1) as f32;
+    let span = 1.0
+        - config::lightcycle::STACK_PLUNGE_STAGGER
+            * (config::lightcycle::STACK_FRAME_MAX - 1) as f32;
     let local = ((progress - lag) / span.max(0.1)).clamp(0.0, 1.0);
-    let hold = config::STACK_PLUNGE_HOLD;
+    let hold = config::lightcycle::STACK_PLUNGE_HOLD;
     let leg = (1.0 - hold) * 0.5;
     // `smoothstep` eases each leg, so the stack accelerates away from its rest
     // height and settles back into it instead of snapping.
@@ -247,29 +249,30 @@ pub fn stack_plunge(level: usize, progress: f32) -> f32 {
 
 /// How far a frame floats above its resting height at `elapsed`.
 pub fn stack_frame_hover(level: usize, elapsed: f32) -> f32 {
-    let phase =
-        elapsed * config::STACK_FRAME_HOVER_SPEED + level as f32 * config::STACK_FRAME_PHASE_STEP;
-    phase.sin() * config::STACK_FRAME_HOVER
+    let phase = elapsed * config::lightcycle::STACK_FRAME_HOVER_SPEED
+        + level as f32 * config::lightcycle::STACK_FRAME_PHASE_STEP;
+    phase.sin() * config::lightcycle::STACK_FRAME_HOVER
 }
 
 /// The frame's slow drift off centre, on X and Z. The two axes run at different
 /// rates, so it wanders rather than tracing the same circle forever.
 pub fn stack_frame_glide(level: usize, elapsed: f32) -> (f32, f32) {
-    let phase =
-        elapsed * config::STACK_FRAME_GLIDE_SPEED + level as f32 * config::STACK_FRAME_PHASE_STEP;
+    let phase = elapsed * config::lightcycle::STACK_FRAME_GLIDE_SPEED
+        + level as f32 * config::lightcycle::STACK_FRAME_PHASE_STEP;
     (
-        phase.sin() * config::STACK_FRAME_GLIDE,
-        (phase * 0.77 + 1.3).cos() * config::STACK_FRAME_GLIDE,
+        phase.sin() * config::lightcycle::STACK_FRAME_GLIDE,
+        (phase * 0.77 + 1.3).cos() * config::lightcycle::STACK_FRAME_GLIDE,
     )
 }
 
 /// The frame's tilt about X and Z at `elapsed`, in radians. The two axes run at
 /// different rates, so a frame never repeats the same attitude twice in a row.
 pub fn stack_frame_rock(level: usize, elapsed: f32) -> (f32, f32) {
-    let offset = level as f32 * config::STACK_FRAME_PHASE_STEP;
-    let x = (elapsed * config::STACK_FRAME_ROCK_SPEED + offset).sin() * config::STACK_FRAME_ROCK;
-    let z = (elapsed * config::STACK_FRAME_ROCK_SPEED * 0.63 + offset * 1.7).cos()
-        * config::STACK_FRAME_ROCK;
+    let offset = level as f32 * config::lightcycle::STACK_FRAME_PHASE_STEP;
+    let x = (elapsed * config::lightcycle::STACK_FRAME_ROCK_SPEED + offset).sin()
+        * config::lightcycle::STACK_FRAME_ROCK;
+    let z = (elapsed * config::lightcycle::STACK_FRAME_ROCK_SPEED * 0.63 + offset * 1.7).cos()
+        * config::lightcycle::STACK_FRAME_ROCK;
     (x, z)
 }
 
@@ -295,9 +298,12 @@ pub(crate) fn decorate_directory_run(
     // Call stack: one open frame per path level, floating over the arena's
     // edge. The border is chunky enough to read as structure, and the middle is
     // left open so the road below stays visible.
-    let depth = path.components().count().min(config::STACK_FRAME_MAX);
+    let depth = path
+        .components()
+        .count()
+        .min(config::lightcycle::STACK_FRAME_MAX);
     if depth > 0 {
-        let margin = config::STACK_FRAME_MARGIN * span;
+        let margin = config::lightcycle::STACK_FRAME_MARGIN * span;
         let frame = meshes.add(stack_frame_mesh(
             (run.arena.max.0 - run.arena.min.0 + 1) as f32 * span + margin * 2.0,
             (run.arena.max.1 - run.arena.min.1 + 1) as f32 * span + margin * 2.0,
@@ -305,7 +311,8 @@ pub(crate) fn decorate_directory_run(
         for level in 0..depth {
             let base = Vec3::new(
                 center_x,
-                config::STACK_FRAME_BASE_Y + level as f32 * config::STACK_FRAME_SPACING,
+                config::lightcycle::STACK_FRAME_BASE_Y
+                    + level as f32 * config::lightcycle::STACK_FRAME_SPACING,
                 center_z,
             );
             commands.spawn((
@@ -369,9 +376,9 @@ pub(crate) fn decorate_directory_run(
     flood.timer = 0.0;
     flood.active = armed;
     flood.delay = if quarantined {
-        config::FLOOD_DELAY_SECONDS * 0.6
+        config::lightcycle::FLOOD_DELAY_SECONDS * 0.6
     } else {
-        config::FLOOD_DELAY_SECONDS
+        config::lightcycle::FLOOD_DELAY_SECONDS
     };
     if armed {
         commands.spawn((
@@ -381,10 +388,14 @@ pub(crate) fn decorate_directory_run(
             MeshMaterial3d(assets.flood_material.clone()),
             Transform::from_xyz(
                 flood.center_x,
-                config::FLOOD_HEIGHT * 0.5,
+                config::lightcycle::FLOOD_HEIGHT * 0.5,
                 flood.min_z * span,
             )
-            .with_scale(Vec3::new(flood.width, config::FLOOD_HEIGHT, 0.4)),
+            .with_scale(Vec3::new(
+                flood.width,
+                config::lightcycle::FLOOD_HEIGHT,
+                0.4,
+            )),
             Visibility::Hidden,
             Pickable::IGNORE,
             // A brighter band along the crest: a translucent sheet on its own reads
@@ -407,13 +418,13 @@ pub(crate) fn decorate_directory_run(
         MeshMaterial3d(assets.gc_sweep_material.clone()),
         Transform::from_xyz(
             flood.center_x,
-            config::GC_SWEEP_HEIGHT * 0.5,
+            config::lightcycle::GC_SWEEP_HEIGHT * 0.5,
             flood.min_z * span,
         )
         .with_scale(Vec3::new(
             flood.width,
-            config::GC_SWEEP_HEIGHT,
-            config::GC_SWEEP_THICKNESS,
+            config::lightcycle::GC_SWEEP_HEIGHT,
+            config::lightcycle::GC_SWEEP_THICKNESS,
         )),
         Visibility::Hidden,
         Pickable::IGNORE,
@@ -436,17 +447,19 @@ pub(crate) fn mix_linear(from: LinearRgba, to: LinearRgba, amount: f32) -> Linea
 pub(crate) fn is_quarantined(path: &Path) -> bool {
     path.components().any(|component| {
         let name = component.as_os_str().to_string_lossy().to_ascii_lowercase();
-        config::QUARANTINE_NAMES.contains(&name.as_str())
+        config::lightcycle::QUARANTINE_NAMES.contains(&name.as_str())
     })
 }
 
 /// Builds the outline of one call-stack frame: four bars around an open middle,
 /// centred on the origin so it can be lifted to its resting height.
 pub(crate) fn stack_frame_mesh(width: f32, depth: f32) -> Mesh {
-    let thickness = config::STACK_FRAME_THICKNESS;
+    let thickness = config::lightcycle::STACK_FRAME_THICKNESS;
     // A chunky bar is a big fraction of a small arena, so cap it below half the
     // span: the frame stays an outline instead of folding into itself.
-    let bar = config::STACK_FRAME_BAR.min(width * 0.4).min(depth * 0.4);
+    let bar = config::lightcycle::STACK_FRAME_BAR
+        .min(width * 0.4)
+        .min(depth * 0.4);
     // Measured to the outside of the bars, so they sit on the edge rather than
     // hanging past it.
     let half_x = ((width - bar) * 0.5).max(0.0);
@@ -513,7 +526,7 @@ pub(crate) fn update_flood(
         return;
     }
 
-    let progress = (rising / config::FLOOD_CROSSING_SECONDS).min(1.0);
+    let progress = (rising / config::lightcycle::FLOOD_CROSSING_SECONDS).min(1.0);
     flood.plane = flood.min_z + progress * span;
     for (_, mut transform, mut visibility) in &mut walls {
         transform.translation.z = flood.plane * config::GRID_SPACING;
@@ -527,7 +540,7 @@ pub(crate) fn update_flood(
         run.sim.phase = RunPhase::Crashed;
         run.crash_label = Some("a buffer overflow".to_string());
         state.crash_fx = Some(crate::lightcycle::CrashFx::new(
-            config::LIGHTCYCLE_CRASH_FX_DURATION,
+            config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
         ));
         effects.write(MusicSfx::Crash);
     }
@@ -566,7 +579,12 @@ pub(crate) fn update_gc_sweep(
     };
     let min_z = run.arena.min.1 as f32;
     let max_z = run.arena.max.1 as f32;
-    let plane = gc_sweep_plane(state.gc_sweep, config::GC_SWEEP_SECONDS, min_z, max_z);
+    let plane = gc_sweep_plane(
+        state.gc_sweep,
+        config::lightcycle::GC_SWEEP_SECONDS,
+        min_z,
+        max_z,
+    );
     transform.translation.z = plane * config::GRID_SPACING;
     *visibility = Visibility::Visible;
 }

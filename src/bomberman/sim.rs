@@ -60,15 +60,21 @@ impl BomberSim {
         let mut rng = Rng::from_state(seed | 1);
         let mut crates = BTreeSet::new();
         let mut tries = 0;
-        while crates.len() < config::BOMBER_CRATES && tries < config::BOMBER_CRATES * 40 {
+        while crates.len() < config::arcade::BOMBER_CRATES
+            && tries < config::arcade::BOMBER_CRATES * 40
+        {
             tries += 1;
             let cell = (
-                1 + (rng.unit() * (config::BOMBER_COLS - 2) as f32) as i32,
-                1 + (rng.unit() * (config::BOMBER_ROWS - 2) as f32) as i32,
+                1 + (rng.unit() * (config::arcade::BOMBER_COLS - 2) as f32) as i32,
+                1 + (rng.unit() * (config::arcade::BOMBER_ROWS - 2) as f32) as i32,
             );
             if cell == (1, 1)
-                || cell == (config::BOMBER_COLS - 2, config::BOMBER_ROWS - 2)
-                || cell == (config::BOMBER_COLS - 2, 1)
+                || cell
+                    == (
+                        config::arcade::BOMBER_COLS - 2,
+                        config::arcade::BOMBER_ROWS - 2,
+                    )
+                || cell == (config::arcade::BOMBER_COLS - 2, 1)
             {
                 continue;
             }
@@ -77,11 +83,14 @@ impl BomberSim {
         Self {
             cell: (1, 1),
             crates,
-            exit: (config::BOMBER_COLS - 2, config::BOMBER_ROWS - 2),
+            exit: (
+                config::arcade::BOMBER_COLS - 2,
+                config::arcade::BOMBER_ROWS - 2,
+            ),
             bombs: Vec::new(),
-            lives: config::BOMBER_LIVES,
+            lives: config::arcade::BOMBER_LIVES,
             phase: BomberPhase::Walking,
-            invuln: config::BOMBER_INVULN,
+            invuln: config::arcade::BOMBER_INVULN,
             move_clock: 0.0,
             seed,
         }
@@ -89,16 +98,18 @@ impl BomberSim {
 
     /// World centre of a room cell, for the renderer.
     pub fn center(cell: (i32, i32)) -> (f32, f32) {
-        let x = (cell.0 as f32 - (config::BOMBER_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
-        let z = (cell.1 as f32 - (config::BOMBER_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let x =
+            (cell.0 as f32 - (config::arcade::BOMBER_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let z =
+            (cell.1 as f32 - (config::arcade::BOMBER_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
         (x, z)
     }
 
     pub fn solid(&self, cell: (i32, i32)) -> bool {
         cell.0 < 0
-            || cell.0 >= config::BOMBER_COLS
+            || cell.0 >= config::arcade::BOMBER_COLS
             || cell.1 < 0
-            || cell.1 >= config::BOMBER_ROWS
+            || cell.1 >= config::arcade::BOMBER_ROWS
             || self.crates.contains(&cell)
     }
 
@@ -115,7 +126,9 @@ impl BomberSim {
 
     /// Plants a bomb under the cycle, up to the pool limit.
     pub fn plant(&mut self) -> bool {
-        if self.phase != BomberPhase::Walking || self.bombs.len() >= config::BOMBER_MAX_BOMBS {
+        if self.phase != BomberPhase::Walking
+            || self.bombs.len() >= config::arcade::BOMBER_MAX_BOMBS
+        {
             return false;
         }
         if self.bombs.iter().any(|bomb| bomb.cell == self.cell) {
@@ -123,7 +136,7 @@ impl BomberSim {
         }
         self.bombs.push(Bomb {
             cell: self.cell,
-            fuse: config::BOMBER_FUSE,
+            fuse: config::arcade::BOMBER_FUSE,
         });
         true
     }
@@ -149,12 +162,12 @@ impl BomberSim {
             let mut hit = BTreeSet::new();
             hit.insert(blast);
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-                for reach in 1..=config::BOMBER_BLAST {
+                for reach in 1..=config::arcade::BOMBER_BLAST {
                     let cell = (blast.0 + dx * reach, blast.1 + dz * reach);
                     if cell.0 < 0
-                        || cell.0 >= config::BOMBER_COLS
+                        || cell.0 >= config::arcade::BOMBER_COLS
                         || cell.1 < 0
-                        || cell.1 >= config::BOMBER_ROWS
+                        || cell.1 >= config::arcade::BOMBER_ROWS
                     {
                         break;
                     }
@@ -172,7 +185,7 @@ impl BomberSim {
                         self.phase = BomberPhase::Lost;
                         return events;
                     }
-                    self.invuln = config::BOMBER_INVULN;
+                    self.invuln = config::arcade::BOMBER_INVULN;
                 }
             }
         }
@@ -295,7 +308,7 @@ mod tests {
             }
         }
         assert!(lost, "standing on the bomb should hurt");
-        assert_eq!(room.lives, config::BOMBER_LIVES - 1);
+        assert_eq!(room.lives, config::arcade::BOMBER_LIVES - 1);
     }
 
     #[test]

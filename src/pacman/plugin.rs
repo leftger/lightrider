@@ -31,8 +31,8 @@ pub(crate) fn spawn_pac_maze(
     _meshes: &mut Assets<Mesh>,
     sim: &PacSim,
 ) {
-    for row in 0..config::PAC_ROWS {
-        for col in 0..config::PAC_COLS {
+    for row in 0..config::arcade::PAC_ROWS {
+        for col in 0..config::arcade::PAC_COLS {
             if !PacSim::solid((col, row)) {
                 continue;
             }

@@ -63,7 +63,7 @@ impl Default for Options {
             show_labels: true,
             show_fps: true,
             music: true,
-            music_volume: config::MUSIC_DEFAULT_VOLUME,
+            music_volume: config::music::MUSIC_DEFAULT_VOLUME,
             bench_seconds: 0.0,
             bench_ride: true,
             render: RenderOptions::default(),
@@ -209,7 +209,7 @@ impl Options {
              --no-vignette      Disable the vignette post-process\n  \
              --window WxH       Start with a window of this size, e.g. 960x540\n  \
              -h, --help         Print this help message\n",
-            config::MUSIC_DEFAULT_VOLUME,
+            config::music::MUSIC_DEFAULT_VOLUME,
             BENCH_DEFAULT_SECONDS as u32,
             config::MSAA_SAMPLES,
         );

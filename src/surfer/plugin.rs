@@ -34,12 +34,12 @@ pub(crate) fn spawn_surfer_course(
             MeshMaterial3d(assets.surfer_rock_material.clone()),
             Transform::from_translation(Vec3::new(
                 rock.x,
-                config::SURFER_ROCK_HEIGHT * 0.5,
+                config::surfer::SURFER_ROCK_HEIGHT * 0.5,
                 rock.z,
             ))
             .with_scale(Vec3::new(
                 rock.radius * 2.0,
-                config::SURFER_ROCK_HEIGHT,
+                config::surfer::SURFER_ROCK_HEIGHT,
                 rock.radius * 2.0,
             )),
             Pickable::IGNORE,
@@ -52,8 +52,8 @@ pub(crate) fn spawn_surfer_course(
             assets,
             gate.x,
             gate.z,
-            config::SURFER_GATE_SPAN,
-            config::SURFER_GATE_HEIGHT,
+            config::surfer::SURFER_GATE_SPAN,
+            config::surfer::SURFER_GATE_HEIGHT,
             &assets.surfer_gate_material,
         );
     }
@@ -65,7 +65,7 @@ pub(crate) fn spawn_surfer_course(
         finish_x,
         surfer.length,
         surfer.width * 0.9,
-        config::SURFER_FINISH_HEIGHT,
+        config::surfer::SURFER_FINISH_HEIGHT,
         &assets.surfer_finish_material,
     );
 }
@@ -107,9 +107,9 @@ pub(crate) fn spawn_surfer_gate(
 /// The water ribbon, tessellated along the sim's centreline so the visual
 /// banks match the gameplay banks exactly.
 pub(crate) fn surfer_river_mesh(surfer: &SurferSim) -> Mesh {
-    let start = -config::SURFER_RIVER_MARGIN;
-    let end = surfer.length + config::SURFER_RIVER_MARGIN;
-    let steps = ((end - start) / config::SURFER_RIVER_SAMPLE).ceil() as usize;
+    let start = -config::surfer::SURFER_RIVER_MARGIN;
+    let end = surfer.length + config::surfer::SURFER_RIVER_MARGIN;
+    let steps = ((end - start) / config::surfer::SURFER_RIVER_SAMPLE).ceil() as usize;
     let mut positions = Vec::with_capacity((steps + 1) * 2);
     let mut normals = Vec::with_capacity((steps + 1) * 2);
     for step in 0..=steps {
@@ -142,12 +142,18 @@ pub(crate) fn surfer_river_mesh(surfer: &SurferSim) -> Mesh {
 /// orbit, same pitch clamps.
 pub(crate) fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
     let view_forward = Quat::from_rotation_y(look.x) * forward;
-    let pitch = (config::SURFER_CAMERA_HEIGHT.atan2(config::SURFER_CAMERA_DISTANCE) + look.y)
+    let pitch = (config::surfer::SURFER_CAMERA_HEIGHT
+        .atan2(config::surfer::SURFER_CAMERA_DISTANCE)
+        + look.y)
         .clamp(
-            config::LIGHTCYCLE_CAMERA_MIN_PITCH,
-            config::LIGHTCYCLE_CAMERA_MAX_PITCH,
+            config::lightcycle::LIGHTCYCLE_CAMERA_MIN_PITCH,
+            config::lightcycle::LIGHTCYCLE_CAMERA_MAX_PITCH,
         );
-    let radius = Vec2::new(config::SURFER_CAMERA_DISTANCE, config::SURFER_CAMERA_HEIGHT).length();
+    let radius = Vec2::new(
+        config::surfer::SURFER_CAMERA_DISTANCE,
+        config::surfer::SURFER_CAMERA_HEIGHT,
+    )
+    .length();
     let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
     (offset, view_forward)
 }

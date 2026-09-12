@@ -216,7 +216,7 @@ pub(crate) fn spawn_document_glyphs(
     meshes: &mut Assets<Mesh>,
     layout: &DocumentLayout,
 ) {
-    let mut remaining = config::DOCUMENT_MAX_GLYPHS;
+    let mut remaining = config::document::DOCUMENT_MAX_GLYPHS;
     let mut heading_mesh: Option<Mesh> = None;
     let mut plaque_mesh: Option<Mesh> = None;
     for block in &layout.blocks {
@@ -270,9 +270,9 @@ pub(crate) fn document_glyph_line_mesh(
     let height = if heading { 2.55 } else { 0.85 };
     let advance = document_line_advance(block.along_x);
     let max_chars = remaining.min(if heading {
-        config::DOCUMENT_HEADING_GLYPHS
+        config::document::DOCUMENT_HEADING_GLYPHS
     } else {
-        config::DOCUMENT_PARAGRAPH_GLYPHS
+        config::document::DOCUMENT_PARAGRAPH_GLYPHS
     });
     let chars: Vec<char> = block.preview.chars().take(max_chars).collect();
     let mut mesh: Option<Mesh> = None;

@@ -72,7 +72,7 @@ impl ArpState {
         let (degree, octave) = degree(theme.seed, note);
         let freq = theme.degree_hz(degree, octave);
         let cutoff = (theme.node_cutoff(theme.seed ^ note) + degree as f32 * 90.0)
-            .clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+            .clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
         let pan = if note.is_multiple_of(2) { -0.3 } else { 0.3 };
         let gain = self.level * profile.arp_gain();
 

@@ -36,8 +36,13 @@ impl Plugin for ModeTransitionPlugin {
 
 /// Neither fold may run past the end of the leg it belongs to, or a world would
 /// still be sinking when the camera it belongs to is already looking at it.
-const _: () = assert!(config::MODE_TRANSITION_DEREZ_WINDOW <= config::MODE_TRANSITION_SWAP_AT);
-const _: () = assert!(config::MODE_TRANSITION_REZ_WINDOW < 1.0 - config::MODE_TRANSITION_SWAP_AT);
+const _: () = assert!(
+    config::transition::MODE_TRANSITION_DEREZ_WINDOW <= config::transition::MODE_TRANSITION_SWAP_AT
+);
+const _: () = assert!(
+    config::transition::MODE_TRANSITION_REZ_WINDOW
+        < 1.0 - config::transition::MODE_TRANSITION_SWAP_AT
+);
 
 #[derive(Resource, Default)]
 pub struct ModeTransition {
@@ -66,13 +71,13 @@ struct Flight {
 
 impl Flight {
     fn progress(&self) -> f32 {
-        (self.elapsed / config::MODE_TRANSITION_DURATION).clamp(0.0, 1.0)
+        (self.elapsed / config::transition::MODE_TRANSITION_DURATION).clamp(0.0, 1.0)
     }
 
     fn tint(&self) -> Color {
         match self.target {
-            InteractionMode::Lightcycle => config::MODE_TRANSITION_LIGHTCYCLE_TINT,
-            InteractionMode::Explorer => config::MODE_TRANSITION_EXPLORER_TINT,
+            InteractionMode::Lightcycle => config::transition::MODE_TRANSITION_LIGHTCYCLE_TINT,
+            InteractionMode::Explorer => config::transition::MODE_TRANSITION_EXPLORER_TINT,
         }
     }
 
@@ -122,7 +127,7 @@ impl ModeTransition {
         self.flight
             .as_ref()
             .filter(|flight| {
-                !flight.swapped && flight.progress() >= config::MODE_TRANSITION_SWAP_AT
+                !flight.swapped && flight.progress() >= config::transition::MODE_TRANSITION_SWAP_AT
             })
             .map(|flight| flight.target)
     }
@@ -149,8 +154,8 @@ pub fn transition_active(transition: Res<ModeTransition>) -> bool {
 /// vertical, so the road `along` runs up the screen with a skyline behind it.
 pub fn gods_eye_pose(ground: Vec3, along: Vec3) -> Transform {
     let along = along.normalize_or(Vec3::X);
-    let position = ground + Vec3::Y * config::MODE_TRANSITION_GODS_EYE_HEIGHT
-        - along * config::MODE_TRANSITION_GODS_EYE_BACKOFF;
+    let position = ground + Vec3::Y * config::transition::MODE_TRANSITION_GODS_EYE_HEIGHT
+        - along * config::transition::MODE_TRANSITION_GODS_EYE_BACKOFF;
     // The road itself is handed in as the up vector, which settles the roll of
     // a shot that would otherwise only be constrained by its aim.
     Transform::from_translation(position).looking_at(ground, along)
@@ -174,14 +179,14 @@ fn setup_rez_wave(
     commands.spawn((
         RezWave,
         Mesh3d(meshes.add(Cuboid::new(
-            config::MODE_TRANSITION_REZ_SPAN,
+            config::transition::MODE_TRANSITION_REZ_SPAN,
             0.2,
-            config::MODE_TRANSITION_REZ_SPAN,
+            config::transition::MODE_TRANSITION_REZ_SPAN,
         ))),
         MeshMaterial3d(
             materials.add(StandardMaterial {
-                base_color: config::MODE_TRANSITION_LIGHTCYCLE_TINT
-                    .with_alpha(config::MODE_TRANSITION_REZ_ALPHA),
+                base_color: config::transition::MODE_TRANSITION_LIGHTCYCLE_TINT
+                    .with_alpha(config::transition::MODE_TRANSITION_REZ_ALPHA),
                 unlit: true,
                 alpha_mode: AlphaMode::Blend,
                 ..default()
@@ -327,12 +332,13 @@ fn ease_in_out(t: f32) -> f32 {
 
 /// Position within the pull-back, from the starting rig to the satellite view.
 fn climb_progress(t: f32) -> f32 {
-    (t / config::MODE_TRANSITION_SWAP_AT).clamp(0.0, 1.0)
+    (t / config::transition::MODE_TRANSITION_SWAP_AT).clamp(0.0, 1.0)
 }
 
 /// Position within the zoom, from the satellite view down onto the road.
 fn dive_progress(t: f32) -> f32 {
-    ((t - config::MODE_TRANSITION_SWAP_AT) / (1.0 - config::MODE_TRANSITION_SWAP_AT))
+    ((t - config::transition::MODE_TRANSITION_SWAP_AT)
+        / (1.0 - config::transition::MODE_TRANSITION_SWAP_AT))
         .clamp(0.0, 1.0)
 }
 
@@ -342,19 +348,19 @@ fn dive_progress(t: f32) -> f32 {
 /// flight hand the camera back to a mode's own rig without a jump, and the
 /// swap point puts it on `apex`.
 fn flight_pose(from: &Transform, apex: &Transform, to: &Transform, t: f32) -> Transform {
-    if t <= config::MODE_TRANSITION_SWAP_AT {
+    if t <= config::transition::MODE_TRANSITION_SWAP_AT {
         leg_pose(
             from,
             apex,
             climb_progress(t),
-            config::MODE_TRANSITION_ALTITUDE_BIAS.recip(),
+            config::transition::MODE_TRANSITION_ALTITUDE_BIAS.recip(),
         )
     } else {
         leg_pose(
             apex,
             to,
             dive_progress(t),
-            config::MODE_TRANSITION_ALTITUDE_BIAS,
+            config::transition::MODE_TRANSITION_ALTITUDE_BIAS,
         )
     }
 }
@@ -383,21 +389,22 @@ fn leg_pose(from: &Transform, to: &Transform, u: f32, altitude_bias: f32) -> Tra
 /// the mode it hands over to renders with the field of view it always uses.
 fn fov_scale(t: f32) -> f32 {
     let dive = dive_progress(t);
-    1.0 + (PI * dive).sin().max(0.0) * config::MODE_TRANSITION_FOV_KICK
+    1.0 + (PI * dive).sin().max(0.0) * config::transition::MODE_TRANSITION_FOV_KICK
 }
 
 /// Vertical scale of the world being left behind: full height until the camera
 /// is most of the way out, then folded flat by the time the swap arrives.
 fn derez_scale(t: f32) -> f32 {
-    let window = config::MODE_TRANSITION_DEREZ_WINDOW;
-    let u = (t - (config::MODE_TRANSITION_SWAP_AT - window)) / window;
+    let window = config::transition::MODE_TRANSITION_DEREZ_WINDOW;
+    let u = (t - (config::transition::MODE_TRANSITION_SWAP_AT - window)) / window;
     flat_floor(1.0 - ease_in_out(u))
 }
 
 /// Vertical scale of the world being arrived at: flat at the swap, back to full
 /// height well before the camera is low enough to be among it.
 fn rez_scale(t: f32) -> f32 {
-    let u = (t - config::MODE_TRANSITION_SWAP_AT) / config::MODE_TRANSITION_REZ_WINDOW;
+    let u = (t - config::transition::MODE_TRANSITION_SWAP_AT)
+        / config::transition::MODE_TRANSITION_REZ_WINDOW;
     flat_floor(ease_in_out(u))
 }
 
@@ -418,8 +425,8 @@ fn rez_wave_sweep(t: f32) -> Option<(f32, f32)> {
         (
             // Started just clear of the ground so it cannot fight the arena
             // floor for the same depth.
-            0.15 + u * config::MODE_TRANSITION_REZ_HEIGHT,
-            (1.0 - u).powi(2) * config::MODE_TRANSITION_REZ_ALPHA,
+            0.15 + u * config::transition::MODE_TRANSITION_REZ_HEIGHT,
+            (1.0 - u).powi(2) * config::transition::MODE_TRANSITION_REZ_ALPHA,
         )
     })
 }
@@ -435,7 +442,7 @@ mod tests {
     use bevy::math::FloatExt;
     use bevy::prelude::{Transform, Vec3};
 
-    const SWAP: f32 = config::MODE_TRANSITION_SWAP_AT;
+    const SWAP: f32 = config::transition::MODE_TRANSITION_SWAP_AT;
 
     /// A run down the +X road, seen from the explorer's default orbit.
     fn flight() -> (Transform, Transform, Transform, Vec3) {
@@ -458,7 +465,7 @@ mod tests {
         let ground = Vec3::new(6.0, 0.0, -2.0);
         let apex = gods_eye_pose(ground, Vec3::X);
 
-        assert!(apex.translation.y > config::MODE_TRANSITION_GODS_EYE_HEIGHT - 1.0e-3);
+        assert!(apex.translation.y > config::transition::MODE_TRANSITION_GODS_EYE_HEIGHT - 1.0e-3);
         let view = apex.rotation * Vec3::NEG_Z;
         assert!(
             view.abs_diff_eq((ground - apex.translation).normalize(), 1.0e-5),
@@ -543,12 +550,12 @@ mod tests {
 
         // Neither world may be caught mid-fold by the camera it belongs to.
         assert_eq!(
-            derez_scale(SWAP - config::MODE_TRANSITION_DEREZ_WINDOW),
+            derez_scale(SWAP - config::transition::MODE_TRANSITION_DEREZ_WINDOW),
             1.0,
             "the outgoing world stands until the camera has pulled back"
         );
         assert_eq!(
-            rez_scale(SWAP + config::MODE_TRANSITION_REZ_WINDOW),
+            rez_scale(SWAP + config::transition::MODE_TRANSITION_REZ_WINDOW),
             1.0,
             "the incoming world is whole before the camera is down among it"
         );
@@ -585,7 +592,7 @@ mod tests {
 
         let (start, start_alpha) = rez_wave_sweep(SWAP + 1.0e-4).expect("wave runs from the swap");
         assert!(start < 0.5, "the wave has to start on the ground");
-        assert!(start_alpha > config::MODE_TRANSITION_REZ_ALPHA * 0.9);
+        assert!(start_alpha > config::transition::MODE_TRANSITION_REZ_ALPHA * 0.9);
 
         let (end, end_alpha) = rez_wave_sweep(1.0).expect("wave runs to the landing");
         assert!(end > start);
@@ -601,7 +608,7 @@ mod tests {
         assert_eq!(transition.pending_swap(), None);
 
         let flight = transition.flight.as_mut().expect("flight is running");
-        flight.elapsed = config::MODE_TRANSITION_DURATION * SWAP;
+        flight.elapsed = config::transition::MODE_TRANSITION_DURATION * SWAP;
         assert_eq!(transition.pending_swap(), Some(InteractionMode::Lightcycle));
 
         transition.mark_swapped();
@@ -618,17 +625,17 @@ mod tests {
 
         transition.start(InteractionMode::Lightcycle, from, apex, to, focus);
         let flight = transition.flight.as_mut().expect("flight is running");
-        flight.elapsed = config::MODE_TRANSITION_DURATION * (SWAP - 0.05);
+        flight.elapsed = config::transition::MODE_TRANSITION_DURATION * (SWAP - 0.05);
         let (directory, arena) = flight.world_scales();
         assert!(directory < 1.0 && arena < 0.01, "the directory sinks");
 
-        flight.elapsed = config::MODE_TRANSITION_DURATION;
+        flight.elapsed = config::transition::MODE_TRANSITION_DURATION;
         let (directory, arena) = flight.world_scales();
         assert!(directory < 0.01 && arena == 1.0, "the arena is whole");
 
         transition.start(InteractionMode::Explorer, from, apex, to, focus);
         let flight = transition.flight.as_mut().expect("flight is running");
-        flight.elapsed = config::MODE_TRANSITION_DURATION;
+        flight.elapsed = config::transition::MODE_TRANSITION_DURATION;
         let (directory, arena) = flight.world_scales();
         assert!(directory == 1.0 && arena < 0.01, "the directory is whole");
     }

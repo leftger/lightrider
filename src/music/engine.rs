@@ -101,7 +101,7 @@ impl AudioHandle {
     /// the returned handle reports it through [`AudioHandle::status`].
     pub fn start() -> Self {
         let master_gain = Arc::new(AtomicU32::new(
-            crate::config::MUSIC_DEFAULT_VOLUME.to_bits(),
+            crate::config::music::MUSIC_DEFAULT_VOLUME.to_bits(),
         ));
         let enabled = Arc::new(AtomicBool::new(true));
         let status = Arc::new(Mutex::new(AudioStatus {
@@ -301,7 +301,7 @@ fn audio_thread(
     let mut smoothed_gain = 0.0_f32;
     // A room or profile change compiles a second graph and equal-power
     // crossfades to it, so the swap blends instead of dipping to silence.
-    let crossfade_blocks = ((crate::config::MUSIC_CROSSFADE_SECONDS * sample_rate as f32)
+    let crossfade_blocks = ((crate::config::music::MUSIC_CROSSFADE_SECONDS * sample_rate as f32)
         / BLOCK_SIZE as f32)
         .round()
         .max(1.0) as u32;

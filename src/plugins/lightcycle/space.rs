@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 /// Level length for an off-grid run, in metres: longer file, longer level.
 pub(crate) fn level_metres(layout: &DiscLayout) -> f32 {
-    layout.signals.lines as f32 * config::PLATFORMER_METRES_PER_LINE
+    layout.signals.lines as f32 * config::platformer::PLATFORMER_METRES_PER_LINE
 }
 
 /// Middle of a ring, in world units.
@@ -39,13 +39,16 @@ pub(crate) fn unit_of(heading: Heading) -> (f32, f32) {
 
 pub(crate) fn city_cap_mesh(structure: &CityStructure) -> Mesh {
     let body_height = city_body_height(structure);
-    let cap_height = config::LIGHTCYCLE_CITY_CAP_HEIGHT;
+    let cap_height = config::lightcycle::LIGHTCYCLE_CITY_CAP_HEIGHT;
     let mut scale = city_body_scale(structure, body_height);
     scale.y = cap_height;
     scale.x += 0.08;
     scale.z += 0.08;
     let position = config::ground_position(structure.cell.0, structure.cell.1)
-        + Vec3::Y * (config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + body_height + cap_height * 0.5);
+        + Vec3::Y
+            * (config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT
+                + body_height
+                + cap_height * 0.5);
     Mesh::from(Cuboid::default())
         .transformed_by(Transform::from_translation(position).with_scale(scale))
 }
@@ -54,8 +57,9 @@ pub(crate) fn city_cap_mesh(structure: &CityStructure) -> Mesh {
 /// foundation, so the visible part is a neon border tracing where the wall
 /// stops and the floor starts.
 pub(crate) fn city_base_trim_mesh(structure: &CityStructure) -> Mesh {
-    let height = config::LIGHTCYCLE_CITY_BASE_TRIM_HEIGHT;
-    let size = config::LIGHTCYCLE_CITY_STRUCTURE_SIZE + config::LIGHTCYCLE_CITY_BASE_TRIM_OVERHANG;
+    let height = config::lightcycle::LIGHTCYCLE_CITY_BASE_TRIM_HEIGHT;
+    let size = config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SIZE
+        + config::lightcycle::LIGHTCYCLE_CITY_BASE_TRIM_OVERHANG;
     let position =
         config::ground_position(structure.cell.0, structure.cell.1) + Vec3::Y * (height * 0.5);
     Mesh::from(Cuboid::default()).transformed_by(
@@ -95,7 +99,7 @@ pub(crate) fn cycle_world_position(sim: &LightcycleSim) -> Vec3 {
 }
 
 pub(crate) fn corner_arc(sim: &LightcycleSim) -> Option<CornerArc> {
-    let radius = config::LIGHTCYCLE_TURN_RADIUS;
+    let radius = config::lightcycle::LIGHTCYCLE_TURN_RADIUS;
 
     // Approaching a queued turn: the first half of the arc happens just before
     // the cycle reaches the intersection cell.

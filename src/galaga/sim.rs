@@ -103,23 +103,23 @@ impl GalagaSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let mut sim = Self {
             player_x: 0.0,
-            lives: config::GALAGA_LIVES,
+            lives: config::galaga::GALAGA_LIVES,
             score: 0,
             phase: GalagaPhase::Fighting,
             bugs: Vec::new(),
             beams: Vec::new(),
             // Grace at the start, so the opening dive cannot blindside a player
             // who has not found the slide keys yet.
-            invuln: config::GALAGA_INVULN,
+            invuln: config::galaga::GALAGA_INVULN,
             fire_clock: 0.0,
             input: GalagaInput::default(),
             formation_x: 0.0,
             formation_dir: 1.0,
-            formation_z: config::GALAGA_FORMATION_TOP,
-            step_clock: config::GALAGA_FORMATION_STEP_SECONDS,
-            step_seconds: config::GALAGA_FORMATION_STEP_SECONDS
+            formation_z: config::galaga::GALAGA_FORMATION_TOP,
+            step_clock: config::galaga::GALAGA_FORMATION_STEP_SECONDS,
+            step_seconds: config::galaga::GALAGA_FORMATION_STEP_SECONDS
                 * (0.8 + lines as f32 * 0.0006).clamp(0.8, 1.3),
-            dive_clock: config::GALAGA_DIVE_COOLDOWN,
+            dive_clock: config::galaga::GALAGA_DIVE_COOLDOWN,
             rng: Rng::from_state(seed | 1),
             seed,
             lines,
@@ -130,15 +130,16 @@ impl GalagaSim {
 
     /// Grid slot of a bug, in world units, from the formation's current origin.
     fn formation_slot(formation_x: f32, formation_z: f32, row: usize, col: usize) -> (f32, f32) {
-        let x = (col as f32 - (config::GALAGA_COLS - 1) as f32 * 0.5) * config::GALAGA_CELL_X
+        let x = (col as f32 - (config::galaga::GALAGA_COLS - 1) as f32 * 0.5)
+            * config::galaga::GALAGA_CELL_X
             + formation_x;
-        let z = formation_z - row as f32 * config::GALAGA_CELL_Z;
+        let z = formation_z - row as f32 * config::galaga::GALAGA_CELL_Z;
         (x, z)
     }
 
     fn spawn_formation(&mut self) {
-        for row in 0..config::GALAGA_ROWS {
-            for col in 0..config::GALAGA_COLS {
+        for row in 0..config::galaga::GALAGA_ROWS {
+            for col in 0..config::galaga::GALAGA_COLS {
                 let (x, z) = Self::formation_slot(self.formation_x, self.formation_z, row, col);
                 self.bugs.push(Bug {
                     x,
@@ -155,7 +156,7 @@ impl GalagaSim {
 
     /// Score for a bug, higher rows worth more.
     pub fn bug_score(row: usize) -> u32 {
-        (config::GALAGA_ROWS - row) as u32 * 40
+        (config::galaga::GALAGA_ROWS - row) as u32 * 40
     }
 
     /// Latches a frame's input. `slide` is held; `fire` is an edge, so it
@@ -177,48 +178,51 @@ impl GalagaSim {
         }
 
         // The cycle slides along the bottom and fires upward.
-        let half_x = config::GALAGA_HALF_X - config::GALAGA_PLAYER_RADIUS;
+        let half_x = config::galaga::GALAGA_HALF_X - config::galaga::GALAGA_PLAYER_RADIUS;
         self.player_x = (self.player_x
-            + input.slide.clamp(-1.0, 1.0) * config::GALAGA_PLAYER_SPEED * dt)
+            + input.slide.clamp(-1.0, 1.0) * config::galaga::GALAGA_PLAYER_SPEED * dt)
             .clamp(-half_x, half_x);
         self.fire_clock = (self.fire_clock - dt).max(0.0);
         self.invuln = (self.invuln - dt).max(0.0);
 
-        if input.fire && self.fire_clock <= 0.0 && self.beams.len() < config::GALAGA_MAX_BEAMS {
+        if input.fire
+            && self.fire_clock <= 0.0
+            && self.beams.len() < config::galaga::GALAGA_MAX_BEAMS
+        {
             self.beams.push(Beam {
                 x: self.player_x,
-                z: config::GALAGA_PLAYER_Z + config::GALAGA_BEAM_MUZZLE,
+                z: config::galaga::GALAGA_PLAYER_Z + config::galaga::GALAGA_BEAM_MUZZLE,
             });
-            self.fire_clock = config::GALAGA_FIRE_COOLDOWN;
+            self.fire_clock = config::galaga::GALAGA_FIRE_COOLDOWN;
             events.fired = true;
         }
 
         // The formation sways side to side and steps down.
-        self.formation_x += self.formation_dir * config::GALAGA_FORMATION_SPEED * dt;
-        if self.formation_x.abs() > config::GALAGA_FORMATION_SWAY {
+        self.formation_x += self.formation_dir * config::galaga::GALAGA_FORMATION_SPEED * dt;
+        if self.formation_x.abs() > config::galaga::GALAGA_FORMATION_SWAY {
             self.formation_x = self.formation_x.clamp(
-                -config::GALAGA_FORMATION_SWAY,
-                config::GALAGA_FORMATION_SWAY,
+                -config::galaga::GALAGA_FORMATION_SWAY,
+                config::galaga::GALAGA_FORMATION_SWAY,
             );
             self.formation_dir = -self.formation_dir;
         }
         self.step_clock -= dt;
         if self.step_clock <= 0.0 {
             self.step_clock = self.step_seconds;
-            self.formation_z -= config::GALAGA_FORMATION_STEP;
+            self.formation_z -= config::galaga::GALAGA_FORMATION_STEP;
         }
 
         // Beams fly up and die at the top of the field.
         for beam in &mut self.beams {
-            beam.z += config::GALAGA_BEAM_SPEED * dt;
+            beam.z += config::galaga::GALAGA_BEAM_SPEED * dt;
         }
         self.beams
-            .retain(|beam| beam.z < config::GALAGA_HALF_Z + 1.0);
+            .retain(|beam| beam.z < config::galaga::GALAGA_HALF_Z + 1.0);
 
         // Send one bug diving whenever the dive clock runs out.
         self.dive_clock -= dt;
         if self.dive_clock <= 0.0 {
-            self.dive_clock = config::GALAGA_DIVE_COOLDOWN;
+            self.dive_clock = config::galaga::GALAGA_DIVE_COOLDOWN;
             if let Some(index) = self.pick_diver() {
                 self.bugs[index].diving = true;
                 self.bugs[index].dive_target_x =
@@ -235,13 +239,13 @@ impl GalagaSim {
             let (formation_x, formation_z) = (self.formation_x, self.formation_z);
             if self.bugs[index].diving {
                 let bug = &mut self.bugs[index];
-                bug.z -= config::GALAGA_DIVE_SPEED * dt;
+                bug.z -= config::galaga::GALAGA_DIVE_SPEED * dt;
                 let steer = (bug.dive_target_x - bug.x).clamp(
-                    -config::GALAGA_DIVE_STEER * dt,
-                    config::GALAGA_DIVE_STEER * dt,
+                    -config::galaga::GALAGA_DIVE_STEER * dt,
+                    config::galaga::GALAGA_DIVE_STEER * dt,
                 );
                 bug.x += steer;
-                if bug.z < config::GALAGA_PLAYER_Z - 2.0 {
+                if bug.z < config::galaga::GALAGA_PLAYER_Z - 2.0 {
                     bug.diving = false;
                     let (x, z) = Self::formation_slot(formation_x, formation_z, bug.row, bug.col);
                     bug.x = x;
@@ -260,7 +264,7 @@ impl GalagaSim {
         }
 
         // Beam vs bug: a beam is spent on the first bug it reaches.
-        let reach = config::GALAGA_BEAM_RADIUS + config::GALAGA_BUG_RADIUS;
+        let reach = config::galaga::GALAGA_BEAM_RADIUS + config::galaga::GALAGA_BUG_RADIUS;
         let beams = std::mem::take(&mut self.beams);
         for beam in beams {
             let hit = self.bugs.iter().position(|bug| {
@@ -279,10 +283,10 @@ impl GalagaSim {
 
         // A bug reaching the cycle costs a life, and the bug with it.
         if self.invuln <= 0.0 {
-            let reach = config::GALAGA_PLAYER_RADIUS + config::GALAGA_BUG_RADIUS;
+            let reach = config::galaga::GALAGA_PLAYER_RADIUS + config::galaga::GALAGA_BUG_RADIUS;
             let hit = self.bugs.iter().position(|bug| {
                 bug.alive
-                    && distance_sq(bug.x, bug.z, self.player_x, config::GALAGA_PLAYER_Z)
+                    && distance_sq(bug.x, bug.z, self.player_x, config::galaga::GALAGA_PLAYER_Z)
                         <= reach * reach
             });
             if let Some(index) = hit {
@@ -295,13 +299,14 @@ impl GalagaSim {
                     events.ended = true;
                     return events;
                 }
-                self.invuln = config::GALAGA_INVULN;
+                self.invuln = config::galaga::GALAGA_INVULN;
             }
         }
 
         // The whole formation marching down onto the cycle ends the run.
-        let lowest = self.formation_z - (config::GALAGA_ROWS - 1) as f32 * config::GALAGA_CELL_Z;
-        if lowest <= config::GALAGA_PLAYER_Z + 1.5 {
+        let lowest = self.formation_z
+            - (config::galaga::GALAGA_ROWS - 1) as f32 * config::galaga::GALAGA_CELL_Z;
+        if lowest <= config::galaga::GALAGA_PLAYER_Z + 1.5 {
             self.phase = GalagaPhase::Lost;
             events.overrun = true;
             events.ended = true;
@@ -419,7 +424,10 @@ mod tests {
         let first = GalagaSim::new(11, 200);
         let second = GalagaSim::new(11, 200);
         assert_eq!(first, second);
-        assert_eq!(first.bugs.len(), config::GALAGA_ROWS * config::GALAGA_COLS);
+        assert_eq!(
+            first.bugs.len(),
+            config::galaga::GALAGA_ROWS * config::galaga::GALAGA_COLS
+        );
         // The opening grid is identical across seeds; the seeds diverge once
         // dives start peeling off.
         let mut a = GalagaSim::new(11, 200);
@@ -440,8 +448,8 @@ mod tests {
     fn every_bug_starts_inside_the_field() {
         let field = GalagaSim::new(3, 200);
         for bug in &field.bugs {
-            assert!(bug.x.abs() <= config::GALAGA_HALF_X + 0.01);
-            assert!(bug.z <= config::GALAGA_HALF_Z + 0.01);
+            assert!(bug.x.abs() <= config::galaga::GALAGA_HALF_X + 0.01);
+            assert!(bug.z <= config::galaga::GALAGA_HALF_Z + 0.01);
         }
     }
 
@@ -452,7 +460,7 @@ mod tests {
         for _ in 0..600 {
             field.update(1.0 / 60.0);
         }
-        let limit = config::GALAGA_HALF_X - config::GALAGA_PLAYER_RADIUS;
+        let limit = config::galaga::GALAGA_HALF_X - config::galaga::GALAGA_PLAYER_RADIUS;
         assert!(
             field.player_x <= limit + 0.01,
             "the cycle slid off the right"
@@ -498,7 +506,7 @@ mod tests {
         field.bugs[bug].alive = true;
         field.bugs[bug].diving = true;
         field.bugs[bug].x = 0.0;
-        field.bugs[bug].z = config::GALAGA_PLAYER_Z + 3.0;
+        field.bugs[bug].z = config::galaga::GALAGA_PLAYER_Z + 3.0;
         field.player_x = 0.0;
         field.set_input(0.0, true);
         let mut killed = field.update(1.0 / 60.0).killed;
@@ -545,7 +553,7 @@ mod tests {
             }
         }
         assert!(!field.bugs[bug].diving, "the diver should wrap back");
-        assert!(field.bugs[bug].z > config::GALAGA_PLAYER_Z);
+        assert!(field.bugs[bug].z > config::galaga::GALAGA_PLAYER_Z);
     }
 
     #[test]
@@ -560,11 +568,11 @@ mod tests {
         field.bugs[1].alive = true;
         field.player_x = 0.0;
 
-        for life in (0..config::GALAGA_LIVES).rev() {
+        for life in (0..config::galaga::GALAGA_LIVES).rev() {
             field.bugs[0].alive = true;
             field.bugs[0].diving = true;
             field.bugs[0].x = 0.0;
-            field.bugs[0].z = config::GALAGA_PLAYER_Z;
+            field.bugs[0].z = config::galaga::GALAGA_PLAYER_Z;
             field.invuln = 0.0;
             let events = field.update(1.0 / 60.0);
             assert!(events.lost_life, "the bug on the cycle should hit");
@@ -576,7 +584,7 @@ mod tests {
     #[test]
     fn the_formation_marching_down_ends_the_run() {
         let mut field = sim(200);
-        field.formation_z = config::GALAGA_PLAYER_Z + 1.0;
+        field.formation_z = config::galaga::GALAGA_PLAYER_Z + 1.0;
         let events = field.update(1.0 / 60.0);
         assert!(events.overrun);
         assert!(events.ended);

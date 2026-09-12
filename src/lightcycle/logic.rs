@@ -332,8 +332,8 @@ pub struct RoadPlate {
 /// `pattern`: a fraction of the ground, with a floor so a small folder is not
 /// bare and a ceiling so the draw calls stay bounded.
 fn plate_target(roads: usize, pattern: ViaPattern) -> usize {
-    ((roads as f32 * config::PLATE_DENSITY * pattern.density_factor()) as usize)
-        .clamp(config::PLATE_MIN, config::PLATE_MAX)
+    ((roads as f32 * config::lightcycle::PLATE_DENSITY * pattern.density_factor()) as usize)
+        .clamp(config::lightcycle::PLATE_MIN, config::lightcycle::PLATE_MAX)
 }
 
 /// Lays a district's data plates out on its roads.
@@ -2052,7 +2052,7 @@ mod tests {
         for seed in 0..20_u64 {
             let plates = road_plates(seed, &huge);
             assert!(
-                plates.len() <= config::PLATE_MAX,
+                plates.len() <= config::lightcycle::PLATE_MAX,
                 "{} plates is over the ceiling",
                 plates.len()
             );

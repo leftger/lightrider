@@ -56,31 +56,36 @@ pub struct FroggerSim {
 impl FroggerSim {
     pub fn new(seed: u64) -> Self {
         let mut rng = Rng::from_state(seed | 1);
-        let mut lanes = Vec::with_capacity(config::FROGGER_LANES as usize);
-        for row in 1..=config::FROGGER_LANES {
+        let mut lanes = Vec::with_capacity(config::arcade::FROGGER_LANES as usize);
+        for row in 1..=config::arcade::FROGGER_LANES {
             let speed = 1.6 + rng.unit() * 2.4;
             let gap = 3.0 + rng.unit() * 2.0;
             lanes.push(Lane {
                 row,
-                offset: rng.unit() * config::FROGGER_COLS as f32,
+                offset: rng.unit() * config::arcade::FROGGER_COLS as f32,
                 speed: if row % 2 == 0 { -speed } else { speed },
                 gap,
             });
         }
         Self {
-            cell: (config::FROGGER_COLS / 2, config::FROGGER_ROWS - 1),
+            cell: (
+                config::arcade::FROGGER_COLS / 2,
+                config::arcade::FROGGER_ROWS - 1,
+            ),
             lanes,
-            lives: config::FROGGER_LIVES,
+            lives: config::arcade::FROGGER_LIVES,
             phase: FroggerPhase::Hopping,
-            invuln: config::FROGGER_INVULN,
+            invuln: config::arcade::FROGGER_INVULN,
             seed,
         }
     }
 
     /// World centre of a board cell, for the renderer.
     pub fn center(cell: (i32, i32)) -> (f32, f32) {
-        let x = (cell.0 as f32 - (config::FROGGER_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
-        let z = (cell.1 as f32 - (config::FROGGER_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let x = (cell.0 as f32 - (config::arcade::FROGGER_COLS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
+        let z = (cell.1 as f32 - (config::arcade::FROGGER_ROWS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
         (x, z)
     }
 
@@ -91,9 +96,9 @@ impl FroggerSim {
         }
         let next = (self.cell.0 + dx, self.cell.1 + dz);
         if next.0 < 0
-            || next.0 >= config::FROGGER_COLS
+            || next.0 >= config::arcade::FROGGER_COLS
             || next.1 < 0
-            || next.1 >= config::FROGGER_ROWS
+            || next.1 >= config::arcade::FROGGER_ROWS
         {
             return;
         }
@@ -110,13 +115,14 @@ impl FroggerSim {
 
         for lane in &mut self.lanes {
             lane.offset += lane.speed * dt;
-            let span = config::FROGGER_COLS as f32;
+            let span = config::arcade::FROGGER_COLS as f32;
             lane.offset = (lane.offset % span + span) % span;
         }
 
-        if self.invuln <= 0.0 && self.cell.1 >= 1 && self.cell.1 <= config::FROGGER_LANES {
+        if self.invuln <= 0.0 && self.cell.1 >= 1 && self.cell.1 <= config::arcade::FROGGER_LANES {
             let lane = &self.lanes[(self.cell.1 - 1) as usize];
-            let at = (self.cell.0 as f32 - lane.offset).rem_euclid(config::FROGGER_COLS as f32);
+            let at =
+                (self.cell.0 as f32 - lane.offset).rem_euclid(config::arcade::FROGGER_COLS as f32);
             if at < 0.9 {
                 events.splatted = true;
                 self.lives = self.lives.saturating_sub(1);
@@ -124,8 +130,11 @@ impl FroggerSim {
                     self.phase = FroggerPhase::Splatted;
                     return events;
                 }
-                self.invuln = config::FROGGER_INVULN;
-                self.cell = (config::FROGGER_COLS / 2, config::FROGGER_ROWS - 1);
+                self.invuln = config::arcade::FROGGER_INVULN;
+                self.cell = (
+                    config::arcade::FROGGER_COLS / 2,
+                    config::arcade::FROGGER_ROWS - 1,
+                );
             }
         }
 
@@ -141,7 +150,8 @@ impl FroggerSim {
         let mut cells = Vec::new();
         for lane in &self.lanes {
             for step in 0..2 {
-                let offset = (lane.offset + step as f32 * lane.gap) % config::FROGGER_COLS as f32;
+                let offset =
+                    (lane.offset + step as f32 * lane.gap) % config::arcade::FROGGER_COLS as f32;
                 cells.push((offset as i32, lane.row));
             }
         }
@@ -220,13 +230,16 @@ mod tests {
         for _ in 0..120 {
             game.update(1.0 / 60.0);
         }
-        assert!(game.lanes[0].offset >= 0.0 && game.lanes[0].offset < config::FROGGER_COLS as f32);
+        assert!(
+            game.lanes[0].offset >= 0.0
+                && game.lanes[0].offset < config::arcade::FROGGER_COLS as f32
+        );
     }
 
     #[test]
     fn reaching_the_far_row_wins() {
         let mut game = sim();
-        game.cell = (config::FROGGER_COLS / 2, 1);
+        game.cell = (config::arcade::FROGGER_COLS / 2, 1);
         game.invuln = 999.0;
         game.hop(0, -1);
         let events = game.update(1.0 / 60.0);
@@ -238,16 +251,19 @@ mod tests {
     fn an_obstacle_splats_and_resets() {
         let mut game = sim();
         game.invuln = 0.0;
-        game.cell = (config::FROGGER_COLS / 2, 1);
+        game.cell = (config::arcade::FROGGER_COLS / 2, 1);
         // Park a stationary obstacle exactly on the cycle's cell.
         game.lanes[0].speed = 0.0;
         game.lanes[0].offset = game.cell.0 as f32;
         let events = game.update(1.0 / 60.0);
         assert!(events.splatted);
-        assert_eq!(game.lives, config::FROGGER_LIVES - 1);
+        assert_eq!(game.lives, config::arcade::FROGGER_LIVES - 1);
         assert_eq!(
             game.cell,
-            (config::FROGGER_COLS / 2, config::FROGGER_ROWS - 1)
+            (
+                config::arcade::FROGGER_COLS / 2,
+                config::arcade::FROGGER_ROWS - 1
+            )
         );
     }
 

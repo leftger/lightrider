@@ -67,20 +67,20 @@ impl PlinkoSim {
     pub fn new(seed: u64) -> Self {
         let mut rng = Rng::from_state(seed | 1);
         let mut pins = Vec::new();
-        for row in 0..config::PLINKO_PIN_ROWS {
-            let y = config::PLINKO_HEIGHT * 0.75 - row as f32 * 2.4;
+        for row in 0..config::arcade::PLINKO_PIN_ROWS {
+            let y = config::arcade::PLINKO_HEIGHT * 0.75 - row as f32 * 2.4;
             let count = 7 + row % 2;
             for index in 0..count {
                 let x = (index as f32 - (count - 1) as f32 * 0.5) * 2.0 + (rng.unit() - 0.5) * 0.4;
                 pins.push(Pin { x, y });
             }
         }
-        let target = config::PLINKO_TARGET + (rng.unit() * 250.0) as u32;
+        let target = config::arcade::PLINKO_TARGET + (rng.unit() * 250.0) as u32;
         Self {
             aim: 0.0,
             pins,
             balls: Vec::new(),
-            balls_left: config::PLINKO_BALLS,
+            balls_left: config::arcade::PLINKO_BALLS,
             score: 0,
             target,
             phase: PlinkoPhase::Dropping,
@@ -101,8 +101,8 @@ impl PlinkoSim {
 
     pub fn set_aim(&mut self, aim: f32) {
         self.aim = aim.clamp(
-            -config::PLINKO_WIDTH * 0.5 + 1.0,
-            config::PLINKO_WIDTH * 0.5 - 1.0,
+            -config::arcade::PLINKO_WIDTH * 0.5 + 1.0,
+            config::arcade::PLINKO_WIDTH * 0.5 - 1.0,
         );
     }
 
@@ -113,7 +113,7 @@ impl PlinkoSim {
         self.balls_left -= 1;
         self.balls.push(Ball {
             x: self.aim,
-            y: config::PLINKO_HEIGHT * 0.5 - 1.0,
+            y: config::arcade::PLINKO_HEIGHT * 0.5 - 1.0,
             vx: 0.0,
             vy: -6.0,
             scored: false,
@@ -137,7 +137,7 @@ impl PlinkoSim {
             ball.x += ball.vx * dt;
             ball.y += ball.vy * dt;
 
-            let half = config::PLINKO_WIDTH * 0.5;
+            let half = config::arcade::PLINKO_WIDTH * 0.5;
             if ball.x < -half + 0.4 {
                 ball.x = -half + 0.4;
                 ball.vx = ball.vx.abs();
@@ -163,10 +163,11 @@ impl PlinkoSim {
                 }
             }
 
-            if ball.y < -config::PLINKO_HEIGHT * 0.5 {
+            if ball.y < -config::arcade::PLINKO_HEIGHT * 0.5 {
                 ball.scored = true;
                 let slots = 8;
-                let slot = (((ball.x + config::PLINKO_WIDTH * 0.5) / config::PLINKO_WIDTH)
+                let slot = (((ball.x + config::arcade::PLINKO_WIDTH * 0.5)
+                    / config::arcade::PLINKO_WIDTH)
                     * slots as f32) as usize;
                 let slot = slot.min(slots - 1);
                 let score = bucket_scores[slot];
@@ -248,16 +249,16 @@ mod tests {
     fn aiming_stays_on_the_rail() {
         let mut board = sim();
         board.set_aim(999.0);
-        assert!(board.aim <= config::PLINKO_WIDTH * 0.5);
+        assert!(board.aim <= config::arcade::PLINKO_WIDTH * 0.5);
         board.set_aim(-999.0);
-        assert!(board.aim >= -config::PLINKO_WIDTH * 0.5);
+        assert!(board.aim >= -config::arcade::PLINKO_WIDTH * 0.5);
     }
 
     #[test]
     fn dropping_spends_a_ball() {
         let mut board = sim();
         assert!(board.drop_ball());
-        assert_eq!(board.balls_left, config::PLINKO_BALLS - 1);
+        assert_eq!(board.balls_left, config::arcade::PLINKO_BALLS - 1);
         assert_eq!(board.balls.len(), 1);
     }
 

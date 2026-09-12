@@ -45,11 +45,11 @@ pub struct Runner {
 
 impl Runner {
     fn half_width() -> f32 {
-        config::PLATFORMER_RUNNER_WIDTH * 0.5
+        config::platformer::PLATFORMER_RUNNER_WIDTH * 0.5
     }
 
     fn top(&self) -> f32 {
-        self.y + config::PLATFORMER_RUNNER_HEIGHT
+        self.y + config::platformer::PLATFORMER_RUNNER_HEIGHT
     }
 
     fn left(&self) -> f32 {
@@ -116,7 +116,10 @@ impl PlatformerSim {
     /// Builds a level from `seed`. The same file always produces the same
     /// level, and every gap is inside the runner's jump envelope.
     pub fn new(seed: u64, metres: f32) -> Self {
-        let length = metres.clamp(config::PLATFORMER_LENGTH_MIN, config::PLATFORMER_LENGTH_MAX);
+        let length = metres.clamp(
+            config::platformer::PLATFORMER_LENGTH_MIN,
+            config::platformer::PLATFORMER_LENGTH_MAX,
+        );
         let platforms = generate(seed, length);
         let last = *platforms.last().expect("a level always has a start pad");
         let exit = (last.x + last.w * 0.5, last.y);
@@ -145,7 +148,7 @@ impl PlatformerSim {
             .iter()
             .map(|platform| platform.bottom())
             .fold(f32::MAX, f32::min)
-            - config::PLATFORMER_KILL_DEPTH
+            - config::platformer::PLATFORMER_KILL_DEPTH
     }
 
     /// How far along the level the runner is, in `0.0..=1.0`.
@@ -156,10 +159,10 @@ impl PlatformerSim {
     /// The door's footprint, as a platform-like box, for rendering and hits.
     pub fn exit_box(&self) -> Platform {
         Platform {
-            x: self.exit.0 - config::PLATFORMER_EXIT_WIDTH * 0.5,
-            y: self.exit.1 + config::PLATFORMER_EXIT_HEIGHT,
-            w: config::PLATFORMER_EXIT_WIDTH,
-            h: config::PLATFORMER_EXIT_HEIGHT,
+            x: self.exit.0 - config::platformer::PLATFORMER_EXIT_WIDTH * 0.5,
+            y: self.exit.1 + config::platformer::PLATFORMER_EXIT_HEIGHT,
+            w: config::platformer::PLATFORMER_EXIT_WIDTH,
+            h: config::platformer::PLATFORMER_EXIT_HEIGHT,
         }
     }
 
@@ -194,23 +197,23 @@ impl PlatformerSim {
 
         // Snappy on the ground, floaty in the air.
         let control = if self.runner.on_ground { 1.0 } else { 0.55 };
-        self.runner.vx += walk * config::PLATFORMER_WALK_ACCEL * control * dt;
+        self.runner.vx += walk * config::platformer::PLATFORMER_WALK_ACCEL * control * dt;
         if walk == 0.0 && self.runner.on_ground {
-            let damping = config::PLATFORMER_FRICTION * dt;
+            let damping = config::platformer::PLATFORMER_FRICTION * dt;
             self.runner.vx -= self.runner.vx.clamp(-damping, damping);
         }
         self.runner.vx = self.runner.vx.clamp(
-            -config::PLATFORMER_WALK_SPEED,
-            config::PLATFORMER_WALK_SPEED,
+            -config::platformer::PLATFORMER_WALK_SPEED,
+            config::platformer::PLATFORMER_WALK_SPEED,
         );
 
         if input.jump && self.runner.on_ground {
-            self.runner.vy = config::PLATFORMER_JUMP_SPEED;
+            self.runner.vy = config::platformer::PLATFORMER_JUMP_SPEED;
             self.runner.on_ground = false;
             events.jumped = true;
         }
 
-        self.runner.vy -= config::PLATFORMER_GRAVITY * dt;
+        self.runner.vy -= config::platformer::PLATFORMER_GRAVITY * dt;
 
         let was_grounded = self.runner.on_ground;
         self.move_x(dt);
@@ -242,7 +245,7 @@ impl PlatformerSim {
             if !overlaps(&self.runner, &platform) {
                 continue;
             }
-            if self.runner.y >= platform.y - config::PLATFORMER_STEP_TOLERANCE {
+            if self.runner.y >= platform.y - config::platformer::PLATFORMER_STEP_TOLERANCE {
                 continue;
             }
             if self.runner.vx > 0.0 {
@@ -268,7 +271,7 @@ impl PlatformerSim {
                 self.runner.on_ground = true;
             } else if self.runner.y < platform.bottom() {
                 // Genuinely underneath: bump the head on the underside.
-                self.runner.y = platform.bottom() - config::PLATFORMER_RUNNER_HEIGHT;
+                self.runner.y = platform.bottom() - config::platformer::PLATFORMER_RUNNER_HEIGHT;
                 self.runner.vy = 0.0;
             } else {
                 // Rising beside a ledge: stop against it. Treating this as a
@@ -300,24 +303,27 @@ fn overlaps(runner: &Runner, platform: &Platform) -> bool {
 
 /// Lays platforms end to end with gaps and steps the jump can always clear.
 fn generate(seed: u64, length: f32) -> Vec<Platform> {
-    let thickness = config::PLATFORMER_PLATFORM_THICKNESS;
+    let thickness = config::platformer::PLATFORMER_PLATFORM_THICKNESS;
     let mut platforms = vec![Platform {
         x: 0.0,
         y: 0.0,
-        w: config::PLATFORMER_START_PAD,
+        w: config::platformer::PLATFORMER_START_PAD,
         h: thickness,
     }];
     let mut rng = Rng::from_state(seed | 1);
-    let mut cursor = config::PLATFORMER_START_PAD;
+    let mut cursor = config::platformer::PLATFORMER_START_PAD;
     let mut y = 0.0;
 
     while cursor < length {
-        let gap = config::PLATFORMER_MIN_GAP
-            + rng.unit() * (config::PLATFORMER_MAX_GAP - config::PLATFORMER_MIN_GAP);
-        let step = (rng.unit() * 2.0 - 1.0) * config::PLATFORMER_MAX_STEP;
-        y = (y + step).clamp(0.0, config::PLATFORMER_HEIGHT_MAX);
-        let w = config::PLATFORMER_MIN_WIDTH
-            + rng.unit() * (config::PLATFORMER_MAX_WIDTH - config::PLATFORMER_MIN_WIDTH);
+        let gap = config::platformer::PLATFORMER_MIN_GAP
+            + rng.unit()
+                * (config::platformer::PLATFORMER_MAX_GAP - config::platformer::PLATFORMER_MIN_GAP);
+        let step = (rng.unit() * 2.0 - 1.0) * config::platformer::PLATFORMER_MAX_STEP;
+        y = (y + step).clamp(0.0, config::platformer::PLATFORMER_HEIGHT_MAX);
+        let w = config::platformer::PLATFORMER_MIN_WIDTH
+            + rng.unit()
+                * (config::platformer::PLATFORMER_MAX_WIDTH
+                    - config::platformer::PLATFORMER_MIN_WIDTH);
         platforms.push(Platform {
             x: cursor + gap,
             y,
@@ -328,11 +334,11 @@ fn generate(seed: u64, length: f32) -> Vec<Platform> {
     }
 
     // The goal pad, on the same level as whatever we ended on.
-    let gap = config::PLATFORMER_MIN_GAP + rng.unit() * 1.5;
+    let gap = config::platformer::PLATFORMER_MIN_GAP + rng.unit() * 1.5;
     platforms.push(Platform {
         x: cursor + gap,
         y,
-        w: config::PLATFORMER_GOAL_WIDTH,
+        w: config::platformer::PLATFORMER_GOAL_WIDTH,
         h: thickness,
     });
     platforms
@@ -395,12 +401,12 @@ mod tests {
                 let (from, to) = (pair[0], pair[1]);
                 let gap = to.x - (from.x + from.w);
                 assert!(
-                    gap <= config::PLATFORMER_MAX_GAP,
+                    gap <= config::platformer::PLATFORMER_MAX_GAP,
                     "seed {seed}: gap of {gap} is too wide to clear"
                 );
                 let rise = to.y - from.y;
                 assert!(
-                    rise <= config::PLATFORMER_MAX_STEP + f32::EPSILON,
+                    rise <= config::platformer::PLATFORMER_MAX_STEP + f32::EPSILON,
                     "seed {seed}: step of {rise} is too tall to climb"
                 );
             }

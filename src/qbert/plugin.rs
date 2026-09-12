@@ -30,12 +30,13 @@ pub(crate) fn spawn_qbert_pyramid(
     assets: &LightcycleAssets,
     sim: &QbertSim,
 ) {
-    for row in 0..config::QBERT_ROWS {
+    for row in 0..config::arcade::QBERT_ROWS {
         for index in 0..=row {
             let (x, z) = QbertSim::cube_position(row, index);
             let lit = sim.lit[QbertSim::cube_index(row, index)];
-            let y =
-                (config::QBERT_ROWS as f32 - 1.0 - row as f32) * config::QBERT_CUBE_HEIGHT * 0.5;
+            let y = (config::arcade::QBERT_ROWS as f32 - 1.0 - row as f32)
+                * config::arcade::QBERT_CUBE_HEIGHT
+                * 0.5;
             commands.spawn((
                 LightcycleSceneRoot,
                 QbertCubeEntity { row, index },
@@ -46,9 +47,9 @@ pub(crate) fn spawn_qbert_pyramid(
                     assets.qbert_cube_dim.clone()
                 }),
                 Transform::from_xyz(x, y, z).with_scale(Vec3::new(
-                    config::QBERT_CUBE_SPACING * 0.9,
-                    config::QBERT_CUBE_HEIGHT,
-                    config::QBERT_CUBE_SPACING * 0.9,
+                    config::arcade::QBERT_CUBE_SPACING * 0.9,
+                    config::arcade::QBERT_CUBE_HEIGHT,
+                    config::arcade::QBERT_CUBE_SPACING * 0.9,
                 )),
                 Visibility::Visible,
                 Pickable::IGNORE,
@@ -57,9 +58,10 @@ pub(crate) fn spawn_qbert_pyramid(
     }
     for (index, enemy) in sim.enemies.iter().enumerate() {
         let (x, z) = QbertSim::cube_position(enemy.row, enemy.index);
-        let y =
-            (config::QBERT_ROWS as f32 - 1.0 - enemy.row as f32) * config::QBERT_CUBE_HEIGHT * 0.5
-                + config::QBERT_CUBE_HEIGHT * 0.8;
+        let y = (config::arcade::QBERT_ROWS as f32 - 1.0 - enemy.row as f32)
+            * config::arcade::QBERT_CUBE_HEIGHT
+            * 0.5
+            + config::arcade::QBERT_CUBE_HEIGHT * 0.8;
         commands.spawn((
             LightcycleSceneRoot,
             QbertEnemyEntity { index },
@@ -89,8 +91,9 @@ pub(crate) fn sync_qbert_entities(
     for (entity, mut transform, mut material) in &mut cubes {
         let lit = sim.lit.get(QbertSim::cube_index(entity.row, entity.index));
         let (x, z) = QbertSim::cube_position(entity.row, entity.index);
-        let y =
-            (config::QBERT_ROWS as f32 - 1.0 - entity.row as f32) * config::QBERT_CUBE_HEIGHT * 0.5;
+        let y = (config::arcade::QBERT_ROWS as f32 - 1.0 - entity.row as f32)
+            * config::arcade::QBERT_CUBE_HEIGHT
+            * 0.5;
         transform.translation = Vec3::new(x, y, z);
         material.0 = if lit == Some(&true) {
             assets.qbert_cube_lit.clone()
@@ -102,10 +105,10 @@ pub(crate) fn sync_qbert_entities(
         match sim.enemies.get(entity.index) {
             Some(enemy) => {
                 let (x, z) = QbertSim::cube_position(enemy.row, enemy.index);
-                let y = (config::QBERT_ROWS as f32 - 1.0 - enemy.row as f32)
-                    * config::QBERT_CUBE_HEIGHT
+                let y = (config::arcade::QBERT_ROWS as f32 - 1.0 - enemy.row as f32)
+                    * config::arcade::QBERT_CUBE_HEIGHT
                     * 0.5
-                    + config::QBERT_CUBE_HEIGHT * 0.8;
+                    + config::arcade::QBERT_CUBE_HEIGHT * 0.8;
                 transform.translation = Vec3::new(x, y, z);
                 *visibility = Visibility::Visible;
             }

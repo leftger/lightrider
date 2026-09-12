@@ -447,8 +447,8 @@ impl ChaseCamera {
         let base_pitch = chase_base_pitch();
         self.look.x = wrap_angle(self.look.x - delta.x * config::CAMERA_ROTATION_SPEED);
         self.look.y = (self.look.y - delta.y * config::CAMERA_ROTATION_SPEED).clamp(
-            config::LIGHTCYCLE_CAMERA_MIN_PITCH - base_pitch,
-            config::LIGHTCYCLE_CAMERA_MAX_PITCH - base_pitch,
+            config::lightcycle::LIGHTCYCLE_CAMERA_MIN_PITCH - base_pitch,
+            config::lightcycle::LIGHTCYCLE_CAMERA_MAX_PITCH - base_pitch,
         );
     }
 
@@ -459,7 +459,8 @@ impl ChaseCamera {
             return;
         }
 
-        let blend = 1.0 - (-delta_seconds / config::LIGHTCYCLE_CAMERA_LOOK_RECENTER).exp();
+        let blend =
+            1.0 - (-delta_seconds / config::lightcycle::LIGHTCYCLE_CAMERA_LOOK_RECENTER).exp();
         self.look = self.look.lerp(Vec2::ZERO, blend.clamp(0.0, 1.0));
 
         // An exponential ease never quite arrives, so land it rather than

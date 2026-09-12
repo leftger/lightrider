@@ -18,32 +18,44 @@ use bevy::prelude::*;
 pub(crate) fn city_palette() -> [[(Color, LinearRgba); 2]; 4] {
     [
         [
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.6, 3.4)),
             (
-                config::LIGHTCYCLE_CITY_BLUE,
+                config::lightcycle::LIGHTCYCLE_CITY_CYAN,
+                LinearRgba::rgb(0.0, 2.6, 3.4),
+            ),
+            (
+                config::lightcycle::LIGHTCYCLE_CITY_BLUE,
                 LinearRgba::rgb(0.15, 1.0, 3.0),
             ),
         ],
         [
             (
-                config::LIGHTCYCLE_CITY_MAGENTA,
+                config::lightcycle::LIGHTCYCLE_CITY_MAGENTA,
                 LinearRgba::rgb(3.4, 0.03, 2.0),
             ),
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.4, 3.2)),
+            (
+                config::lightcycle::LIGHTCYCLE_CITY_CYAN,
+                LinearRgba::rgb(0.0, 2.4, 3.2),
+            ),
         ],
         [
             (
-                config::LIGHTCYCLE_CITY_VIOLET,
+                config::lightcycle::LIGHTCYCLE_CITY_VIOLET,
                 LinearRgba::rgb(1.8, 0.18, 3.4),
             ),
-            (config::LIGHTCYCLE_CITY_PINK, LinearRgba::rgb(3.4, 0.2, 1.2)),
+            (
+                config::lightcycle::LIGHTCYCLE_CITY_PINK,
+                LinearRgba::rgb(3.4, 0.2, 1.2),
+            ),
         ],
         [
             (
-                config::LIGHTCYCLE_CITY_AMBER,
+                config::lightcycle::LIGHTCYCLE_CITY_AMBER,
                 LinearRgba::rgb(3.4, 1.1, 0.03),
             ),
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.4, 3.2)),
+            (
+                config::lightcycle::LIGHTCYCLE_CITY_CYAN,
+                LinearRgba::rgb(0.0, 2.4, 3.2),
+            ),
         ],
     ]
 }
@@ -59,8 +71,8 @@ pub(crate) fn city_theme_index(theme: CityTheme) -> usize {
 
 pub(crate) fn tower_position(grid_pos: (i32, i32)) -> (i32, i32) {
     (
-        grid_pos.0 * config::LIGHTCYCLE_TOWER_STRIDE,
-        grid_pos.1 * config::LIGHTCYCLE_TOWER_STRIDE,
+        grid_pos.0 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
+        grid_pos.1 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
     )
 }
 
@@ -167,7 +179,7 @@ pub(crate) fn spawn_city_structures(
         .structures
         .iter()
         .filter(|structure| structure.kind == CityStructureKind::Pylon)
-        .take(config::LIGHTCYCLE_CITY_BEACON_LIMIT)
+        .take(config::lightcycle::LIGHTCYCLE_CITY_BEACON_LIMIT)
     {
         let body_height = city_body_height(structure);
         let (_, emissive) = city_palette()[theme][structure.accent as usize];
@@ -175,14 +187,19 @@ pub(crate) fn spawn_city_structures(
         commands.spawn((
             LightcycleSceneRoot,
             CityBeacon {
-                base_height: config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + body_height + 0.32,
+                base_height: config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT
+                    + body_height
+                    + 0.32,
                 phase,
             },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.city_accent_materials[theme][structure.accent as usize].clone()),
             Transform::from_translation(
                 config::ground_position(structure.cell.0, structure.cell.1)
-                    + Vec3::Y * (config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + body_height + 0.32),
+                    + Vec3::Y
+                        * (config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT
+                            + body_height
+                            + 0.32),
             )
             .with_scale(Vec3::splat(0.22 + emissive.red.min(1.0) * 0.04)),
             Pickable::IGNORE,
@@ -217,7 +234,7 @@ pub(crate) fn spawn_structure_layer(
 }
 
 pub(crate) fn city_foundation_mesh(structure: &CityStructure) -> Mesh {
-    let height = config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT;
+    let height = config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT;
     Mesh::from(Cuboid::default()).transformed_by(
         Transform::from_translation(config::world_position(
             structure.cell.0,
@@ -225,9 +242,9 @@ pub(crate) fn city_foundation_mesh(structure: &CityStructure) -> Mesh {
             height,
         ))
         .with_scale(Vec3::new(
-            config::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
+            config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
             height,
-            config::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
+            config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
         )),
     )
 }
@@ -235,14 +252,18 @@ pub(crate) fn city_foundation_mesh(structure: &CityStructure) -> Mesh {
 pub(crate) fn city_body_height(structure: &CityStructure) -> f32 {
     let tier = structure.height_tier as f32;
     match structure.kind {
-        CityStructureKind::Barrier => config::LIGHTCYCLE_CITY_BARRIER_HEIGHT + tier * 0.24,
-        CityStructureKind::GlassFin => config::LIGHTCYCLE_CITY_GLASS_HEIGHT + tier * 0.4,
-        CityStructureKind::Pylon => config::LIGHTCYCLE_CITY_PYLON_HEIGHT + tier * 0.7,
+        CityStructureKind::Barrier => {
+            config::lightcycle::LIGHTCYCLE_CITY_BARRIER_HEIGHT + tier * 0.24
+        }
+        CityStructureKind::GlassFin => {
+            config::lightcycle::LIGHTCYCLE_CITY_GLASS_HEIGHT + tier * 0.4
+        }
+        CityStructureKind::Pylon => config::lightcycle::LIGHTCYCLE_CITY_PYLON_HEIGHT + tier * 0.7,
     }
 }
 
 pub(crate) fn city_body_scale(structure: &CityStructure, height: f32) -> Vec3 {
-    let size = config::LIGHTCYCLE_CITY_STRUCTURE_SIZE;
+    let size = config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SIZE;
     match structure.kind {
         CityStructureKind::Barrier => {
             if structure.along_x {
@@ -253,9 +274,17 @@ pub(crate) fn city_body_scale(structure: &CityStructure, height: f32) -> Vec3 {
         }
         CityStructureKind::GlassFin => {
             if structure.along_x {
-                Vec3::new(size, height, config::LIGHTCYCLE_CITY_FIN_THICKNESS)
+                Vec3::new(
+                    size,
+                    height,
+                    config::lightcycle::LIGHTCYCLE_CITY_FIN_THICKNESS,
+                )
             } else {
-                Vec3::new(config::LIGHTCYCLE_CITY_FIN_THICKNESS, height, size)
+                Vec3::new(
+                    config::lightcycle::LIGHTCYCLE_CITY_FIN_THICKNESS,
+                    height,
+                    size,
+                )
             }
         }
         CityStructureKind::Pylon => Vec3::new(0.5, height, 0.5),
@@ -265,7 +294,7 @@ pub(crate) fn city_body_scale(structure: &CityStructure, height: f32) -> Vec3 {
 pub(crate) fn city_body_mesh(structure: &CityStructure) -> Mesh {
     let height = city_body_height(structure);
     let position = config::ground_position(structure.cell.0, structure.cell.1)
-        + Vec3::Y * (config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + height * 0.5);
+        + Vec3::Y * (config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + height * 0.5);
     Mesh::from(Cuboid::default()).transformed_by(
         Transform::from_translation(position).with_scale(city_body_scale(structure, height)),
     )
@@ -329,9 +358,9 @@ pub(crate) fn tower_cube_mesh(node: &FileNode) -> Mesh {
     let height = node.calculate_height();
     Mesh::from(Cuboid::default()).transformed_by(
         Transform::from_translation(config::world_position(x, z, height)).with_scale(Vec3::new(
-            config::LIGHTCYCLE_TOWER_SIZE,
+            config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
             height,
-            config::LIGHTCYCLE_TOWER_SIZE,
+            config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
         )),
     )
 }
@@ -345,12 +374,12 @@ pub(crate) fn spawn_road_markings(
     let mut cells: Vec<_> = arena.roads.iter().copied().collect();
     // Every road is marked unless the arena is past the ceiling, in which case
     // the cells nearest the middle are the ones kept.
-    if cells.len() > config::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT {
+    if cells.len() > config::lightcycle::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT {
         let center = arena.center();
         cells.sort_unstable_by_key(|cell| {
             ((cell.0 - center.0).abs() + (cell.1 - center.1).abs(), *cell)
         });
-        cells.truncate(config::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT);
+        cells.truncate(config::lightcycle::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT);
     }
 
     let theme = city_theme_index(arena.city_theme);
@@ -381,7 +410,8 @@ pub(crate) fn push_marking_quads(
 ) {
     let spacing = config::GRID_SPACING;
     let line_width = 0.075;
-    let center = config::ground_position(cell.0, cell.1) + Vec3::Y * config::MARKING_HEIGHT;
+    let center =
+        config::ground_position(cell.0, cell.1) + Vec3::Y * config::lightcycle::MARKING_HEIGHT;
     let half = line_width * 1.25;
     quads.push(MarkingQuad {
         center,
@@ -464,8 +494,8 @@ pub(crate) fn spawn_wall_rail(
     arena: &Arena,
     wall: Wall,
 ) {
-    let height = config::LIGHTCYCLE_WALL_HEIGHT;
-    let thickness = config::LIGHTCYCLE_WALL_THICKNESS;
+    let height = config::lightcycle::LIGHTCYCLE_WALL_HEIGHT;
+    let thickness = config::lightcycle::LIGHTCYCLE_WALL_THICKNESS;
     let plane = wall_plane(arena, wall);
     let (min, max) = wall_extent(arena, wall);
 
@@ -474,8 +504,8 @@ pub(crate) fn spawn_wall_rail(
         .filter(|portal| portal.wall == wall)
         .map(|portal| gate_world_span(&portal));
 
-    let trim_height = config::LIGHTCYCLE_CITY_BASE_TRIM_HEIGHT;
-    let trim_thickness = thickness + config::LIGHTCYCLE_CITY_BASE_TRIM_OVERHANG;
+    let trim_height = config::lightcycle::LIGHTCYCLE_CITY_BASE_TRIM_HEIGHT;
+    let trim_thickness = thickness + config::lightcycle::LIGHTCYCLE_CITY_BASE_TRIM_OVERHANG;
     let accent = if arena.kind == ArenaKind::Document {
         assets.document_folio_material.clone()
     } else {

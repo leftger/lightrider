@@ -16,15 +16,16 @@ use bevy::prelude::*;
 /// than an unlit neon brick.
 pub(crate) fn trail_glass_material() -> StandardMaterial {
     StandardMaterial {
-        base_color: config::LIGHTCYCLE_TRAIL_COLOR,
+        base_color: config::lightcycle::LIGHTCYCLE_TRAIL_COLOR,
         perceptual_roughness: 0.08,
         metallic: 0.02,
         specular_transmission: 0.92,
         thickness: 0.28,
         ior: 1.45,
-        attenuation_color: config::LIGHTCYCLE_TRAIL_ATTENUATION,
+        attenuation_color: config::lightcycle::LIGHTCYCLE_TRAIL_ATTENUATION,
         attenuation_distance: 0.8,
-        emissive: LinearRgba::from(config::PCB_TRACE_COLOR) * config::PCB_TRACE_EMISSIVE,
+        emissive: LinearRgba::from(config::lightcycle::PCB_TRACE_COLOR)
+            * config::lightcycle::PCB_TRACE_EMISSIVE,
         clearcoat: 1.0,
         clearcoat_perceptual_roughness: 0.06,
         double_sided: true,
@@ -109,14 +110,14 @@ pub(crate) fn trail_centerline(sim: &LightcycleSim) -> Vec<(f32, f32)> {
     }
 
     let points = collapse_near_duplicates(points);
-    trim_polyline_end(points, config::LIGHTCYCLE_TRAIL_TAIL)
+    trim_polyline_end(points, config::lightcycle::LIGHTCYCLE_TRAIL_TAIL)
 }
 
 pub(crate) fn trail_heights(points: &[(f32, f32)]) -> Vec<f32> {
     let from_end = distances_from_end(points);
-    let emanate = config::LIGHTCYCLE_TRAIL_EMANATE;
-    let full = config::LIGHTCYCLE_TRAIL_HEIGHT;
-    let spawn = config::LIGHTCYCLE_TRAIL_SPAWN_HEIGHT;
+    let emanate = config::lightcycle::LIGHTCYCLE_TRAIL_EMANATE;
+    let full = config::lightcycle::LIGHTCYCLE_TRAIL_HEIGHT;
+    let spawn = config::lightcycle::LIGHTCYCLE_TRAIL_SPAWN_HEIGHT;
 
     from_end
         .into_iter()
@@ -192,7 +193,7 @@ pub(crate) fn trail_glass_mesh(points: &[(f32, f32)], heights: &[f32]) -> Mesh {
     }
 
     let spacing = config::GRID_SPACING;
-    let half_thick = config::LIGHTCYCLE_TRAIL_THICKNESS * 0.5;
+    let half_thick = config::lightcycle::LIGHTCYCLE_TRAIL_THICKNESS * 0.5;
     let stations: Vec<(Vec3, Vec3, f32)> = points
         .iter()
         .enumerate()
@@ -357,7 +358,7 @@ pub(crate) fn push_quad(
 }
 
 pub(crate) fn rounded_polyline(path: &[(i32, i32)]) -> Vec<(f32, f32)> {
-    let radius = config::LIGHTCYCLE_TURN_RADIUS;
+    let radius = config::lightcycle::LIGHTCYCLE_TURN_RADIUS;
     let mut points = vec![cell_to_point(path[0])];
 
     for index in 1..path.len().saturating_sub(1) {

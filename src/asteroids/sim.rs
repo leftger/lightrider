@@ -20,9 +20,9 @@ pub enum RockSize {
 impl RockSize {
     pub fn radius(self) -> f32 {
         match self {
-            Self::Large => config::ASTEROIDS_ROCK_LARGE,
-            Self::Medium => config::ASTEROIDS_ROCK_MEDIUM,
-            Self::Small => config::ASTEROIDS_ROCK_SMALL,
+            Self::Large => config::asteroids::ASTEROIDS_ROCK_LARGE,
+            Self::Medium => config::asteroids::ASTEROIDS_ROCK_MEDIUM,
+            Self::Small => config::asteroids::ASTEROIDS_ROCK_SMALL,
         }
     }
 
@@ -126,14 +126,14 @@ impl AsteroidsSim {
     pub fn new(seed: u64, center: (f32, f32), radius: f32) -> Self {
         let mut sim = Self {
             angle: 0.0,
-            lives: config::ASTEROIDS_LIVES,
+            lives: config::asteroids::ASTEROIDS_LIVES,
             score: 0,
             phase: AsteroidsPhase::Flying,
             rocks: Vec::new(),
             beams: Vec::new(),
             // Grace at the start, so the first wave cannot blindside a player
             // who has not found the pivot keys yet.
-            invuln: config::ASTEROIDS_INVULN,
+            invuln: config::asteroids::ASTEROIDS_INVULN,
             fire_clock: 0.0,
             turn: 0.0,
             center,
@@ -147,7 +147,7 @@ impl AsteroidsSim {
     /// The opening ring of large rocks. Positions and headings come from the
     /// file's seed, so the same file always fields the same field.
     fn spawn_wave(&mut self) {
-        let count = config::ASTEROIDS_WAVE_SIZE.max(1);
+        let count = config::asteroids::ASTEROIDS_WAVE_SIZE.max(1);
         for index in 0..count {
             let bearing = index as f32 / count as f32 * TAU + self.rng.unit() * 0.6;
             let distance = self.radius * (0.45 + self.rng.unit() * 0.27);
@@ -160,9 +160,10 @@ impl AsteroidsSim {
                 self.center.1 + (self.rng.unit() - 0.5) * self.radius * 0.5,
             );
             let (dx, dz) = normalize(target.0 - x, target.1 - z);
-            let speed = config::ASTEROIDS_ROCK_SPEED_MIN
+            let speed = config::asteroids::ASTEROIDS_ROCK_SPEED_MIN
                 + self.rng.unit()
-                    * (config::ASTEROIDS_ROCK_SPEED_MAX - config::ASTEROIDS_ROCK_SPEED_MIN);
+                    * (config::asteroids::ASTEROIDS_ROCK_SPEED_MAX
+                        - config::asteroids::ASTEROIDS_ROCK_SPEED_MIN);
             let angle = self.rng.unit() * TAU;
             let spin = (self.rng.unit() - 0.5) * 1.6;
             self.rocks.push(Rock {
@@ -192,20 +193,20 @@ impl AsteroidsSim {
     pub fn fire(&mut self) -> bool {
         if self.phase != AsteroidsPhase::Flying
             || self.fire_clock > 0.0
-            || self.beams.len() >= config::ASTEROIDS_MAX_BEAMS
+            || self.beams.len() >= config::asteroids::ASTEROIDS_MAX_BEAMS
         {
             return false;
         }
         let (dx, dz) = (self.angle.cos(), self.angle.sin());
-        let muzzle = config::ASTEROIDS_BIKE_RADIUS + 0.2;
+        let muzzle = config::asteroids::ASTEROIDS_BIKE_RADIUS + 0.2;
         self.beams.push(Beam {
             x: self.center.0 + dx * muzzle,
             z: self.center.1 + dz * muzzle,
-            vx: dx * config::ASTEROIDS_BEAM_SPEED,
-            vz: dz * config::ASTEROIDS_BEAM_SPEED,
-            life: config::ASTEROIDS_BEAM_LIFE,
+            vx: dx * config::asteroids::ASTEROIDS_BEAM_SPEED,
+            vz: dz * config::asteroids::ASTEROIDS_BEAM_SPEED,
+            life: config::asteroids::ASTEROIDS_BEAM_LIFE,
         });
-        self.fire_clock = config::ASTEROIDS_FIRE_COOLDOWN;
+        self.fire_clock = config::asteroids::ASTEROIDS_FIRE_COOLDOWN;
         true
     }
 
@@ -221,12 +222,13 @@ impl AsteroidsSim {
         let live = self.is_active();
 
         if live {
-            self.angle = wrap_angle(self.angle + self.turn * config::ASTEROIDS_TURN_RATE * dt);
+            self.angle =
+                wrap_angle(self.angle + self.turn * config::asteroids::ASTEROIDS_TURN_RATE * dt);
             self.invuln = (self.invuln - dt).max(0.0);
             self.fire_clock = (self.fire_clock - dt).max(0.0);
         }
 
-        let field = self.radius + config::ASTEROIDS_BEAM_LENGTH;
+        let field = self.radius + config::asteroids::ASTEROIDS_BEAM_LENGTH;
         for beam in &mut self.beams {
             beam.x += beam.vx * dt;
             beam.z += beam.vz * dt;
@@ -258,7 +260,7 @@ impl AsteroidsSim {
                 if rock_hit[rock_index] {
                     continue;
                 }
-                let reach = rock.size.radius() + config::ASTEROIDS_BEAM_RADIUS;
+                let reach = rock.size.radius() + config::asteroids::ASTEROIDS_BEAM_RADIUS;
                 if distance_sq(beam.x, beam.z, rock.x, rock.z) <= reach * reach {
                     rock_hit[rock_index] = true;
                     beam_spent[beam_index] = true;
@@ -282,7 +284,11 @@ impl AsteroidsSim {
                 // Two children peel off either side of the parent's path, a
                 // little faster, so a split rock fans out instead of stacking.
                 for side in [-1.0_f32, 1.0] {
-                    let (vx, vz) = rotate(rock.vx, rock.vz, side * config::ASTEROIDS_SPLIT_SPREAD);
+                    let (vx, vz) = rotate(
+                        rock.vx,
+                        rock.vz,
+                        side * config::asteroids::ASTEROIDS_SPLIT_SPREAD,
+                    );
                     survivors.push(Rock {
                         x: rock.x,
                         z: rock.z,
@@ -304,7 +310,7 @@ impl AsteroidsSim {
         }
 
         if self.invuln <= 0.0 {
-            let bike = config::ASTEROIDS_BIKE_RADIUS;
+            let bike = config::asteroids::ASTEROIDS_BIKE_RADIUS;
             let struck = self.rocks.iter().any(|rock| {
                 let reach = bike + rock.size.radius();
                 distance_sq(rock.x, rock.z, center.0, center.1) <= reach * reach
@@ -317,10 +323,10 @@ impl AsteroidsSim {
                     events.ended = true;
                     return events;
                 }
-                self.invuln = config::ASTEROIDS_INVULN;
+                self.invuln = config::asteroids::ASTEROIDS_INVULN;
                 // Respawn shockwave: clear what would otherwise hit us again
                 // before the mercy window is even over.
-                let shock = config::ASTEROIDS_SHOCKWAVE;
+                let shock = config::asteroids::ASTEROIDS_SHOCKWAVE;
                 let rocks = std::mem::take(&mut self.rocks);
                 self.rocks = rocks
                     .into_iter()
@@ -422,7 +428,7 @@ mod tests {
         let first = AsteroidsSim::new(11, (0.0, 0.0), RING);
         let second = AsteroidsSim::new(11, (0.0, 0.0), RING);
         assert_eq!(first, second);
-        assert_eq!(first.rocks.len(), config::ASTEROIDS_WAVE_SIZE);
+        assert_eq!(first.rocks.len(), config::asteroids::ASTEROIDS_WAVE_SIZE);
         let other = AsteroidsSim::new(12, (0.0, 0.0), RING);
         assert_ne!(first.rocks, other.rocks);
     }
@@ -487,7 +493,7 @@ mod tests {
         sim.invuln = 999.0;
         sim.set_turn(1.0);
         sim.update(1.0);
-        assert!((sim.angle - config::ASTEROIDS_TURN_RATE).abs() < 1e-4);
+        assert!((sim.angle - config::asteroids::ASTEROIDS_TURN_RATE).abs() < 1e-4);
         sim.set_turn(-1.0);
         sim.update(1.0);
         assert!(sim.angle.abs() < 1e-4, "steering back should face +X again");
@@ -512,7 +518,7 @@ mod tests {
         let events = sim.update(0.5);
         assert!(sim.rocks[0].x > 5.0, "scenery rocks should keep drifting");
         assert!(!events.lost_life, "scenery rocks cannot cost a life");
-        assert_eq!(sim.lives, config::ASTEROIDS_LIVES);
+        assert_eq!(sim.lives, config::asteroids::ASTEROIDS_LIVES);
     }
 
     #[test]
@@ -524,7 +530,7 @@ mod tests {
         sim.rocks.push(rock(0.0, 0.0, 0.0, 0.0, RockSize::Large));
         let events = sim.update(0.1);
         assert!(events.lost_life);
-        assert_eq!(sim.lives, config::ASTEROIDS_LIVES - 1);
+        assert_eq!(sim.lives, config::asteroids::ASTEROIDS_LIVES - 1);
         assert_eq!(
             sim.rocks.len(),
             1,
@@ -533,7 +539,7 @@ mod tests {
         assert!(sim.invuln > 0.0, "losing a life grants mercy time");
 
         // The remaining hits drain the rest of the lives.
-        for _ in 1..config::ASTEROIDS_LIVES {
+        for _ in 1..config::asteroids::ASTEROIDS_LIVES {
             sim.invuln = 0.0;
             sim.rocks.push(rock(0.0, 0.0, 0.0, 0.0, RockSize::Large));
             sim.update(0.1);

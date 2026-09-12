@@ -39,7 +39,7 @@ pub(crate) fn spawn_snake_field(
                 config::ground_position(food.cell.0, food.cell.1) + Vec3::Y * 0.5,
             )
             .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4))
-            .with_scale(Vec3::splat(config::SNAKE_FOOD_SIZE)),
+            .with_scale(Vec3::splat(config::snake::SNAKE_FOOD_SIZE)),
             if food.eaten {
                 Visibility::Hidden
             } else {
@@ -63,7 +63,7 @@ pub(crate) fn spawn_snake_field(
         Transform::from_translation(config::ground_position(gate.0, gate.1) + Vec3::Y * 0.9)
             .with_scale(Vec3::new(
                 config::GRID_SPACING,
-                config::LIGHTCYCLE_WALL_HEIGHT * 0.9,
+                config::lightcycle::LIGHTCYCLE_WALL_HEIGHT * 0.9,
                 config::GRID_SPACING,
             )),
         if snake.exit_open {

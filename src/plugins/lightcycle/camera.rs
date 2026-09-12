@@ -24,7 +24,7 @@ pub(crate) fn chase_landing_pose(run: &ActiveRun) -> (Transform, Vec3, Vec3) {
     let pose = cycle_cell_pose(&run.sim);
     let cycle = pose_world_position(&pose);
     let (offset, view_forward) = chase_camera_rig(pose_forward(&pose), Vec2::ZERO);
-    let focus = cycle + view_forward * config::LIGHTCYCLE_CAMERA_LOOKAHEAD;
+    let focus = cycle + view_forward * config::lightcycle::LIGHTCYCLE_CAMERA_LOOKAHEAD;
     (
         Transform::from_translation(cycle + offset).looking_at(focus, Vec3::Y),
         focus,
@@ -56,7 +56,7 @@ pub(crate) fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
         let target = match room.hug {
             Some(wall) => {
                 let angle = heading_angle(wall);
-                stand + Vec3::new(angle.cos(), 0.0, angle.sin()) * config::STEALTH_HUG_LEAN
+                stand + Vec3::new(angle.cos(), 0.0, angle.sin()) * config::stealth::STEALTH_HUG_LEAN
             }
             None => stand,
         };
@@ -152,14 +152,16 @@ pub(crate) fn arc_cell_pose(
         ),
         direction: Vec2::new(-theta.sin(), theta.cos()) * turn_sign,
         // Peaks mid-corner and returns upright by the exit.
-        lean: turn_sign * config::LIGHTCYCLE_LEAN_ANGLE * (std::f32::consts::PI * u).sin(),
+        lean: turn_sign
+            * config::lightcycle::LIGHTCYCLE_LEAN_ANGLE
+            * (std::f32::consts::PI * u).sin(),
     }
 }
 
 /// Eases the camera's follow direction toward `target` with a frame-rate
 /// independent time constant.
 pub(crate) fn advance_chase_forward(current: Vec3, target: Vec3, delta: f32) -> Vec3 {
-    let blend = 1.0 - (-delta / config::LIGHTCYCLE_CAMERA_TURN_LAG).exp();
+    let blend = 1.0 - (-delta / config::lightcycle::LIGHTCYCLE_CAMERA_TURN_LAG).exp();
     current
         .lerp(target, blend.clamp(0.0, 1.0))
         .try_normalize()
@@ -170,15 +172,15 @@ pub(crate) fn advance_chase_forward(current: Vec3, target: Vec3, delta: f32) -> 
 /// offset, returning the camera's offset from the cycle and the direction it
 /// views along.
 ///
-/// A zero `look` reproduces the fixed rig: [`config::LIGHTCYCLE_CAMERA_DISTANCE`]
-/// behind the direction of travel and [`config::LIGHTCYCLE_CAMERA_HEIGHT`] above
+/// A zero `look` reproduces the fixed rig: [`config::lightcycle::LIGHTCYCLE_CAMERA_DISTANCE`]
+/// behind the direction of travel and [`config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT`] above
 /// it. Free look orbits that same radius so dragging never pushes the camera
 /// through the floor or into the cycle.
 pub(crate) fn chase_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
     let view_forward = Quat::from_rotation_y(look.x) * forward;
     let pitch = (chase_base_pitch() + look.y).clamp(
-        config::LIGHTCYCLE_CAMERA_MIN_PITCH,
-        config::LIGHTCYCLE_CAMERA_MAX_PITCH,
+        config::lightcycle::LIGHTCYCLE_CAMERA_MIN_PITCH,
+        config::lightcycle::LIGHTCYCLE_CAMERA_MAX_PITCH,
     );
     let radius = chase_rig_radius();
     let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
@@ -187,14 +189,15 @@ pub(crate) fn chase_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
 
 /// Pitch of the default chase rig above the cycle, in radians.
 pub(crate) fn chase_base_pitch() -> f32 {
-    config::LIGHTCYCLE_CAMERA_HEIGHT.atan2(config::LIGHTCYCLE_CAMERA_DISTANCE)
+    config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT
+        .atan2(config::lightcycle::LIGHTCYCLE_CAMERA_DISTANCE)
 }
 
 /// Distance from the cycle to the default chase rig.
 pub(crate) fn chase_rig_radius() -> f32 {
     Vec2::new(
-        config::LIGHTCYCLE_CAMERA_DISTANCE,
-        config::LIGHTCYCLE_CAMERA_HEIGHT,
+        config::lightcycle::LIGHTCYCLE_CAMERA_DISTANCE,
+        config::lightcycle::LIGHTCYCLE_CAMERA_HEIGHT,
     )
     .length()
 }
@@ -228,12 +231,12 @@ pub(crate) fn update_chase_camera(
         .and_then(|run| run.source_sim::<PlatformerSim>())
     {
         let focus = Vec3::new(
-            level.runner.x + config::PLATFORMER_CAMERA_AHEAD,
-            (level.runner.y + config::PLATFORMER_CAMERA_HEIGHT).max(2.0),
+            level.runner.x + config::platformer::PLATFORMER_CAMERA_AHEAD,
+            (level.runner.y + config::platformer::PLATFORMER_CAMERA_HEIGHT).max(2.0),
             0.0,
         );
-        let target = Vec3::new(focus.x, focus.y, config::PLATFORMER_CAMERA_BACK);
-        let blend = 1.0 - (-config::PLATFORMER_CAMERA_LERP * time.delta_secs()).exp();
+        let target = Vec3::new(focus.x, focus.y, config::platformer::PLATFORMER_CAMERA_BACK);
+        let blend = 1.0 - (-config::platformer::PLATFORMER_CAMERA_LERP * time.delta_secs()).exp();
         camera.translation = camera.translation.lerp(target, blend);
         camera.look_at(focus, Vec3::Y);
         return;
@@ -247,7 +250,7 @@ pub(crate) fn update_chase_camera(
         .and_then(|run| run.source_sim::<BreakerSim>())
     {
         let centre = Vec3::new(0.0, level.court.1 * 0.5, 0.0);
-        camera.translation = Vec3::new(0.0, centre.y, config::BREAKER_CAMERA_BACK);
+        camera.translation = Vec3::new(0.0, centre.y, config::breaker::BREAKER_CAMERA_BACK);
         camera.look_at(centre, Vec3::Y);
         return;
     }
@@ -285,9 +288,9 @@ pub(crate) fn update_chase_camera(
             Some(shot) => (shot.offset.x, shot.offset.z, shot.height, shot.look),
             None => (
                 0.0,
-                config::STEALTH_CAMERA_DISTANCE,
-                config::STEALTH_CAMERA_HEIGHT,
-                Vec3::Y * config::STEALTH_CAMERA_LOOK,
+                config::stealth::STEALTH_CAMERA_DISTANCE,
+                config::stealth::STEALTH_CAMERA_HEIGHT,
+                Vec3::Y * config::stealth::STEALTH_CAMERA_LOOK,
             ),
         };
         let want_radius = (want_x * want_x + want_z * want_z).sqrt();
@@ -295,11 +298,11 @@ pub(crate) fn update_chase_camera(
         let offset = camera.translation - focus;
         let bearing = offset.z.atan2(offset.x);
         let radius = (offset.x * offset.x + offset.z * offset.z).sqrt();
-        let turn = config::STEALTH_SWING_RATE * time.delta_secs();
+        let turn = config::stealth::STEALTH_SWING_RATE * time.delta_secs();
         let to_aim = (aim - bearing + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
             - std::f32::consts::PI;
         let bearing = bearing + to_aim.clamp(-turn, turn);
-        let blend = 1.0 - (-config::STEALTH_CAMERA_LERP * time.delta_secs()).exp();
+        let blend = 1.0 - (-config::stealth::STEALTH_CAMERA_LERP * time.delta_secs()).exp();
         let radius = radius + (want_radius - radius) * blend;
         let height = offset.y + (want_height - offset.y) * blend;
         camera.translation =
@@ -311,9 +314,13 @@ pub(crate) fn update_chase_camera(
     // The asteroid field is played from above: the whole ring stays in frame, so
     // pivoting the parked cycle does not whip the camera around with it.
     if let Some((center, radius)) = state.run.as_ref().and_then(field_camera_focus) {
-        let height = radius * config::ASTEROIDS_CAMERA_FIT + 3.0;
-        camera.translation =
-            center + Vec3::new(0.0, height, height * config::ASTEROIDS_CAMERA_LEAN);
+        let height = radius * config::asteroids::ASTEROIDS_CAMERA_FIT + 3.0;
+        camera.translation = center
+            + Vec3::new(
+                0.0,
+                height,
+                height * config::asteroids::ASTEROIDS_CAMERA_LEAN,
+            );
         camera.look_at(center, Vec3::Y);
         return;
     }
@@ -327,10 +334,11 @@ pub(crate) fn update_chase_camera(
         .is_some()
     {
         let center = Vec3::ZERO;
-        let height = config::GALAGA_CAMERA_HEIGHT;
+        let height = config::galaga::GALAGA_CAMERA_HEIGHT;
         // Lean the camera in from -Z so the cycle (parked at -Z) sits at the
         // bottom of the screen and the formation hangs above it.
-        camera.translation = center + Vec3::new(0.0, height, -height * config::GALAGA_CAMERA_LEAN);
+        camera.translation =
+            center + Vec3::new(0.0, height, -height * config::galaga::GALAGA_CAMERA_LEAN);
         camera.look_at(center, Vec3::Y);
         return;
     }
@@ -359,44 +367,47 @@ pub(crate) fn update_chase_camera(
             SourceGame::PacMan => (
                 Vec3::new(
                     0.0,
-                    config::PAC_CAMERA_HEIGHT,
-                    config::PAC_CAMERA_HEIGHT * config::PAC_CAMERA_LEAN,
+                    config::arcade::PAC_CAMERA_HEIGHT,
+                    config::arcade::PAC_CAMERA_HEIGHT * config::arcade::PAC_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
             SourceGame::Frogger => (
                 Vec3::new(
                     0.0,
-                    config::FROGGER_CAMERA_HEIGHT,
-                    config::FROGGER_CAMERA_HEIGHT * config::FROGGER_CAMERA_LEAN,
+                    config::arcade::FROGGER_CAMERA_HEIGHT,
+                    config::arcade::FROGGER_CAMERA_HEIGHT * config::arcade::FROGGER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
             SourceGame::Qbert => (
                 Vec3::new(
                     0.0,
-                    config::QBERT_CAMERA_HEIGHT,
-                    -config::QBERT_CAMERA_HEIGHT * config::QBERT_CAMERA_LEAN,
+                    config::arcade::QBERT_CAMERA_HEIGHT,
+                    -config::arcade::QBERT_CAMERA_HEIGHT * config::arcade::QBERT_CAMERA_LEAN,
                 ),
                 Vec3::new(0.0, 1.0, 0.0),
             ),
             SourceGame::Bomberman => (
                 Vec3::new(
                     0.0,
-                    config::BOMBER_CAMERA_HEIGHT,
-                    config::BOMBER_CAMERA_HEIGHT * config::BOMBER_CAMERA_LEAN,
+                    config::arcade::BOMBER_CAMERA_HEIGHT,
+                    config::arcade::BOMBER_CAMERA_HEIGHT * config::arcade::BOMBER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
             SourceGame::Columns => (
-                Vec3::new(0.0, 10.4, config::COLUMNS_CAMERA_BACK),
+                Vec3::new(0.0, 10.4, config::arcade::COLUMNS_CAMERA_BACK),
                 Vec3::new(0.0, 10.4, 0.0),
             ),
             SourceGame::Tetris => (
-                Vec3::new(0.0, 12.0, config::TETRIS_CAMERA_BACK),
+                Vec3::new(0.0, 12.0, config::arcade::TETRIS_CAMERA_BACK),
                 Vec3::new(0.0, 12.0, 0.0),
             ),
-            SourceGame::Plinko => (Vec3::new(0.0, 0.0, config::PLINKO_CAMERA_BACK), Vec3::ZERO),
+            SourceGame::Plinko => (
+                Vec3::new(0.0, 0.0, config::arcade::PLINKO_CAMERA_BACK),
+                Vec3::ZERO,
+            ),
             _ => unreachable!("filtered to the arcade block above"),
         };
         camera.translation = translation;
@@ -431,9 +442,9 @@ pub(crate) fn update_chase_camera(
         chase_camera_rig(chase.forward, chase.look)
     };
     let lookahead = if surfing {
-        config::SURFER_CAMERA_LOOKAHEAD
+        config::surfer::SURFER_CAMERA_LOOKAHEAD
     } else {
-        config::LIGHTCYCLE_CAMERA_LOOKAHEAD
+        config::lightcycle::LIGHTCYCLE_CAMERA_LOOKAHEAD
     };
     let look_target = cycle_pos + view_forward * lookahead;
     let mut camera_position = cycle_pos + offset;

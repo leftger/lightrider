@@ -27,7 +27,7 @@ use std::fmt::Write;
 
 /// Width of the compiled voice bank. Always the hard cap so a profile switch
 /// never needs to rebuild the graph.
-pub const MAX_VOICES: usize = config::MUSIC_MAX_VOICES;
+pub const MAX_VOICES: usize = config::music::MUSIC_MAX_VOICES;
 
 /// Chain name of one proximity voice as it appears in the Glicol graph. The
 /// leading `~` marks it as a reference chain (not sent to the DAC on its own)
@@ -88,12 +88,12 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
             let _ = writeln!(
                 code,
                 "~pad0: {wave} {root:.2} >> lpf {c0:.1} 0.7 >> mul {:.3} >> pan -0.25;",
-                config::MUSIC_CALM_PAD_GAIN
+                config::music::MUSIC_CALM_PAD_GAIN
             );
             let _ = writeln!(
                 code,
                 "~pad1: {wave} {fifth:.2} >> lpf {c1:.1} 0.7 >> mul {:.3} >> pan 0.25;",
-                config::MUSIC_CALM_PAD_GAIN * 0.8
+                config::music::MUSIC_CALM_PAD_GAIN * 0.8
             );
         }
         ModeProfile::Action => {
@@ -101,8 +101,9 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
             let lead = theme.degree_hz(4, 1);
             let (c0, c1) = action_base_cutoffs(theme);
             // Tempo-synced tremolo in 0..1, so the arrangement pumps.
-            let pump_hz = (theme.bpm(ModeProfile::Action) / 60.0) * config::MUSIC_ACTION_PUMP_RATE;
-            let half_depth = config::MUSIC_ACTION_PUMP_DEPTH / 2.0;
+            let pump_hz =
+                (theme.bpm(ModeProfile::Action) / 60.0) * config::music::MUSIC_ACTION_PUMP_RATE;
+            let half_depth = config::music::MUSIC_ACTION_PUMP_DEPTH / 2.0;
             let _ = writeln!(
                 code,
                 "~pump: sin {pump_hz:.3} >> mul {half_depth:.3} >> add {:.3};",
@@ -111,12 +112,12 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
             let _ = writeln!(
                 code,
                 "~bass: saw {bass:.2} >> lpf {c0:.1} 0.8 >> mul {:.3} >> mul ~pump >> pan -0.15;",
-                config::MUSIC_ACTION_BASS_GAIN
+                config::music::MUSIC_ACTION_BASS_GAIN
             );
             let _ = writeln!(
                 code,
                 "~lead: squ {lead:.2} >> lpf {c1:.1} 0.7 >> mul {:.3} >> mul ~pump >> pan 0.2;",
-                config::MUSIC_ACTION_LEAD_GAIN
+                config::music::MUSIC_ACTION_LEAD_GAIN
             );
         }
     }
@@ -212,8 +213,8 @@ pub fn base_filter_message(theme: &MusicTheme, profile: ModeProfile, sweep: f32)
         ModeProfile::Calm => calm_pad_cutoffs(theme),
         ModeProfile::Action => action_base_cutoffs(theme),
     };
-    let c0 = (c0 * open).clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
-    let c1 = (c1 * open).clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+    let c0 = (c0 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+    let c1 = (c1 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
     match profile {
         ModeProfile::Calm => format!("~pad0,1,0,{c0:.1};~pad1,1,0,{c1:.1};"),
         ModeProfile::Action => format!("~bass,1,0,{c0:.1};~lead,1,0,{c1:.1};"),

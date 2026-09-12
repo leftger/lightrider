@@ -34,7 +34,7 @@ pub(crate) fn spawn_asteroid_field(
     assets: &LightcycleAssets,
     sim: &AsteroidsSim,
 ) {
-    let rock_count = config::ASTEROIDS_MAX_ROCKS.max(sim.rocks.len());
+    let rock_count = config::asteroids::ASTEROIDS_MAX_ROCKS.max(sim.rocks.len());
     for index in 0..rock_count {
         let live = sim.rocks.get(index);
         let radius = live.map_or(1.0, |rock| rock.size.radius());
@@ -52,7 +52,7 @@ pub(crate) fn spawn_asteroid_field(
             Pickable::IGNORE,
         ));
     }
-    for index in 0..config::ASTEROIDS_MAX_BEAMS {
+    for index in 0..config::asteroids::ASTEROIDS_MAX_BEAMS {
         let live = sim.beams.get(index);
         commands.spawn((
             LightcycleSceneRoot,
@@ -108,7 +108,7 @@ pub(crate) fn sync_asteroid_entities(
             Some(beam) => {
                 transform.translation = Vec3::new(beam.x, 0.35, beam.z);
                 transform.rotation = Quat::from_rotation_y(-beam.vz.atan2(beam.vx));
-                transform.scale = Vec3::new(config::ASTEROIDS_BEAM_LENGTH, 0.12, 0.12);
+                transform.scale = Vec3::new(config::asteroids::ASTEROIDS_BEAM_LENGTH, 0.12, 0.12);
                 *visibility = Visibility::Visible;
             }
             None => *visibility = Visibility::Hidden,

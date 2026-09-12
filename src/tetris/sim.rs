@@ -76,15 +76,15 @@ pub struct TetrisSim {
 impl TetrisSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let mut sim = Self {
-            board: vec![None; config::TETRIS_COLS * config::TETRIS_ROWS],
+            board: vec![None; config::arcade::TETRIS_COLS * config::arcade::TETRIS_ROWS],
             piece: 0,
             rotation: 0,
-            x: config::TETRIS_COLS as i32 / 2 - 1,
+            x: config::arcade::TETRIS_COLS as i32 / 2 - 1,
             y: 0,
             lines: 0,
             phase: TetrisPhase::Falling,
             input: TetrisInput::default(),
-            fall_clock: config::TETRIS_FALL_SECONDS,
+            fall_clock: config::arcade::TETRIS_FALL_SECONDS,
             rng: Rng::from_state(seed | 1),
             seed,
             file_lines: lines,
@@ -124,10 +124,10 @@ impl TetrisSim {
     fn fits(&self, piece: usize, rotation: usize, x: i32, y: i32) -> bool {
         self.cells(piece, rotation, x, y).iter().all(|&(cx, cy)| {
             cx >= 0
-                && cx < config::TETRIS_COLS as i32
+                && cx < config::arcade::TETRIS_COLS as i32
                 && cy >= 0
-                && cy < config::TETRIS_ROWS as i32
-                && self.board[cx as usize + cy as usize * config::TETRIS_COLS].is_none()
+                && cy < config::arcade::TETRIS_ROWS as i32
+                && self.board[cx as usize + cy as usize * config::arcade::TETRIS_COLS].is_none()
         })
     }
 
@@ -136,7 +136,7 @@ impl TetrisSim {
     fn spawn_piece(&mut self) -> bool {
         self.piece = self.next_piece();
         self.rotation = 0;
-        self.x = config::TETRIS_COLS as i32 / 2 - 1;
+        self.x = config::arcade::TETRIS_COLS as i32 / 2 - 1;
         // Row 0 is the top; spawn one row of headroom below it so every piece
         // can still rotate without poking above the rim.
         self.y = TETROMINOES[self.piece]
@@ -157,11 +157,12 @@ impl TetrisSim {
         let mut rendered = self.board.clone();
         for (cx, cy) in self.cells(self.piece, self.rotation, self.x, self.y) {
             if cx >= 0
-                && cx < config::TETRIS_COLS as i32
+                && cx < config::arcade::TETRIS_COLS as i32
                 && cy >= 0
-                && cy < config::TETRIS_ROWS as i32
+                && cy < config::arcade::TETRIS_ROWS as i32
             {
-                rendered[cx as usize + cy as usize * config::TETRIS_COLS] = Some(self.piece as u8);
+                rendered[cx as usize + cy as usize * config::arcade::TETRIS_COLS] =
+                    Some(self.piece as u8);
             }
         }
         rendered
@@ -173,15 +174,16 @@ impl TetrisSim {
                 self.phase = TetrisPhase::Lost;
                 return false;
             }
-            self.board[cx as usize + cy as usize * config::TETRIS_COLS] = Some(self.piece as u8);
+            self.board[cx as usize + cy as usize * config::arcade::TETRIS_COLS] =
+                Some(self.piece as u8);
         }
         self.spawn_piece()
     }
 
     /// Clears full lines and drops everything above them.
     fn clear_lines(&mut self) -> u32 {
-        let cols = config::TETRIS_COLS;
-        let rows = config::TETRIS_ROWS;
+        let cols = config::arcade::TETRIS_COLS;
+        let rows = config::arcade::TETRIS_ROWS;
         let mut cleared = 0;
         let mut row = rows as i32 - 1;
         while row >= 0 {
@@ -232,9 +234,9 @@ impl TetrisSim {
         }
 
         let interval = if input.soft {
-            config::TETRIS_FALL_SECONDS * 0.2
+            config::arcade::TETRIS_FALL_SECONDS * 0.2
         } else {
-            config::TETRIS_FALL_SECONDS
+            config::arcade::TETRIS_FALL_SECONDS
         };
         self.fall_clock -= dt;
         if self.fall_clock <= 0.0 {
@@ -252,7 +254,7 @@ impl TetrisSim {
             self.fall_clock = interval;
         }
 
-        if self.lines >= config::TETRIS_TARGET_LINES {
+        if self.lines >= config::arcade::TETRIS_TARGET_LINES {
             self.phase = TetrisPhase::Won;
             events.cleared = true;
         }
@@ -289,7 +291,7 @@ impl SourceGameSim for TetrisSim {
         let mut status = format!(
             "TETRIS {} / {} LINES | RING: {ring} | {language} | {inner}",
             self.lines,
-            config::TETRIS_TARGET_LINES
+            config::arcade::TETRIS_TARGET_LINES
         );
         status = format!("{status} | {}", self.phase.label());
         status
@@ -363,9 +365,9 @@ mod tests {
     #[test]
     fn a_full_line_clears() {
         let mut game = sim();
-        let cols = config::TETRIS_COLS;
+        let cols = config::arcade::TETRIS_COLS;
         for col in 0..cols {
-            game.board[col + (config::TETRIS_ROWS - 1) * cols] = Some(1);
+            game.board[col + (config::arcade::TETRIS_ROWS - 1) * cols] = Some(1);
         }
         assert_eq!(game.clear_lines(), 1);
         assert_eq!(game.lines, 1);
@@ -384,7 +386,7 @@ mod tests {
     #[test]
     fn reaching_the_target_wins() {
         let mut game = sim();
-        game.lines = config::TETRIS_TARGET_LINES;
+        game.lines = config::arcade::TETRIS_TARGET_LINES;
         let events = game.update(1.0 / 60.0);
         assert!(events.cleared);
         assert_eq!(game.phase, TetrisPhase::Won);

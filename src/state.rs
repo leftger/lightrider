@@ -100,7 +100,7 @@ pub struct StackMotion {
 impl Default for StackMotion {
     fn default() -> Self {
         Self {
-            timer: config::STACK_PLUNGE_INTERVAL,
+            timer: config::lightcycle::STACK_PLUNGE_INTERVAL,
             plunge: None,
         }
     }
@@ -111,10 +111,10 @@ impl StackMotion {
     pub fn advance(&mut self, dt: f32) -> Option<f32> {
         match self.plunge {
             Some(progress) => {
-                let next = progress + dt / config::STACK_PLUNGE_SECONDS;
+                let next = progress + dt / config::lightcycle::STACK_PLUNGE_SECONDS;
                 if next >= 1.0 {
                     self.plunge = None;
-                    self.timer = config::STACK_PLUNGE_INTERVAL;
+                    self.timer = config::lightcycle::STACK_PLUNGE_INTERVAL;
                     None
                 } else {
                     self.plunge = Some(next);
@@ -193,7 +193,7 @@ impl HistoryState {
             return;
         }
         self.past.push(path.to_path_buf());
-        if self.past.len() > config::HISTORY_LIMIT {
+        if self.past.len() > config::history::HISTORY_LIMIT {
             self.past.remove(0);
         }
         self.future.clear();
@@ -401,9 +401,9 @@ mod tests {
     #[test]
     fn the_log_is_capped() {
         let mut history = HistoryState::default();
-        for index in 0..(crate::config::HISTORY_LIMIT + 8) {
+        for index in 0..(crate::config::history::HISTORY_LIMIT + 8) {
             history.commit(Path::new(&format!("/dir{index}")));
         }
-        assert_eq!(history.depth(), crate::config::HISTORY_LIMIT);
+        assert_eq!(history.depth(), crate::config::history::HISTORY_LIMIT);
     }
 }
