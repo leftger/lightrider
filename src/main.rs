@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod asteroids;
 mod bomberman;
 mod breaker;
+mod byte_load;
 mod cli;
 mod columns;
 mod command;
