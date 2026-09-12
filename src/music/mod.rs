@@ -18,9 +18,3 @@ pub mod proximity;
 pub mod score;
 pub mod sfx;
 pub mod theme;
-
-pub use arp::ArpState;
-pub use proximity::VoiceMixer;
-pub use score::full_code;
-pub use sfx::MusicSfx;
-pub use theme::{ModeProfile, MusicTheme};

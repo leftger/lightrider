@@ -1,5 +1,5 @@
 use crate::config;
-use crate::filesystem::FileNode;
+use crate::filesystem::node::FileNode;
 use crate::load::DirectoryLoaded;
 use crate::plugins::transition::{transition_active, transition_inactive};
 use crate::state::{DirectorySceneRoot, InteractionMode, NavigatorResource, SelectionState};
@@ -329,7 +329,7 @@ fn set_shell_state(
 #[cfg(test)]
 mod tests {
     use super::build_chunk_mesh;
-    use crate::filesystem::FileNode;
+    use crate::filesystem::node::FileNode;
     use bevy::prelude::{Cuboid, Mesh};
     use std::path::PathBuf;
 

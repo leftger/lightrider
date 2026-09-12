@@ -4,5 +4,3 @@
 //! obstacle cubes and the overhead camera.
 
 pub mod sim;
-
-pub use sim::{FroggerPhase, FroggerSim};

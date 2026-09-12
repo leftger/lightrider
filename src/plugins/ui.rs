@@ -1,7 +1,8 @@
-use crate::asteroids::AsteroidsPhase;
+use crate::asteroids::sim::AsteroidsPhase;
 use crate::config;
-use crate::disc::{DiscPhase, SourceGame};
-use crate::document::DocumentLoadState;
+use crate::disc::combat::DiscPhase;
+use crate::disc::language::SourceGame;
+use crate::document::load::DocumentLoadState;
 use crate::filesystem::loader::{breadcrumb_label, get_path_components, path_component_name};
 use crate::lightcycle::logic;
 use crate::lightcycle::{LightcycleState, RunEnvironment, SourceSim};
@@ -1096,10 +1097,10 @@ fn update_folio_panel(
             } => focused_block.and_then(|index| {
                 layout.blocks.get(index).map(|block| {
                     let kind = match block.kind {
-                        crate::document::DocBlockKind::Heading(level) => {
+                        crate::document::parse::DocBlockKind::Heading(level) => {
                             format!("HEADING {level}")
                         }
-                        crate::document::DocBlockKind::Paragraph => "PARAGRAPH".to_string(),
+                        crate::document::parse::DocBlockKind::Paragraph => "PARAGRAPH".to_string(),
                     };
                     format!("{name}\n{}\n{kind}\n\n{}", path.display(), block.text)
                 })

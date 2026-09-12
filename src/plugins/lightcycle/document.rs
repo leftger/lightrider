@@ -124,7 +124,7 @@ pub(crate) fn spawn_document_arches(
     let headings: Vec<_> = layout
         .blocks
         .iter()
-        .filter(|block| matches!(block.kind, crate::document::DocBlockKind::Heading(_)))
+        .filter(|block| matches!(block.kind, crate::document::parse::DocBlockKind::Heading(_)))
         .collect();
     for chunk in headings.chunks(config::MESH_CHUNK_SIZE) {
         let mut chunk = chunk.iter();
@@ -145,7 +145,7 @@ pub(crate) fn spawn_document_arches(
     }
 }
 
-pub(crate) fn document_arch_mesh(block: &crate::document::PlacedBlock) -> Mesh {
+pub(crate) fn document_arch_mesh(block: &crate::document::layout::PlacedBlock) -> Mesh {
     let (x, z) = block.landmark;
     let origin = config::ground_position(x, z);
     let (span, depth) = if block.along_x {
@@ -194,7 +194,7 @@ pub(crate) fn spawn_document_glyphs(
         if used == 0 {
             continue;
         }
-        let target = if matches!(block.kind, crate::document::DocBlockKind::Heading(_)) {
+        let target = if matches!(block.kind, crate::document::parse::DocBlockKind::Heading(_)) {
             &mut heading_mesh
         } else {
             &mut plaque_mesh
@@ -227,11 +227,11 @@ pub(crate) fn spawn_document_glyphs(
 }
 
 pub(crate) fn document_glyph_line_mesh(
-    block: &crate::document::PlacedBlock,
+    block: &crate::document::layout::PlacedBlock,
     remaining: usize,
 ) -> (Mesh, usize) {
     let origin = config::ground_position(block.landmark.0, block.landmark.1);
-    let heading = matches!(block.kind, crate::document::DocBlockKind::Heading(_));
+    let heading = matches!(block.kind, crate::document::parse::DocBlockKind::Heading(_));
     let pixel = if heading { 0.09 } else { 0.055 };
     let height = if heading { 2.55 } else { 0.85 };
     let advance = document_line_advance(block.along_x);

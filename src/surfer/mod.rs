@@ -4,5 +4,3 @@
 //! the water ribbon, rocks, gates and the chase camera.
 
 pub mod sim;
-
-pub use sim::{SurferPhase, SurferSim};

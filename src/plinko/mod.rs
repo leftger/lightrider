@@ -4,5 +4,3 @@
 //! pins and buckets, the pooled balls and the side-on camera.
 
 pub mod sim;
-
-pub use sim::{PlinkoPhase, PlinkoSim};

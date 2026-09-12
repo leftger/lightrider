@@ -7,7 +7,7 @@
 
 use crate::byte_load::{ByteLoad, read_capped};
 use crate::config;
-use crate::disc::SourceGame;
+use crate::disc::language::SourceGame;
 use bevy::prelude::{Message, Resource};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;

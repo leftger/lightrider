@@ -5,5 +5,3 @@
 //! share — the runner lives in metres on the `X`/`Y` plane.
 
 pub mod sim;
-
-pub use sim::{PlatformerPhase, PlatformerSim};

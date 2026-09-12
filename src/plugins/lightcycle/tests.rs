@@ -14,7 +14,7 @@ use crate::lightcycle::logic::{
     CityStructure, CityStructureKind, CityTheme, Heading, LightcycleSim, Turn,
 };
 use crate::state::StackMotion;
-use crate::stealth::StealthSim;
+use crate::stealth::sim::StealthSim;
 use bevy::camera::primitives::MeshAabb;
 use bevy::prelude::{Cuboid, Mesh, Vec2, Vec3};
 use std::collections::BTreeSet;
@@ -543,9 +543,9 @@ fn cycle_banks_toward_the_inside_of_the_corner() {
     assert!(left_up.z < -0.1, "a left turn should bank toward -Z");
 }
 
-fn heading_block(along_x: bool, preview: &str) -> crate::document::PlacedBlock {
-    crate::document::PlacedBlock {
-        kind: crate::document::DocBlockKind::Heading(1),
+fn heading_block(along_x: bool, preview: &str) -> crate::document::layout::PlacedBlock {
+    crate::document::layout::PlacedBlock {
+        kind: crate::document::parse::DocBlockKind::Heading(1),
         text: preview.to_string(),
         preview: preview.to_string(),
         spine: vec![(0, 0)],
@@ -569,8 +569,8 @@ fn glyph_budget_caps_characters_per_line_and_overall() {
     let (_, used) = super::document_glyph_line_mesh(&heading, config::DOCUMENT_MAX_GLYPHS);
     assert_eq!(used, config::DOCUMENT_HEADING_GLYPHS);
 
-    let paragraph = crate::document::PlacedBlock {
-        kind: crate::document::DocBlockKind::Paragraph,
+    let paragraph = crate::document::layout::PlacedBlock {
+        kind: crate::document::parse::DocBlockKind::Paragraph,
         text: long.clone(),
         preview: long,
         spine: vec![(0, 0)],
@@ -702,7 +702,7 @@ fn document_arenas_have_no_city_skyline() {
 #[test]
 fn closing_a_document_can_rebuild_the_containing_directory() {
     let path = std::path::PathBuf::from("/tmp");
-    let nodes = vec![crate::filesystem::FileNode::new(
+    let nodes = vec![crate::filesystem::node::FileNode::new(
         "note.md".into(),
         path.join("note.md"),
         false,
@@ -744,7 +744,7 @@ fn an_unrotated_chase_rig_sits_behind_and_above_the_cycle() {
 #[test]
 fn the_flight_lands_on_the_rig_the_chase_camera_will_hold() {
     let path = std::path::PathBuf::from("/tmp");
-    let nodes = vec![crate::filesystem::FileNode::new(
+    let nodes = vec![crate::filesystem::node::FileNode::new(
         "a.txt".into(),
         path.join("a.txt"),
         false,
@@ -941,7 +941,7 @@ fn the_field_facing_round_trips_through_the_grid_headings() {
 /// appeared in disc wars.
 #[test]
 fn each_source_language_builds_only_its_own_game() {
-    use crate::disc::SourceLanguage;
+    use crate::disc::language::SourceLanguage;
     let run = |name: &str, language: SourceLanguage, body: &[u8]| {
         super::build_source_run(std::path::Path::new(name), language, body)
     };
@@ -1002,7 +1002,7 @@ fn each_source_language_builds_only_its_own_game() {
 fn a_locked_snake_gate_is_a_wall_until_it_opens() {
     let run = super::build_source_run(
         std::path::Path::new("/tmp/snake.py"),
-        crate::disc::SourceLanguage::Python,
+        crate::disc::language::SourceLanguage::Python,
         b"print('hi')\n",
     );
     let portal = run.arena.parent_portal.as_ref().expect("a close gate");

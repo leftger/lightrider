@@ -1,5 +1,5 @@
 use crate::config;
-use crate::disc::SourceLanguage;
+use crate::disc::language::SourceLanguage;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
@@ -178,7 +178,7 @@ mod tests {
         assert!(!directory.is_source());
         assert_eq!(
             node_with_name("main.rs").source_language(),
-            Some(crate::disc::SourceLanguage::Rust)
+            Some(crate::disc::language::SourceLanguage::Rust)
         );
     }
 }

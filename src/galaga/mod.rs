@@ -4,5 +4,3 @@
 //! the pooled bug and beam meshes and the overhead camera.
 
 pub mod sim;
-
-pub use sim::{GalagaPhase, GalagaSim};

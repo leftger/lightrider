@@ -4,5 +4,3 @@
 //! gem cubes and the side-on camera.
 
 pub mod sim;
-
-pub use sim::{ColumnsPhase, ColumnsSim};

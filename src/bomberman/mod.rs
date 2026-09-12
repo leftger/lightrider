@@ -4,5 +4,3 @@
 //! crate and bomb cubes, the exit marker and the overhead camera.
 
 pub mod sim;
-
-pub use sim::{BomberPhase, BomberSim};

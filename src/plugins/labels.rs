@@ -297,7 +297,7 @@ fn update_labels(
     }
 }
 
-fn text_color_for_node(node: &crate::filesystem::FileNode, is_selected: bool) -> Color {
+fn text_color_for_node(node: &crate::filesystem::node::FileNode, is_selected: bool) -> Color {
     if is_selected {
         Color::WHITE
     } else if node.is_dir {

@@ -1,21 +1,24 @@
-use crate::asteroids::{AsteroidsPhase, AsteroidsSim};
-use crate::bomberman::{BomberPhase, BomberSim};
-use crate::breaker::{BreakerPhase, BreakerSim};
-use crate::columns::{ColumnsPhase, ColumnsSim};
+use crate::asteroids::sim::{AsteroidsPhase, AsteroidsSim};
+use crate::bomberman::sim::{BomberPhase, BomberSim};
+use crate::breaker::sim::{BreakerPhase, BreakerSim};
+use crate::columns::sim::{ColumnsPhase, ColumnsSim};
 use crate::config;
-use crate::disc::{
-    DiscEvents, DiscLayout, DiscPhase, DiscSim, PlayerSnapshot, SourceGame, SourceLanguage,
+use crate::disc::combat::{DiscEvents, DiscPhase, DiscSim, PlayerSnapshot};
+use crate::disc::language::{SourceGame, SourceLanguage};
+use crate::disc::layout::{
+    DiscLayout, build_capped_disc_arena, build_disc_arena, build_flat_arena,
+};
+use crate::disc::load::{
     SourceLoadFailed, SourceLoadState, SourceLoaded, SourceRequested, WarpRequested,
-    build_capped_disc_arena, build_disc_arena, build_flat_arena,
 };
-use crate::document::{
-    DocumentLayout, DocumentLoadFailed, DocumentLoadState, DocumentLoaded, DocumentRequested,
-    build_document_arena_from_parse,
-    parse::{ParseLimits, parse_markdown_bytes},
+use crate::document::layout::{DocumentLayout, build_document_arena_from_parse};
+use crate::document::load::{
+    DocumentLoadFailed, DocumentLoadState, DocumentLoaded, DocumentRequested,
 };
-use crate::filesystem::FileNode;
-use crate::frogger::{FroggerPhase, FroggerSim};
-use crate::galaga::{GalagaPhase, GalagaSim};
+use crate::document::parse::{ParseLimits, parse_markdown_bytes};
+use crate::filesystem::node::FileNode;
+use crate::frogger::sim::{FroggerPhase, FroggerSim};
+use crate::galaga::sim::{GalagaPhase, GalagaSim};
 use crate::lightcycle::logic::{
     Arena, ArenaKind, CellContent, CityStructure, CityStructureKind, CityTheme, CrashReason,
     GatePlacement, Heading, LightcycleSim, ParentPortal, RunPhase, StepOutcome, Wall,
@@ -23,20 +26,20 @@ use crate::lightcycle::logic::{
 };
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment, SourceSim};
 use crate::load::{DirectoryLoadFailed, DirectoryLoaded, DirectoryRequested};
-use crate::music::MusicSfx;
-use crate::pacman::{PacPhase, PacSim};
-use crate::platformer::{PlatformerPhase, PlatformerSim};
-use crate::plinko::{PlinkoPhase, PlinkoSim};
+use crate::music::sfx::MusicSfx;
+use crate::pacman::sim::{PacPhase, PacSim};
+use crate::platformer::sim::{PlatformerPhase, PlatformerSim};
+use crate::plinko::sim::{PlinkoPhase, PlinkoSim};
 use crate::plugins::transition::{ModeTransition, gods_eye_pose};
-use crate::qbert::{QbertPhase, QbertSim};
-use crate::snake::SnakeSim;
+use crate::qbert::sim::{QbertPhase, QbertSim};
+use crate::snake::sim::SnakeSim;
 use crate::state::{
     CacheState, DirectorySceneRoot, FloodState, HistoryState, InteractionMode, LightcycleSceneRoot,
     NavigatorResource, OrbitCameraResource, PauseState, StackMotion, TrailSceneRoot,
 };
-use crate::stealth::{StealthPhase, StealthSim};
-use crate::surfer::{SurferPhase, SurferSim};
-use crate::tetris::{TetrisPhase, TetrisSim};
+use crate::stealth::sim::{StealthPhase, StealthSim};
+use crate::surfer::sim::{SurferPhase, SurferSim};
+use crate::tetris::sim::{TetrisPhase, TetrisSim};
 use bevy::asset::RenderAssetUsages;
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::mesh::{Indices, PrimitiveTopology};

@@ -4,5 +4,3 @@
 //! and drives the bike along the bottom of the court as the rebounding surface.
 
 pub mod sim;
-
-pub use sim::{BreakerPhase, BreakerSim};

@@ -5,5 +5,3 @@
 //! so this module only tracks the power-ups, the finite tail and the exit.
 
 pub mod sim;
-
-pub use sim::SnakeSim;

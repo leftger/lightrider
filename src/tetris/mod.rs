@@ -4,5 +4,3 @@
 //! block cubes and the side-on camera.
 
 pub mod sim;
-
-pub use sim::{TetrisPhase, TetrisSim};

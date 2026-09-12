@@ -4,5 +4,3 @@
 //! camera and the sound.
 
 pub mod sim;
-
-pub use sim::{AsteroidsPhase, AsteroidsSim};

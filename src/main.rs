@@ -32,8 +32,8 @@ mod tetris;
 
 use cli::Options;
 use config::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
-use disc::SourceLoadState;
-use document::DocumentLoadState;
+use disc::load::SourceLoadState;
+use document::load::DocumentLoadState;
 use load::DirectoryLoadState;
 use plugins::RaptorPlugins;
 use plugins::music::MusicState;

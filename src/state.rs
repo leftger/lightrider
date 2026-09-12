@@ -1,5 +1,5 @@
 use crate::config;
-use crate::filesystem::Navigator;
+use crate::filesystem::navigator::Navigator;
 use bevy::prelude::{Component, Resource};
 use std::path::{Path, PathBuf};
 

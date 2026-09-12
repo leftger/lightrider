@@ -4,5 +4,3 @@
 //! dot and ghost meshes, the walls and the overhead camera.
 
 pub mod sim;
-
-pub use sim::{PacPhase, PacSim};

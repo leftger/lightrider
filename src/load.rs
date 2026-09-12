@@ -1,4 +1,4 @@
-use crate::filesystem::DirectoryContents;
+use crate::filesystem::loader::DirectoryContents;
 use bevy::prelude::{Message, Resource};
 use bevy::tasks::{IoTaskPool, Task, futures::check_ready};
 use std::path::PathBuf;
