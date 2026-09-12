@@ -1,0 +1,576 @@
+//! Moved out of `super` by the modularity pass: advance_chase_forward, arc_cell_pose, character_pose, chase_base_pitch, chase_camera_rig, chase_landing_pose, chase_rig_radius, cycle_cell_pose, field_camera_focus, hug_camera_shot, pose_forward, pose_rotation, pose_world_position, surfer_camera_rig, update_chase_camera, update_disc_focus, update_document_focus.
+//!
+//! Nothing about them changed in the move.
+
+use super::*;
+
+/// Where the chase camera will sit once a run spawns, the point it looks at,
+/// and the road the cycle will ride away down.
+pub(crate) fn chase_landing_pose(run: &ActiveRun) -> (Transform, Vec3, Vec3) {
+    let pose = cycle_cell_pose(&run.sim);
+    let cycle = pose_world_position(&pose);
+    let (offset, view_forward) = chase_camera_rig(pose_forward(&pose), Vec2::ZERO);
+    let focus = cycle + view_forward * config::LIGHTCYCLE_CAMERA_LOOKAHEAD;
+    (
+        Transform::from_translation(cycle + offset).looking_at(focus, Vec3::Y),
+        focus,
+        view_forward,
+    )
+}
+
+pub(crate) fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
+    if let Some(level) = run.source_platformer() {
+        return Some(CharacterPose {
+            target: Vec3::new(level.runner.x, level.runner.y, 0.0),
+            // A quarter turn each way, not a half: the model's forward is
+            // `+Z`, so facing along the level's `X` axis means pointing it at
+            // `+X` or `-X`.
+            yaw: if level.runner.facing >= 0.0 {
+                std::f32::consts::FRAC_PI_2
+            } else {
+                -std::f32::consts::FRAC_PI_2
+            },
+            smooth: false,
+        });
+    }
+    run.source_stealth().map(|room| {
+        // Backed against a wall, the figure is leaned into it. Standing a whole
+        // cell short reads as not quite touching, which loses the pose entirely;
+        // `hug` is the wall's direction, so the lean is toward it. It eases in and
+        // out through the same smoothing as the walking, so nothing snaps.
+        let stand = config::ground_position(room.character.0, room.character.1);
+        let target = match room.hug {
+            Some(wall) => {
+                let angle = heading_angle(wall);
+                stand + Vec3::new(angle.cos(), 0.0, angle.sin()) * config::STEALTH_HUG_LEAN
+            }
+            None => stand,
+        };
+        CharacterPose {
+            target,
+            // The sim already faces the figure away from a wall it is hugging, so
+            // this is the walking facing in every case.
+            yaw: std::f32::consts::FRAC_PI_2 - heading_angle(room.heading),
+            smooth: true,
+        }
+    })
+}
+
+/// Tracks which alcove the rider is beside, for the ring's folio panel.
+pub(crate) fn update_disc_focus(
+    mut state: ResMut<LightcycleState>,
+    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
+) {
+    let Some(run) = state.run.as_mut() else {
+        return;
+    };
+    let RunEnvironment::Source {
+        layout,
+        focused_block,
+        ..
+    } = &mut run.environment
+    else {
+        return;
+    };
+    *focused_block = layout.focused_block(run.sim.cell);
+    let Some(index) = *focused_block else {
+        return;
+    };
+    let landmark = layout.blocks[index].landmark;
+    if let Ok(mut transform) = marker.single_mut() {
+        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
+    }
+}
+
+pub(crate) fn update_document_focus(
+    mut state: ResMut<LightcycleState>,
+    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
+) {
+    let Some(run) = state.run.as_mut() else {
+        return;
+    };
+    let RunEnvironment::Document {
+        layout,
+        focused_block,
+        ..
+    } = &mut run.environment
+    else {
+        return;
+    };
+    *focused_block = layout.focused_block(run.sim.cell);
+    let Some(index) = *focused_block else {
+        return;
+    };
+    let landmark = layout.blocks[index].landmark;
+    if let Ok(mut transform) = marker.single_mut() {
+        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
+    }
+}
+
+/// Ground-level world position of the pose; the model's wheels sit at its origin.
+pub(crate) fn pose_world_position(pose: &CyclePose) -> Vec3 {
+    Vec3::new(
+        pose.position.0 * config::GRID_SPACING,
+        0.0,
+        pose.position.1 * config::GRID_SPACING,
+    )
+}
+
+pub(crate) fn pose_forward(pose: &CyclePose) -> Vec3 {
+    Vec3::new(pose.direction.x, 0.0, pose.direction.y)
+}
+
+/// Yaw along the travel direction, then bank into the corner. The bank rotates
+/// about the cycle's own +X, which is its direction of travel, so it leaves the
+/// forward vector untouched.
+pub(crate) fn pose_rotation(pose: &CyclePose) -> Quat {
+    let yaw = match pose_forward(pose).try_normalize() {
+        Some(forward) => Quat::from_rotation_arc(Vec3::X, forward),
+        None => Quat::IDENTITY,
+    };
+    yaw * Quat::from_rotation_x(pose.lean)
+}
+
+/// Continuous cell-space pose for the rendered cycle.
+///
+/// Straight segments use the raw simulation position and heading. Near
+/// queued/applied turns the pose follows a rounded 90-degree arc around the
+/// intersection, taking its facing from the arc's tangent, so the cycle steers
+/// through the corner instead of sliding around it and rotating afterwards.
+pub(crate) fn cycle_cell_pose(sim: &LightcycleSim) -> CyclePose {
+    if let Some(arc) = corner_arc(sim) {
+        return arc.sample(arc.u);
+    }
+
+    let (dx, dz) = sim.heading.delta();
+    CyclePose {
+        position: (
+            sim.cell.0 as f32 + dx as f32 * sim.cell_t,
+            sim.cell.1 as f32 + dz as f32 * sim.cell_t,
+        ),
+        direction: Vec2::new(dx as f32, dz as f32),
+        lean: 0.0,
+    }
+}
+
+/// Samples the rounded corner centered on `corner` at `u`, where 0 is the arc
+/// entry (`radius` before the corner, travelling along `incoming`) and 1 is the
+/// exit (`radius` past it, travelling along `outgoing`).
+pub(crate) fn arc_cell_pose(
+    corner: (i32, i32),
+    incoming: (i32, i32),
+    outgoing: (i32, i32),
+    u: f32,
+    radius: f32,
+) -> CyclePose {
+    let center_x = corner.0 as f32 - incoming.0 as f32 * radius + outgoing.0 as f32 * radius;
+    let center_z = corner.1 as f32 - incoming.1 as f32 * radius + outgoing.1 as f32 * radius;
+
+    let start_angle = (-outgoing.1 as f32).atan2(-outgoing.0 as f32);
+    let end_angle = (incoming.1 as f32).atan2(incoming.0 as f32);
+
+    let mut sweep = end_angle - start_angle;
+    if sweep > std::f32::consts::PI {
+        sweep -= std::f32::consts::TAU;
+    } else if sweep < -std::f32::consts::PI {
+        sweep += std::f32::consts::TAU;
+    }
+
+    // Positive sweep curves toward the cycle's right, which is also the
+    // direction it should bank.
+    let u = u.clamp(0.0, 1.0);
+    let theta = start_angle + sweep * u;
+    let turn_sign = sweep.signum();
+
+    CyclePose {
+        position: (
+            center_x + radius * theta.cos(),
+            center_z + radius * theta.sin(),
+        ),
+        direction: Vec2::new(-theta.sin(), theta.cos()) * turn_sign,
+        // Peaks mid-corner and returns upright by the exit.
+        lean: turn_sign * config::LIGHTCYCLE_LEAN_ANGLE * (std::f32::consts::PI * u).sin(),
+    }
+}
+
+/// Eases the camera's follow direction toward `target` with a frame-rate
+/// independent time constant.
+pub(crate) fn advance_chase_forward(current: Vec3, target: Vec3, delta: f32) -> Vec3 {
+    let blend = 1.0 - (-delta / config::LIGHTCYCLE_CAMERA_TURN_LAG).exp();
+    current
+        .lerp(target, blend.clamp(0.0, 1.0))
+        .try_normalize()
+        .unwrap_or(target)
+}
+
+/// Places the chase rig around the cycle for a follow direction and free-look
+/// offset, returning the camera's offset from the cycle and the direction it
+/// views along.
+///
+/// A zero `look` reproduces the fixed rig: [`config::LIGHTCYCLE_CAMERA_DISTANCE`]
+/// behind the direction of travel and [`config::LIGHTCYCLE_CAMERA_HEIGHT`] above
+/// it. Free look orbits that same radius so dragging never pushes the camera
+/// through the floor or into the cycle.
+pub(crate) fn chase_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
+    let view_forward = Quat::from_rotation_y(look.x) * forward;
+    let pitch = (chase_base_pitch() + look.y).clamp(
+        config::LIGHTCYCLE_CAMERA_MIN_PITCH,
+        config::LIGHTCYCLE_CAMERA_MAX_PITCH,
+    );
+    let radius = chase_rig_radius();
+    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
+    (offset, view_forward)
+}
+
+/// Pitch of the default chase rig above the cycle, in radians.
+pub(crate) fn chase_base_pitch() -> f32 {
+    config::LIGHTCYCLE_CAMERA_HEIGHT.atan2(config::LIGHTCYCLE_CAMERA_DISTANCE)
+}
+
+/// Distance from the cycle to the default chase rig.
+pub(crate) fn chase_rig_radius() -> f32 {
+    Vec2::new(
+        config::LIGHTCYCLE_CAMERA_DISTANCE,
+        config::LIGHTCYCLE_CAMERA_HEIGHT,
+    )
+    .length()
+}
+
+/// The river surfer's chase rig: lower and closer than the street rig, so the
+/// water and the gates read as a course rather than a flyover. Same free-look
+/// orbit, same pitch clamps.
+pub(crate) fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
+    let view_forward = Quat::from_rotation_y(look.x) * forward;
+    let pitch = (config::SURFER_CAMERA_HEIGHT.atan2(config::SURFER_CAMERA_DISTANCE) + look.y)
+        .clamp(
+            config::LIGHTCYCLE_CAMERA_MIN_PITCH,
+            config::LIGHTCYCLE_CAMERA_MAX_PITCH,
+        );
+    let radius = Vec2::new(config::SURFER_CAMERA_DISTANCE, config::SURFER_CAMERA_HEIGHT).length();
+    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
+    (offset, view_forward)
+}
+
+/// Focus point and ring radius while the field is live. Once it is decided the
+/// camera returns to the chase rig so the player can drive out, and a disc-wars
+/// ring keeps the chase rig throughout.
+pub(crate) fn field_camera_focus(run: &ActiveRun) -> Option<(Vec3, f32)> {
+    if !run.asteroid_field_active() {
+        return None;
+    }
+    let sim = run.source_asteroids()?;
+    Some((Vec3::new(sim.center.0, 0.0, sim.center.1), sim.radius))
+}
+
+/// Picks the wall-hug camera pose for a character with its back to a wall.
+///
+/// The camera is treated as an imaginary second figure standing off the wall
+/// and looking back at the real one. Standing past the corner on the open side
+/// and aiming back across it is what keeps every element of the shot in frame
+/// at once: the character sits on one side, the wall he is hugging runs across
+/// the middle as a low edge, and the corner with the corridor around it opens
+/// on the other side.
+///
+/// When the wall runs on without a corner in reach, the camera trails the
+/// character instead and looks down the corridor ahead of him.
+pub(crate) fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
+    let wall = room.hug?;
+    let across = room.peek?;
+    let (px, pz) = unit_of(across);
+    let (wx, wz) = unit_of(wall);
+    let spacing = config::GRID_SPACING;
+
+    // Follow the wall toward the peek until it ends. `run` counts the solid
+    // wall cells passed, so the first open cell behind the wall's end is
+    // `run * spacing` along the wall from the character.
+    let mut cell = room.character;
+    let mut run = 0;
+    while run < config::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
+        cell = step_cell(cell, across);
+        run += 1;
+    }
+
+    if run <= config::STEALTH_HUG_CORNER_STEPS {
+        // A reachable corner: stand past it and out from the hugged face. The
+        // farther the corner is, the farther out the camera has to stand for
+        // the corner and the corridor behind it to stay inside the frame.
+        let gap = run as f32 * spacing;
+        let out = config::STEALTH_HUG_CAMERA_OUT
+            + run.saturating_sub(1) as f32 * config::STEALTH_HUG_CAMERA_OUT_STEP;
+        let offset = Vec3::new(
+            px * (gap + config::STEALTH_HUG_CAMERA_PAST) - wx * out,
+            0.0,
+            pz * (gap + config::STEALTH_HUG_CAMERA_PAST) - wz * out,
+        );
+        // Aim at the wall-top corner halfway to the gap cell centre: the
+        // character is then on one side of the view and the corridor around
+        // the corner on the other.
+        let look = Vec3::new(
+            (px * gap + wx * spacing) * 0.5,
+            config::STEALTH_WALL_HEIGHT,
+            (pz * gap + wz * spacing) * 0.5,
+        );
+        Some(HugShot {
+            offset,
+            look,
+            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+        })
+    } else {
+        // No corner in reach: trail the character along the wall and look down
+        // the corridor ahead, with the wall beside him sharing the frame.
+        let offset = Vec3::new(
+            -px * config::STEALTH_HUG_CAMERA_BACK - wx * config::STEALTH_HUG_CAMERA_OUT,
+            0.0,
+            -pz * config::STEALTH_HUG_CAMERA_BACK - wz * config::STEALTH_HUG_CAMERA_OUT,
+        );
+        let look = Vec3::new(
+            px * config::STEALTH_HUG_CAMERA_AIM,
+            config::STEALTH_CAMERA_LOOK,
+            pz * config::STEALTH_HUG_CAMERA_AIM,
+        );
+        Some(HugShot {
+            offset,
+            look,
+            height: config::STEALTH_HUG_CAMERA_HEIGHT,
+        })
+    }
+}
+
+// A Bevy system: the queries are the reason for both of these, and folding them
+// into a SystemParam struct would only move the noise.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn update_chase_camera(
+    state: Res<LightcycleState>,
+    transition: Res<ModeTransition>,
+    time: Res<Time>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
+    mouse_motion: Res<AccumulatedMouseMotion>,
+    mut camera: Single<&mut Transform, (With<Camera3d>, Without<CycleEntity>)>,
+    character: Query<&Transform, Only<CharacterEntity, Camera3d, ChaseCamera>>,
+    mut cycle: Query<(&Transform, &mut ChaseCamera), Without<Camera3d>>,
+) {
+    let Ok((cycle, mut chase)) = cycle.single_mut() else {
+        return;
+    };
+    // The flight owns the camera until it lands on this rig; easing the follow
+    // direction or taking a look drag now would move the pose it is aiming for.
+    if state.run.is_none() || transition.is_active() {
+        return;
+    }
+
+    // The platformer is played from the side, riding along with the runner.
+    if let Some(level) = state.run.as_ref().and_then(|run| run.source_platformer()) {
+        let focus = Vec3::new(
+            level.runner.x + config::PLATFORMER_CAMERA_AHEAD,
+            (level.runner.y + config::PLATFORMER_CAMERA_HEIGHT).max(2.0),
+            0.0,
+        );
+        let target = Vec3::new(focus.x, focus.y, config::PLATFORMER_CAMERA_BACK);
+        let blend = 1.0 - (-config::PLATFORMER_CAMERA_LERP * time.delta_secs()).exp();
+        camera.translation = camera.translation.lerp(target, blend);
+        camera.look_at(focus, Vec3::Y);
+        return;
+    }
+
+    // The breaker is played head-on: the whole court stays in frame while the
+    // bike slides along the bottom.
+    if let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) {
+        let centre = Vec3::new(0.0, level.court.1 * 0.5, 0.0);
+        camera.translation = Vec3::new(0.0, centre.y, config::BREAKER_CAMERA_BACK);
+        camera.look_at(centre, Vec3::Y);
+        return;
+    }
+
+    // The stealth run is played from above, like a stakeout.
+    if let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) {
+        // Follow where the figure is actually drawn, not the cell it is walking
+        // toward: the sim moves in whole cells, so tracking the cell would lurch
+        // the whole view once per step.
+        let focus = character
+            .single()
+            .map(|transform| transform.translation)
+            .unwrap_or_else(|_| config::ground_position(room.character.0, room.character.1));
+        // The camera holds a bearing round the figure and turns steadily toward
+        // whatever the view should be aimed along: round the far side of the peek
+        // direction when the player is backed against a wall, and plain +Z
+        // otherwise.
+        //
+        // It turns at a fixed rate rather than easing, because that is what makes
+        // the swing watchable: an ease puts nearly all the movement in the first
+        // few frames, which is why the perspective read as changing instantly.
+        // The radius and height still ease, so entering a run flies in as before.
+        // Where the view should sit, and what it should look at, both as offsets
+        // from the figure.
+        //
+        // Backed against a wall, the pose comes from [`hug_camera_shot`]: the
+        // camera acts like an imaginary second figure standing off the wall and
+        // looking back at the real one, so the figure, the wall he is hugging,
+        // the corner and the corridor around it all share the frame.
+        let (want_x, want_z, want_height, look) = match hug_camera_shot(room) {
+            Some(shot) => (shot.offset.x, shot.offset.z, shot.height, shot.look),
+            None => (
+                0.0,
+                config::STEALTH_CAMERA_DISTANCE,
+                config::STEALTH_CAMERA_HEIGHT,
+                Vec3::Y * config::STEALTH_CAMERA_LOOK,
+            ),
+        };
+        let want_radius = (want_x * want_x + want_z * want_z).sqrt();
+        let aim = want_z.atan2(want_x);
+        let offset = camera.translation - focus;
+        let bearing = offset.z.atan2(offset.x);
+        let radius = (offset.x * offset.x + offset.z * offset.z).sqrt();
+        let turn = config::STEALTH_SWING_RATE * time.delta_secs();
+        let to_aim = (aim - bearing + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
+            - std::f32::consts::PI;
+        let bearing = bearing + to_aim.clamp(-turn, turn);
+        let blend = 1.0 - (-config::STEALTH_CAMERA_LERP * time.delta_secs()).exp();
+        let radius = radius + (want_radius - radius) * blend;
+        let height = offset.y + (want_height - offset.y) * blend;
+        camera.translation =
+            focus + Vec3::new(bearing.cos() * radius, height, bearing.sin() * radius);
+        camera.look_at(focus + look, Vec3::Y);
+        return;
+    }
+
+    // The asteroid field is played from above: the whole ring stays in frame, so
+    // pivoting the parked cycle does not whip the camera around with it.
+    if let Some((center, radius)) = state.run.as_ref().and_then(field_camera_focus) {
+        let height = radius * config::ASTEROIDS_CAMERA_FIT + 3.0;
+        camera.translation =
+            center + Vec3::new(0.0, height, height * config::ASTEROIDS_CAMERA_LEAN);
+        camera.look_at(center, Vec3::Y);
+        return;
+    }
+
+    // The Galaga field is played from above too: the whole formation stays in
+    // frame while the cycle slides along the bottom.
+    if state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_galaga())
+        .is_some()
+    {
+        let center = Vec3::ZERO;
+        let height = config::GALAGA_CAMERA_HEIGHT;
+        // Lean the camera in from -Z so the cycle (parked at -Z) sits at the
+        // bottom of the screen and the formation hangs above it.
+        camera.translation = center + Vec3::new(0.0, height, -height * config::GALAGA_CAMERA_LEAN);
+        camera.look_at(center, Vec3::Y);
+        return;
+    }
+
+    // The arcade block: each game gets a small fixed camera tailored to its
+    // board, independent of the parked cycle. Every other source game (and
+    // plain directory riding) keeps the chase camera below.
+    let arcade_game = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_game())
+        .filter(|game| {
+            matches!(
+                game,
+                SourceGame::PacMan
+                    | SourceGame::Columns
+                    | SourceGame::Tetris
+                    | SourceGame::Frogger
+                    | SourceGame::Qbert
+                    | SourceGame::Bomberman
+                    | SourceGame::Plinko
+            )
+        });
+    if let Some(game) = arcade_game {
+        let (translation, target) = match game {
+            SourceGame::PacMan => (
+                Vec3::new(
+                    0.0,
+                    config::PAC_CAMERA_HEIGHT,
+                    config::PAC_CAMERA_HEIGHT * config::PAC_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            SourceGame::Frogger => (
+                Vec3::new(
+                    0.0,
+                    config::FROGGER_CAMERA_HEIGHT,
+                    config::FROGGER_CAMERA_HEIGHT * config::FROGGER_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            SourceGame::Qbert => (
+                Vec3::new(
+                    0.0,
+                    config::QBERT_CAMERA_HEIGHT,
+                    -config::QBERT_CAMERA_HEIGHT * config::QBERT_CAMERA_LEAN,
+                ),
+                Vec3::new(0.0, 1.0, 0.0),
+            ),
+            SourceGame::Bomberman => (
+                Vec3::new(
+                    0.0,
+                    config::BOMBER_CAMERA_HEIGHT,
+                    config::BOMBER_CAMERA_HEIGHT * config::BOMBER_CAMERA_LEAN,
+                ),
+                Vec3::ZERO,
+            ),
+            SourceGame::Columns => (
+                Vec3::new(0.0, 10.4, config::COLUMNS_CAMERA_BACK),
+                Vec3::new(0.0, 10.4, 0.0),
+            ),
+            SourceGame::Tetris => (
+                Vec3::new(0.0, 12.0, config::TETRIS_CAMERA_BACK),
+                Vec3::new(0.0, 12.0, 0.0),
+            ),
+            SourceGame::Plinko => (Vec3::new(0.0, 0.0, config::PLINKO_CAMERA_BACK), Vec3::ZERO),
+            _ => unreachable!("filtered to the arcade block above"),
+        };
+        camera.translation = translation;
+        camera.look_at(target, Vec3::Y);
+        return;
+    }
+
+    let travel = cycle.rotation * Vec3::X;
+    chase.forward = advance_chase_forward(
+        chase.forward,
+        Vec3::new(travel.x, 0.0, travel.z),
+        time.delta_secs(),
+    );
+
+    if mouse_buttons.pressed(MouseButton::Right) {
+        if mouse_motion.delta != Vec2::ZERO {
+            chase.apply_look_drag(mouse_motion.delta);
+        }
+    } else {
+        chase.recenter_look(time.delta_secs());
+    }
+
+    let cycle_pos = cycle.translation;
+    let surfing = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_surfer())
+        .is_some();
+    let (offset, view_forward) = if surfing {
+        surfer_camera_rig(chase.forward, chase.look)
+    } else {
+        chase_camera_rig(chase.forward, chase.look)
+    };
+    let lookahead = if surfing {
+        config::SURFER_CAMERA_LOOKAHEAD
+    } else {
+        config::LIGHTCYCLE_CAMERA_LOOKAHEAD
+    };
+    let look_target = cycle_pos + view_forward * lookahead;
+    let mut camera_position = cycle_pos + offset;
+
+    if let Some(fx) = state.crash_fx.as_ref() {
+        let intensity = (fx.timer / fx.duration).clamp(0.0, 1.0);
+        let t = time.elapsed_secs();
+        let shake =
+            Vec3::new((t * 83.0).sin(), (t * 97.0).sin(), (t * 71.0).sin()) * (intensity * 0.9);
+        camera_position += shake;
+    }
+
+    camera.translation = camera_position;
+    camera.look_at(look_target, Vec3::Y);
+}

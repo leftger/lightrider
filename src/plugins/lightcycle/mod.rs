@@ -43,6 +43,16 @@ use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+mod camera;
+pub(crate) use camera::*;
+mod step;
+pub(crate) use step::*;
+mod city;
+pub(crate) use city::*;
+mod entities;
+pub(crate) use entities::*;
+mod assets;
+pub(crate) use assets::*;
 
 pub struct LightcyclePlugin;
 
@@ -145,7 +155,7 @@ impl Plugin for LightcyclePlugin {
 }
 
 #[derive(Resource)]
-struct LightcycleAssets {
+pub(crate) struct LightcycleAssets {
     unit_cube: Handle<Mesh>,
     entry_beam_mesh: Handle<Mesh>,
     entry_halo_mesh: Handle<Mesh>,
@@ -235,7 +245,7 @@ struct LightcycleAssets {
 }
 
 #[derive(Component)]
-struct CycleEntity;
+pub(crate) struct CycleEntity;
 
 /// The rising memory-flood wall of a directory run.
 #[derive(Component)]
@@ -294,125 +304,125 @@ struct CityBeacon {
 }
 
 #[derive(Component)]
-struct DocumentFocusMarker;
+pub(crate) struct DocumentFocusMarker;
 
 /// The player's thrown disc.
 #[derive(Component)]
-struct PlayerDiscEntity;
+pub(crate) struct PlayerDiscEntity;
 
 /// The Recognizer opponent's body.
 #[derive(Component)]
-struct OpponentEntity;
+pub(crate) struct OpponentEntity;
 
 /// The opponent's disc.
 #[derive(Component)]
-struct OpponentDiscEntity;
+pub(crate) struct OpponentDiscEntity;
 
 /// One pickup waiting on a ring floor, keyed into `DiscLayout::pickups`.
 #[derive(Component)]
-struct DiscPickupEntity {
+pub(crate) struct DiscPickupEntity {
     index: usize,
     phase: f32,
 }
 
 /// One pooled rock in the asteroid field, keyed into `AsteroidsSim::rocks`.
 #[derive(Component)]
-struct RockEntity {
+pub(crate) struct RockEntity {
     index: usize,
 }
 
 /// One pooled beam in the asteroid field, keyed into `AsteroidsSim::beams`.
 #[derive(Component)]
-struct BeamEntity {
+pub(crate) struct BeamEntity {
     index: usize,
 }
 
 /// One pooled bug in the Galaga field, keyed into `GalagaSim::bugs`.
 #[derive(Component)]
-struct BugEntity {
+pub(crate) struct BugEntity {
     index: usize,
 }
 
 /// One pooled beam in the Galaga field, keyed into `GalagaSim::beams`.
 #[derive(Component)]
-struct GalagaBeamEntity {
+pub(crate) struct GalagaBeamEntity {
     index: usize,
 }
 
 /// One pooled dot in the Pac-Man maze, keyed by its cell.
 #[derive(Component)]
-struct DotEntity {
+pub(crate) struct DotEntity {
     cell: (i32, i32),
 }
 
 /// One pooled ghost in the Pac-Man maze, keyed into `PacSim::ghosts`.
 #[derive(Component)]
-struct GhostEntity {
+pub(crate) struct GhostEntity {
     index: usize,
 }
 
 /// One pooled cell of the Columns well, keyed by its row-major index.
 #[derive(Component)]
-struct GemEntity {
+pub(crate) struct GemEntity {
     index: usize,
 }
 
 /// One pooled cell of the Tetris board, keyed by its row-major index.
 #[derive(Component)]
-struct BlockEntity {
+pub(crate) struct BlockEntity {
     index: usize,
 }
 
 /// One pooled obstacle cube on the Frogger highway.
 #[derive(Component)]
-struct FrogObstacleEntity {
+pub(crate) struct FrogObstacleEntity {
     index: usize,
 }
 
 /// One cube of the Q*bert pyramid, keyed by its row/index pair.
 #[derive(Component)]
-struct QbertCubeEntity {
+pub(crate) struct QbertCubeEntity {
     row: usize,
     index: usize,
 }
 
 /// One pooled enemy on the Q*bert pyramid, keyed into `QbertSim::enemies`.
 #[derive(Component)]
-struct QbertEnemyEntity {
+pub(crate) struct QbertEnemyEntity {
     index: usize,
 }
 
 /// One pooled crate in the Bomberman room, keyed by its cell.
 #[derive(Component)]
-struct BomberCrateEntity {
+pub(crate) struct BomberCrateEntity {
     cell: (i32, i32),
 }
 
 /// One pooled bomb in the Bomberman room, keyed into `BomberSim::bombs`.
 #[derive(Component)]
-struct BomberBombEntity {
+pub(crate) struct BomberBombEntity {
     index: usize,
 }
 
 /// One pooled ball on the Plinko board, keyed into `PlinkoSim::balls`.
 #[derive(Component)]
-struct PlinkoBallEntity {
+pub(crate) struct PlinkoBallEntity {
     index: usize,
 }
 
 /// One power-up on a snake ring, keyed into `SnakeSim::food`.
 #[derive(Component)]
-struct SnakeFoodEntity {
+pub(crate) struct SnakeFoodEntity {
     index: usize,
 }
 
 /// The bar sealing a snake ring's exit until enough power-ups are collected.
 #[derive(Component)]
-struct SnakeGateLock;
+pub(crate) struct SnakeGateLock;
 
 /// The Tron runner, on a platformer level or a stealth run.
 #[derive(Component)]
-struct CharacterEntity;
+pub(crate) struct CharacterEntity;
 
 /// Easing state for the on-foot character.
 ///
@@ -420,7 +430,7 @@ struct CharacterEntity;
 /// track here is `base`: the ground position the figure is easing toward, which
 /// smooths the stealth sim's whole-cell steps into a glide.
 #[derive(Component)]
-struct CharacterAnim {
+pub(crate) struct CharacterAnim {
     base: Vec3,
 }
 
@@ -447,23 +457,23 @@ struct CharacterModel;
 
 /// The breaker's ball.
 #[derive(Component)]
-struct BallEntity;
+pub(crate) struct BallEntity;
 
 /// One brick of a breaker wall, keyed into `BreakerSim::bricks`.
 #[derive(Component)]
-struct BrickEntity {
+pub(crate) struct BrickEntity {
     index: usize,
 }
 
 /// One patrol's body, keyed into `StealthSim::guards`.
 #[derive(Component)]
-struct GuardEntity {
+pub(crate) struct GuardEntity {
     index: usize,
 }
 
 /// One patrol's field-of-vision cone, keyed into `StealthSim::guards`.
 #[derive(Component)]
-struct GuardConeEntity {
+pub(crate) struct GuardConeEntity {
     index: usize,
     /// This guard's own cone, because its shape is cut to what the guard can
     /// actually see. It starts as the plain fan and is replaced once the sim's
@@ -544,7 +554,7 @@ type SceneEntities<'w, 's> =
 /// appear to rotate around a stationary bike. It lives on the cycle so each run
 /// starts from the spawn heading.
 #[derive(Component)]
-struct ChaseCamera {
+pub(crate) struct ChaseCamera {
     forward: Vec3,
     /// Right-drag free look, in radians: `x` swings the rig around the cycle and
     /// `y` raises it above the default chase pitch. Held only while dragging;
@@ -596,68 +606,9 @@ fn wrap_angle(angle: f32) -> f32 {
     (angle + PI).rem_euclid(TAU) - PI
 }
 
-fn unlit_material(color: Color) -> StandardMaterial {
-    StandardMaterial {
-        base_color: color,
-        unlit: true,
-        ..default()
-    }
-}
-
-fn neon_material(color: Color, emissive: LinearRgba) -> StandardMaterial {
-    StandardMaterial {
-        base_color: color,
-        emissive,
-        unlit: true,
-        ..default()
-    }
-}
-
-fn city_palette() -> [[(Color, LinearRgba); 2]; 4] {
-    [
-        [
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.6, 3.4)),
-            (
-                config::LIGHTCYCLE_CITY_BLUE,
-                LinearRgba::rgb(0.15, 1.0, 3.0),
-            ),
-        ],
-        [
-            (
-                config::LIGHTCYCLE_CITY_MAGENTA,
-                LinearRgba::rgb(3.4, 0.03, 2.0),
-            ),
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.4, 3.2)),
-        ],
-        [
-            (
-                config::LIGHTCYCLE_CITY_VIOLET,
-                LinearRgba::rgb(1.8, 0.18, 3.4),
-            ),
-            (config::LIGHTCYCLE_CITY_PINK, LinearRgba::rgb(3.4, 0.2, 1.2)),
-        ],
-        [
-            (
-                config::LIGHTCYCLE_CITY_AMBER,
-                LinearRgba::rgb(3.4, 1.1, 0.03),
-            ),
-            (config::LIGHTCYCLE_CITY_CYAN, LinearRgba::rgb(0.0, 2.4, 3.2)),
-        ],
-    ]
-}
-
 /// Lane markings use a district's primary accent, so ground seams use the
 /// secondary one to stay readable against them.
 const CITY_TRIM_ACCENT: usize = 1;
-
-fn city_theme_index(theme: CityTheme) -> usize {
-    match theme {
-        CityTheme::Cyan => 0,
-        CityTheme::Magenta => 1,
-        CityTheme::Violet => 2,
-        CityTheme::Amber => 3,
-    }
-}
 
 /// Index into [`LightcycleAssets::disc_accent_materials`].
 fn disc_language_index(language: SourceLanguage) -> usize {
@@ -689,340 +640,8 @@ fn trail_glass_material() -> StandardMaterial {
     }
 }
 
-fn setup_lightcycle_assets(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let palette = city_palette();
-    let city_accent_materials = std::array::from_fn(|theme| {
-        std::array::from_fn(|accent| {
-            let (color, emissive) = palette[theme][accent];
-            materials.add(neon_material(color, emissive))
-        })
-    });
-    commands.insert_resource(LightcycleAssets {
-        unit_cube: meshes.add(Cuboid::default()),
-        entry_beam_mesh: meshes.add(Cylinder::new(
-            config::LIGHTCYCLE_ENTRY_BEAM_RADIUS,
-            config::LIGHTCYCLE_ENTRY_BEAM_HEIGHT,
-        )),
-        entry_halo_mesh: meshes.add(Torus::new(
-            config::LIGHTCYCLE_ENTRY_HALO_INNER_RADIUS,
-            config::LIGHTCYCLE_ENTRY_HALO_OUTER_RADIUS,
-        )),
-        disc_mesh: meshes.add(Cylinder::new(
-            config::DISC_MESH_RADIUS,
-            config::DISC_MESH_THICKNESS,
-        )),
-        recognizer_mesh: meshes.add(Cylinder::new(
-            config::RECOGNIZER_RADIUS,
-            config::RECOGNIZER_HEIGHT,
-        )),
-        rock_material: materials.add(StandardMaterial {
-            base_color: config::ASTEROIDS_ROCK_COLOR,
-            emissive: LinearRgba::from(config::ASTEROIDS_ROCK_CORE_COLOR) * 0.3,
-            perceptual_roughness: 0.92,
-            ..default()
-        }),
-        beam_material: materials.add(StandardMaterial {
-            base_color: config::ASTEROIDS_BEAM_COLOR,
-            emissive: LinearRgba::from(config::ASTEROIDS_BEAM_COLOR) * 3.4,
-            unlit: true,
-            alpha_mode: AlphaMode::Add,
-            ..default()
-        }),
-        snake_food_material: materials.add(StandardMaterial {
-            base_color: config::SNAKE_FOOD_COLOR,
-            emissive: LinearRgba::from(config::SNAKE_FOOD_COLOR) * 2.2,
-            unlit: true,
-            ..default()
-        }),
-        snake_lock_material: materials.add(StandardMaterial {
-            base_color: config::SNAKE_GATE_COLOR,
-            emissive: LinearRgba::from(config::SNAKE_GATE_COLOR) * 1.6,
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        }),
-        tron_scene: asset_server
-            .load(GltfAssetLabel::Scene(0).from_asset(config::TRON_MODEL_ASSET)),
-        tron_gltf: asset_server.load(config::TRON_MODEL_ASSET),
-        platform_material: materials.add(unlit_material(config::PLATFORMER_PLATFORM_COLOR)),
-        exit_material: materials.add(StandardMaterial {
-            base_color: config::PLATFORMER_EXIT_COLOR,
-            emissive: LinearRgba::from(config::PLATFORMER_EXIT_COLOR) * 2.4,
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        }),
-        brick_material: materials.add(StandardMaterial {
-            base_color: config::BREAKER_BRICK_COLOR,
-            emissive: LinearRgba::from(config::BREAKER_BRICK_COLOR) * 1.5,
-            unlit: true,
-            ..default()
-        }),
-        ball_material: materials.add(StandardMaterial {
-            base_color: config::BREAKER_BALL_COLOR,
-            emissive: LinearRgba::from(config::BREAKER_BALL_COLOR) * 3.0,
-            unlit: true,
-            ..default()
-        }),
-        court_material: materials.add(unlit_material(config::BREAKER_WALL_COLOR)),
-        stealth_floor_material: materials.add(unlit_material(config::STEALTH_FLOOR_COLOR)),
-        stealth_wall_material: materials.add(StandardMaterial {
-            base_color: config::STEALTH_WALL_COLOR,
-            emissive: LinearRgba::from(config::STEALTH_WALL_COLOR) * 0.6,
-            unlit: true,
-            ..default()
-        }),
-        stealth_cone_material: materials.add(StandardMaterial {
-            base_color: config::STEALTH_CONE_COLOR,
-            emissive: LinearRgba::from(config::STEALTH_CONE_COLOR) * 1.4,
-            unlit: true,
-            alpha_mode: AlphaMode::Add,
-            ..default()
-        }),
-        stealth_exit_material: materials.add(StandardMaterial {
-            base_color: config::STEALTH_EXIT_COLOR,
-            emissive: LinearRgba::from(config::STEALTH_EXIT_COLOR) * 2.4,
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        }),
-        vision_cone: meshes.add(vision_cone_mesh(
-            config::STEALTH_VISION_HALF_ANGLE,
-            config::STEALTH_CONE_SEGMENTS,
-        )),
-        surfer_water_material: materials.add(StandardMaterial {
-            base_color: config::SURFER_WATER_COLOR,
-            emissive: LinearRgba::from(config::SURFER_WATER_COLOR) * 0.2,
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            double_sided: true,
-            cull_mode: None,
-            ..default()
-        }),
-        surfer_rock_material: materials.add(unlit_material(config::SURFER_ROCK_COLOR)),
-        surfer_gate_material: materials.add(StandardMaterial {
-            base_color: config::SURFER_GATE_COLOR,
-            emissive: LinearRgba::from(config::SURFER_GATE_COLOR) * 2.2,
-            unlit: true,
-            ..default()
-        }),
-        surfer_finish_material: materials.add(StandardMaterial {
-            base_color: config::SURFER_FINISH_COLOR,
-            emissive: LinearRgba::from(config::SURFER_FINISH_COLOR) * 2.4,
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        }),
-        galaga_bug_material: materials.add(StandardMaterial {
-            base_color: config::GALAGA_BUG_COLOR,
-            emissive: LinearRgba::from(config::GALAGA_BUG_COLOR) * 2.0,
-            unlit: true,
-            ..default()
-        }),
-        galaga_beam_material: materials.add(StandardMaterial {
-            base_color: config::GALAGA_BEAM_COLOR,
-            emissive: LinearRgba::from(config::GALAGA_BEAM_COLOR) * 3.0,
-            unlit: true,
-            ..default()
-        }),
-        gem_materials: std::array::from_fn(|index| {
-            materials.add(StandardMaterial {
-                base_color: config::COLUMNS_GEM_COLORS_LIST[index],
-                emissive: LinearRgba::from(config::COLUMNS_GEM_COLORS_LIST[index]) * 1.6,
-                unlit: true,
-                ..default()
-            })
-        }),
-        tetris_materials: std::array::from_fn(|index| {
-            materials.add(StandardMaterial {
-                base_color: config::TETRIS_COLORS[index],
-                emissive: LinearRgba::from(config::TETRIS_COLORS[index]) * 1.4,
-                unlit: true,
-                ..default()
-            })
-        }),
-        qbert_cube_dim: materials.add(unlit_material(config::QBERT_CUBE_DIM_COLOR)),
-        qbert_cube_lit: materials.add(StandardMaterial {
-            base_color: config::QBERT_CUBE_LIT_COLOR,
-            emissive: LinearRgba::from(config::QBERT_CUBE_LIT_COLOR) * 1.8,
-            unlit: true,
-            ..default()
-        }),
-        qbert_enemy_material: materials.add(StandardMaterial {
-            base_color: config::QBERT_ENEMY_COLOR,
-            emissive: LinearRgba::from(config::QBERT_ENEMY_COLOR) * 2.0,
-            unlit: true,
-            ..default()
-        }),
-        plinko_pin_material: materials.add(unlit_material(config::PLINKO_PIN_COLOR)),
-        plinko_ball_material: materials.add(StandardMaterial {
-            base_color: config::PLINKO_BALL_COLOR,
-            emissive: LinearRgba::from(config::PLINKO_BALL_COLOR) * 1.8,
-            unlit: true,
-            ..default()
-        }),
-        bomber_crate_material: materials.add(unlit_material(config::BOMBER_CRATE_COLOR)),
-        bomber_bomb_material: materials.add(unlit_material(config::BOMBER_BOMB_COLOR)),
-        cycle_scene: asset_server
-            .load(GltfAssetLabel::Scene(0).from_asset(config::LIGHTCYCLE_MODEL_ASSET)),
-        trail_material: materials.add(trail_glass_material()),
-        flood_material: materials.add(StandardMaterial {
-            base_color: config::FLOOD_COLOR,
-            alpha_mode: AlphaMode::Blend,
-            unlit: true,
-            double_sided: true,
-            ..default()
-        }),
-        flood_crest_material: materials.add(StandardMaterial {
-            base_color: config::FLOOD_CREST_COLOR,
-            alpha_mode: AlphaMode::Blend,
-            unlit: true,
-            double_sided: true,
-            ..default()
-        }),
-        gc_sweep_material: materials.add(StandardMaterial {
-            base_color: config::GC_SWEEP_COLOR,
-            emissive: LinearRgba::from(config::GC_SWEEP_COLOR) * 2.6,
-            alpha_mode: AlphaMode::Blend,
-            unlit: true,
-            double_sided: true,
-            ..default()
-        }),
-        wall_material: materials.add(unlit_material(config::LIGHTCYCLE_WALL_COLOR)),
-        city_floor_material: materials.add(StandardMaterial {
-            base_color: config::LIGHTCYCLE_CITY_FLOOR_COLOR,
-            unlit: true,
-            ..default()
-        }),
-        city_foundation_material: materials.add(StandardMaterial {
-            base_color: config::LIGHTCYCLE_CITY_FOUNDATION_COLOR,
-            unlit: true,
-            ..default()
-        }),
-        city_glass_material: materials.add(StandardMaterial {
-            base_color: config::LIGHTCYCLE_CITY_GLASS_COLOR,
-            emissive: LinearRgba::rgb(0.02, 0.12, 0.25),
-            metallic: 0.18,
-            perceptual_roughness: 0.08,
-            alpha_mode: AlphaMode::Blend,
-            double_sided: true,
-            cull_mode: None,
-            ..default()
-        }),
-        city_accent_materials,
-        portal_material: materials.add(unlit_material(config::LIGHTCYCLE_PORTAL_COLOR)),
-        portal_bar_material: materials.add(StandardMaterial {
-            base_color: config::LIGHTCYCLE_PORTAL_COLOR
-                .with_alpha(config::LIGHTCYCLE_PORTAL_BAR_ALPHA),
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        }),
-        dir_tower_material: materials.add(unlit_material(config::DIR_COLOR)),
-        file_tower_material: materials.add(unlit_material(config::FILE_COLOR)),
-        markdown_tower_material: materials.add(unlit_material(config::MARKDOWN_TOWER_COLOR)),
-        source_tower_material: materials.add(neon_material(
-            config::SOURCE_TOWER_COLOR,
-            LinearRgba::rgb(2.2, 0.9, 0.05),
-        )),
-        document_floor_material: materials.add(unlit_material(config::DOCUMENT_FLOOR_COLOR)),
-        document_rule_material: materials.add(unlit_material(config::DOCUMENT_RULE_COLOR)),
-        document_margin_material: materials.add(unlit_material(config::DOCUMENT_MARGIN_COLOR)),
-        document_ink_material: materials.add(neon_material(
-            config::DOCUMENT_INK_COLOR,
-            LinearRgba::from(config::DOCUMENT_INK_EMISSIVE),
-        )),
-        document_heading_material: materials.add(neon_material(
-            config::DOCUMENT_HEADING_COLOR,
-            LinearRgba::rgb(0.55, 0.28, 0.08),
-        )),
-        document_folio_material: materials.add(unlit_material(config::DOCUMENT_FOLIO_COLOR)),
-        document_focus_material: materials.add(neon_material(
-            config::DOCUMENT_FOCUS_COLOR,
-            LinearRgba::rgb(2.4, 0.9, 0.1),
-        )),
-        crash_material: materials.add(unlit_material(Color::srgb(1.0, 0.45, 0.1))),
-        entry_beam_material: materials.add(StandardMaterial {
-            base_color: Color::srgba(0.25, 0.92, 1.0, 0.14),
-            emissive: LinearRgba::rgb(0.08, 1.8, 2.8),
-            alpha_mode: AlphaMode::Add,
-            unlit: true,
-            double_sided: true,
-            cull_mode: None,
-            ..default()
-        }),
-        entry_halo_material: materials.add(StandardMaterial {
-            base_color: Color::srgba(0.7, 0.98, 1.0, 0.92),
-            emissive: LinearRgba::rgb(3.2, 5.0, 6.0),
-            alpha_mode: AlphaMode::Add,
-            unlit: true,
-            ..default()
-        }),
-        disc_floor_material: materials.add(unlit_material(config::DISC_FLOOR_COLOR)),
-        disc_ring_material: materials.add(neon_material(
-            config::DISC_RING_COLOR,
-            LinearRgba::rgb(0.05, 0.4, 0.62),
-        )),
-        disc_plinth_material: materials.add(unlit_material(config::DISC_RING_COLOR)),
-        disc_hazard_material: materials.add(neon_material(
-            config::DISC_HAZARD_COLOR,
-            LinearRgba::rgb(2.4, 0.2, 0.1),
-        )),
-        disc_opponent_material: materials.add(neon_material(
-            config::DISC_OPPONENT_COLOR,
-            LinearRgba::rgb(2.4, 1.1, 0.1),
-        )),
-        disc_player_disc_material: materials.add(neon_material(
-            config::DISC_PLAYER_DISC_COLOR,
-            LinearRgba::rgb(0.6, 2.6, 3.0),
-        )),
-        disc_pickup_material: materials.add(neon_material(
-            config::DISC_PICKUP_COLOR,
-            LinearRgba::rgb(2.4, 2.1, 0.3),
-        )),
-        disc_safe_pad_material: materials.add(neon_material(
-            config::DISC_SAFE_PAD_COLOR,
-            LinearRgba::rgb(0.1, 1.4, 0.5),
-        )),
-        disc_accent_materials: std::array::from_fn(|index| {
-            let accent = SourceLanguage::ALL[index].accent();
-            materials.add(neon_material(accent, LinearRgba::from(accent)))
-        }),
-    });
-}
-
 fn in_lightcycle_mode(mode: Res<InteractionMode>) -> bool {
     *mode == InteractionMode::Lightcycle
-}
-
-fn sync_directory_scene_visibility(
-    mode: Res<InteractionMode>,
-    mut directory_scene: Query<&mut Visibility, With<DirectorySceneRoot>>,
-) {
-    let wanted = if *mode == InteractionMode::Explorer {
-        Visibility::Visible
-    } else {
-        Visibility::Hidden
-    };
-    // Writing unconditionally marks every entity in the scene changed each
-    // frame, which makes Bevy redo visibility propagation for all of them.
-    for mut visibility in &mut directory_scene {
-        if *visibility != wanted {
-            *visibility = wanted;
-        }
-    }
-}
-
-fn tower_position(grid_pos: (i32, i32)) -> (i32, i32) {
-    (
-        grid_pos.0 * config::LIGHTCYCLE_TOWER_STRIDE,
-        grid_pos.1 * config::LIGHTCYCLE_TOWER_STRIDE,
-    )
 }
 
 fn build_active_run(path: &Path, nodes: Vec<FileNode>) -> ActiveRun {
@@ -1278,20 +897,6 @@ fn toggle_mode(
     }
 }
 
-/// Where the chase camera will sit once a run spawns, the point it looks at,
-/// and the road the cycle will ride away down.
-fn chase_landing_pose(run: &ActiveRun) -> (Transform, Vec3, Vec3) {
-    let pose = cycle_cell_pose(&run.sim);
-    let cycle = pose_world_position(&pose);
-    let (offset, view_forward) = chase_camera_rig(pose_forward(&pose), Vec2::ZERO);
-    let focus = cycle + view_forward * config::LIGHTCYCLE_CAMERA_LOOKAHEAD;
-    (
-        Transform::from_translation(cycle + offset).looking_at(focus, Vec3::Y),
-        focus,
-        view_forward,
-    )
-}
-
 /// Tears down the old world and builds the new one, at the top of the flight's
 /// climb, where the camera is highest and the flash covers the frame.
 #[allow(clippy::too_many_arguments)]
@@ -1476,36 +1081,6 @@ fn spawn_trail_ribbon(
         TrailSceneRoot,
         Mesh3d(meshes.add(build_trail_mesh(&run.sim))),
         MeshMaterial3d(assets.trail_material.clone()),
-        Pickable::IGNORE,
-    ));
-}
-
-fn spawn_city_floor(
-    commands: &mut Commands,
-    assets: &LightcycleAssets,
-    meshes: &mut Assets<Mesh>,
-    arena: &Arena,
-) {
-    let spacing = config::GRID_SPACING;
-    let span_x = (arena.max.0 - arena.min.0 + 1) as f32 * spacing;
-    let span_z = (arena.max.1 - arena.min.1 + 1) as f32 * spacing;
-    let center = Vec3::new(
-        (arena.min.0 + arena.max.0) as f32 * spacing * 0.5,
-        -0.08,
-        (arena.min.1 + arena.max.1) as f32 * spacing * 0.5,
-    );
-    let mesh = Mesh::from(Cuboid::default()).transformed_by(
-        Transform::from_translation(center).with_scale(Vec3::new(span_x, 0.12, span_z)),
-    );
-    let material = match arena.kind {
-        ArenaKind::Document => assets.document_floor_material.clone(),
-        ArenaKind::Disc => assets.disc_floor_material.clone(),
-        ArenaKind::Directory => assets.city_floor_material.clone(),
-    };
-    commands.spawn((
-        LightcycleSceneRoot,
-        Mesh3d(meshes.add(mesh)),
-        MeshMaterial3d(material),
         Pickable::IGNORE,
     ));
 }
@@ -2696,411 +2271,8 @@ fn spawn_disc_focus_marker(commands: &mut Commands, assets: &LightcycleAssets, r
     ));
 }
 
-/// Keeps the disc, opponent, opponent disc, and pickups glued to the sim.
-fn sync_disc_entities(
-    state: Res<LightcycleState>,
-    mut player_disc: Fighter<PlayerDiscEntity, OpponentEntity, OpponentDiscEntity>,
-    mut opponent: Fighter<OpponentEntity, PlayerDiscEntity, OpponentDiscEntity>,
-    mut opponent_disc: Fighter<OpponentDiscEntity, PlayerDiscEntity, OpponentEntity>,
-    mut pickups: PooledShown<
-        DiscPickupEntity,
-        FreeOf<PlayerDiscEntity, OpponentEntity, OpponentDiscEntity>,
-    >,
-) {
-    let Some(run) = state.run.as_ref() else {
-        return;
-    };
-    let Some(disc) = run.source_disc() else {
-        return;
-    };
-
-    if let Ok((mut transform, mut visibility)) = player_disc.single_mut() {
-        match disc.player_disc.as_ref() {
-            Some(flying) => {
-                transform.translation = disc_entity_position(flying.cell);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-    if let Ok((mut transform, mut visibility)) = opponent.single_mut() {
-        if disc.opponent.alive {
-            // The opponent steps a whole cell at a time. Render it partway to the
-            // cell it is walking into so it glides instead of teleporting; while
-            // it charges it stands exactly on its cell, so the shot is readable.
-            let progress = if disc.opponent.windup > 0.0 {
-                0.0
-            } else {
-                disc.opponent.move_clock.clamp(0.0, 1.0)
-            };
-            let (dx, dz) = disc.opponent.heading.delta();
-            transform.translation =
-                config::ground_position(disc.opponent.cell.0, disc.opponent.cell.1)
-                    + Vec3::new(dx as f32, 0.0, dz as f32) * (progress * config::GRID_SPACING)
-                    + Vec3::Y * (config::RECOGNIZER_HEIGHT * 0.5);
-            // Swell while winding up, so its shot is telegraphed.
-            let charge = (disc.opponent.windup / config::DISC_OPPONENT_WINDUP).clamp(0.0, 1.0);
-            transform.scale =
-                Vec3::new(1.0 + charge * 0.35, 1.0 - charge * 0.2, 1.0 + charge * 0.35);
-            *visibility = Visibility::Visible;
-        } else {
-            *visibility = Visibility::Hidden;
-        }
-    }
-    if let Ok((mut transform, mut visibility)) = opponent_disc.single_mut() {
-        match disc.opponent.disc.as_ref() {
-            Some(flying) => {
-                transform.translation = disc_entity_position(flying.cell);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-    for (pickup, mut visibility) in &mut pickups {
-        *visibility = if disc.taken.contains(&pickup.index) {
-            Visibility::Hidden
-        } else {
-            Visibility::Visible
-        };
-    }
-}
-
-/// Places the pooled rocks and beams of an asteroid field. Anything past the
-/// live end of the sim's vectors is hidden, so splits and pops need no spawning.
-fn sync_asteroid_entities(
-    state: Res<LightcycleState>,
-    mut rocks: Pooled<RockEntity, Apart<BeamEntity>>,
-    mut beams: Pooled<BeamEntity, Apart<RockEntity>>,
-) {
-    // Only an actual asteroid field owns rock entities; a disc-wars ring also
-    // carries a (never stepped) field sim, so check the game kind too.
-    let Some(run) = state.run.as_ref() else {
-        return;
-    };
-    if run.source_game() != Some(SourceGame::Asteroids) {
-        return;
-    }
-    let Some(sim) = run.source_asteroids() else {
-        return;
-    };
-
-    for (entity, mut transform, mut visibility) in &mut rocks {
-        match sim.rocks.get(entity.index) {
-            Some(rock) => {
-                let radius = rock.size.radius();
-                transform.translation = Vec3::new(rock.x, radius, rock.z);
-                transform.rotation =
-                    Quat::from_rotation_y(rock.angle) * Quat::from_rotation_x(rock.angle * 0.61);
-                transform.scale = Vec3::splat(radius * 2.0);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-
-    for (entity, mut transform, mut visibility) in &mut beams {
-        match sim.beams.get(entity.index) {
-            Some(beam) => {
-                transform.translation = Vec3::new(beam.x, 0.35, beam.z);
-                transform.rotation = Quat::from_rotation_y(-beam.vz.atan2(beam.vx));
-                transform.scale = Vec3::new(config::ASTEROIDS_BEAM_LENGTH, 0.12, 0.12);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled bugs and beams of a Galaga field. Dead bugs and spent
-/// beams are hidden rather than despawned, so the pool never needs to grow.
-fn sync_galaga_entities(
-    state: Res<LightcycleState>,
-    mut bugs: Pooled<BugEntity, Apart<GalagaBeamEntity>>,
-    mut beams: Pooled<GalagaBeamEntity, Apart<BugEntity>>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_galaga()) else {
-        return;
-    };
-
-    for (entity, mut transform, mut visibility) in &mut bugs {
-        match sim.bugs.get(entity.index) {
-            Some(bug) if bug.alive => {
-                transform.translation = Vec3::new(bug.x, config::GALAGA_BUG_HEIGHT * 0.5, bug.z);
-                *visibility = Visibility::Visible;
-            }
-            _ => *visibility = Visibility::Hidden,
-        }
-    }
-
-    for (entity, mut transform, mut visibility) in &mut beams {
-        match sim.beams.get(entity.index) {
-            Some(beam) => {
-                transform.translation = Vec3::new(beam.x, 0.35, beam.z);
-                transform.scale = Vec3::new(0.12, 0.12, config::GALAGA_BEAM_LENGTH);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled dots and ghosts of a Pac-Man maze.
-fn sync_pacman_entities(
-    state: Res<LightcycleState>,
-    mut dots: PooledShown<DotEntity, Apart<GhostEntity>>,
-    mut ghosts: Pooled<GhostEntity, Apart<DotEntity>>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_pacman()) else {
-        return;
-    };
-    for (entity, mut visibility) in &mut dots {
-        *visibility = if sim.dots.contains(&entity.cell) {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
-    }
-    for (entity, mut transform, mut visibility) in &mut ghosts {
-        match sim.ghosts.get(entity.index) {
-            Some(ghost) => {
-                transform.translation = Vec3::new(ghost.x, 0.9, ghost.z);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled gem cells of a Columns well.
-fn sync_columns_entities(
-    state: Res<LightcycleState>,
-    assets: Res<LightcycleAssets>,
-    mut gems: PooledTinted<GemEntity, OutOfCycle>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_columns()) else {
-        return;
-    };
-    let rendered = sim.render_board();
-    for (entity, mut transform, mut visibility, mut material) in &mut gems {
-        match rendered.get(entity.index) {
-            Some(Some(colour)) => {
-                let col = entity.index % config::COLUMNS_COLS;
-                let row = entity.index / config::COLUMNS_COLS;
-                transform.translation = Vec3::new(
-                    (col as f32 - (config::COLUMNS_COLS - 1) as f32 * 0.5) * 1.6,
-                    ((config::COLUMNS_ROWS - 1) - row) as f32 * 1.6 + 0.8,
-                    0.0,
-                );
-                material.0 =
-                    assets.gem_materials[*colour as usize % config::COLUMNS_GEM_COLORS].clone();
-                *visibility = Visibility::Visible;
-            }
-            _ => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled block cells of a Tetris board.
-fn sync_tetris_entities(
-    state: Res<LightcycleState>,
-    assets: Res<LightcycleAssets>,
-    mut blocks: PooledTinted<BlockEntity, OutOfCycle>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_tetris()) else {
-        return;
-    };
-    let rendered = sim.render_board();
-    for (entity, mut transform, mut visibility, mut material) in &mut blocks {
-        match rendered.get(entity.index) {
-            Some(Some(colour)) => {
-                let col = entity.index % config::TETRIS_COLS;
-                let row = entity.index / config::TETRIS_COLS;
-                transform.translation = Vec3::new(
-                    (col as f32 - (config::TETRIS_COLS - 1) as f32 * 0.5) * 1.2,
-                    ((config::TETRIS_ROWS - 1) - row) as f32 * 1.2 + 0.6,
-                    0.0,
-                );
-                material.0 = assets.tetris_materials[*colour as usize % 7].clone();
-                *visibility = Visibility::Visible;
-            }
-            _ => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled obstacle cubes of a Frogger highway.
-fn sync_frogger_entities(
-    state: Res<LightcycleState>,
-    mut obstacles: Pooled<FrogObstacleEntity, OutOfCycle>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_frogger()) else {
-        return;
-    };
-    let cells = sim.obstacle_cells();
-    for (entity, mut transform, mut visibility) in &mut obstacles {
-        match cells.get(entity.index) {
-            Some(&cell) => {
-                let (x, z) = FroggerSim::center(cell);
-                transform.translation = Vec3::new(x, 0.6, z);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Relights Q*bert cubes and places the pooled enemies.
-fn sync_qbert_entities(
-    state: Res<LightcycleState>,
-    assets: Res<LightcycleAssets>,
-    mut cubes: PooledPosedTinted<QbertCubeEntity, Without<QbertEnemyEntity>>,
-    mut enemies: Pooled<QbertEnemyEntity, Without<QbertCubeEntity>>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_qbert()) else {
-        return;
-    };
-    for (entity, mut transform, mut material) in &mut cubes {
-        let lit = sim.lit.get(QbertSim::cube_index(entity.row, entity.index));
-        let (x, z) = QbertSim::cube_position(entity.row, entity.index);
-        let y =
-            (config::QBERT_ROWS as f32 - 1.0 - entity.row as f32) * config::QBERT_CUBE_HEIGHT * 0.5;
-        transform.translation = Vec3::new(x, y, z);
-        material.0 = if lit == Some(&true) {
-            assets.qbert_cube_lit.clone()
-        } else {
-            assets.qbert_cube_dim.clone()
-        };
-    }
-    for (entity, mut transform, mut visibility) in &mut enemies {
-        match sim.enemies.get(entity.index) {
-            Some(enemy) => {
-                let (x, z) = QbertSim::cube_position(enemy.row, enemy.index);
-                let y = (config::QBERT_ROWS as f32 - 1.0 - enemy.row as f32)
-                    * config::QBERT_CUBE_HEIGHT
-                    * 0.5
-                    + config::QBERT_CUBE_HEIGHT * 0.8;
-                transform.translation = Vec3::new(x, y, z);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled crates and bombs of a Bomberman room.
-fn sync_bomberman_entities(
-    state: Res<LightcycleState>,
-    mut crates: PooledShown<BomberCrateEntity, Apart<BomberBombEntity>>,
-    mut bombs: Pooled<BomberBombEntity, Apart<BomberCrateEntity>>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_bomberman()) else {
-        return;
-    };
-    for (entity, mut visibility) in &mut crates {
-        *visibility = if sim.crates.contains(&entity.cell) {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
-    }
-    for (entity, mut transform, mut visibility) in &mut bombs {
-        match sim.bombs.get(entity.index) {
-            Some(bomb) => {
-                let (x, z) = BomberSim::center(bomb.cell);
-                transform.translation = Vec3::new(x, 0.6, z);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Places the pooled balls of a Plinko board.
-fn sync_plinko_entities(
-    state: Res<LightcycleState>,
-    mut balls: Query<(&PlinkoBallEntity, &mut Transform, &mut Visibility), Without<CycleEntity>>,
-) {
-    let Some(sim) = state.run.as_ref().and_then(|run| run.source_plinko()) else {
-        return;
-    };
-    for (entity, mut transform, mut visibility) in &mut balls {
-        match sim.balls.get(entity.index) {
-            Some(ball) => {
-                transform.translation = Vec3::new(ball.x, ball.y, 0.0);
-                *visibility = Visibility::Visible;
-            }
-            None => *visibility = Visibility::Hidden,
-        }
-    }
-}
-
-/// Hides a snake ring's power-ups once eaten, and its exit bar once unlocked.
-fn sync_snake_entities(
-    state: Res<LightcycleState>,
-    mut food: Query<(&SnakeFoodEntity, &mut Visibility), Without<SnakeGateLock>>,
-    mut lock: Query<&mut Visibility, (With<SnakeGateLock>, Without<SnakeFoodEntity>)>,
-) {
-    let Some(snake) = state.run.as_ref().and_then(|run| run.source_snake()) else {
-        return;
-    };
-
-    for (item, mut visibility) in &mut food {
-        *visibility = match snake.food.get(item.index) {
-            Some(food) if !food.eaten => Visibility::Visible,
-            _ => Visibility::Hidden,
-        };
-    }
-
-    if let Ok(mut visibility) = lock.single_mut() {
-        *visibility = if snake.exit_open {
-            Visibility::Hidden
-        } else {
-            Visibility::Visible
-        };
-    }
-}
-
-/// Poses the on-foot character, whichever game it belongs to.
-fn sync_character_entities(
-    state: Res<LightcycleState>,
-    time: Res<Time>,
-    mut character: Query<(&mut Transform, &mut CharacterAnim), Without<CycleEntity>>,
-) {
-    let Some(run) = state.run.as_ref() else {
-        return;
-    };
-    let Some(pose) = character_pose(run) else {
-        return;
-    };
-
-    let dt = time.delta_secs();
-    for (mut transform, mut anim) in &mut character {
-        // The stealth sim moves in whole cells; easing toward the cell turns
-        // that into a glide, and the walk clip supplies the limbs. The
-        // platformer's physics is already continuous.
-        let base = if pose.smooth {
-            // Cover the ground at the pace the sim steps, instead of easing to
-            // each cell and waiting. The second term only bites once the figure
-            // has fallen behind, so a frame hitch does not leave it trailing.
-            let to_target = pose.target - anim.base;
-            let distance = to_target.length();
-            let travel = config::STEALTH_WALK_SPEED.max(distance * 2.0) * dt;
-            if distance <= travel {
-                pose.target
-            } else {
-                anim.base + to_target / distance * travel
-            }
-        } else {
-            pose.target
-        };
-        anim.base = base;
-        transform.translation = base;
-        transform.rotation = Quat::from_rotation_y(pose.yaw);
-    }
-}
-
 /// Where the on-foot character should be and which way it faces.
-struct CharacterPose {
+pub(crate) struct CharacterPose {
     /// Ground position the figure is walking toward.
     target: Vec3,
     yaw: f32,
@@ -3112,55 +2284,6 @@ struct CharacterPose {
 fn unit_of(heading: Heading) -> (f32, f32) {
     let angle = heading_angle(heading);
     (angle.cos(), angle.sin())
-}
-
-/// One cell along `heading`. This mirrors the sim's own step for a view-only
-/// walk along a wall, so a mismatch could only ever misplace the camera.
-fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
-    match heading {
-        Heading::PosX => (cell.0 + 1, cell.1),
-        Heading::NegX => (cell.0 - 1, cell.1),
-        Heading::PosZ => (cell.0, cell.1 + 1),
-        Heading::NegZ => (cell.0, cell.1 - 1),
-    }
-}
-
-fn character_pose(run: &ActiveRun) -> Option<CharacterPose> {
-    if let Some(level) = run.source_platformer() {
-        return Some(CharacterPose {
-            target: Vec3::new(level.runner.x, level.runner.y, 0.0),
-            // A quarter turn each way, not a half: the model's forward is
-            // `+Z`, so facing along the level's `X` axis means pointing it at
-            // `+X` or `-X`.
-            yaw: if level.runner.facing >= 0.0 {
-                std::f32::consts::FRAC_PI_2
-            } else {
-                -std::f32::consts::FRAC_PI_2
-            },
-            smooth: false,
-        });
-    }
-    run.source_stealth().map(|room| {
-        // Backed against a wall, the figure is leaned into it. Standing a whole
-        // cell short reads as not quite touching, which loses the pose entirely;
-        // `hug` is the wall's direction, so the lean is toward it. It eases in and
-        // out through the same smoothing as the walking, so nothing snaps.
-        let stand = config::ground_position(room.character.0, room.character.1);
-        let target = match room.hug {
-            Some(wall) => {
-                let angle = heading_angle(wall);
-                stand + Vec3::new(angle.cos(), 0.0, angle.sin()) * config::STEALTH_HUG_LEAN
-            }
-            None => stand,
-        };
-        CharacterPose {
-            target,
-            // The sim already faces the figure away from a wall it is hugging, so
-            // this is the walking facing in every case.
-            yaw: std::f32::consts::FRAC_PI_2 - heading_angle(room.heading),
-            smooth: true,
-        }
-    })
 }
 
 /// Builds the walk graph for the character's player and attaches it. The glTF
@@ -3292,53 +2415,6 @@ fn walk_players<'a>(
     }
 }
 
-/// Keeps the breaker's ball and bricks glued to its sim.
-fn sync_breaker_entities(
-    state: Res<LightcycleState>,
-    mut ball: Query<&mut Transform, (With<BallEntity>, Without<BrickEntity>)>,
-    mut bricks: PooledShown<BrickEntity, Apart<BallEntity, CharacterEntity>>,
-) {
-    let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) else {
-        return;
-    };
-    for mut transform in &mut ball {
-        transform.translation = Vec3::new(level.ball.x, level.ball.y, 0.0);
-    }
-    for (brick, mut visibility) in &mut bricks {
-        *visibility = match level.bricks.get(brick.index) {
-            Some(brick) if brick.alive => Visibility::Visible,
-            _ => Visibility::Hidden,
-        };
-    }
-}
-
-/// Walks the patrols and swings their vision cones.
-fn sync_stealth_entities(
-    state: Res<LightcycleState>,
-    mut guards: PooledPosed<GuardEntity, Apart<GuardConeEntity, CharacterEntity>>,
-    mut cones: PooledPosed<GuardConeEntity, Apart<GuardEntity, CharacterEntity>>,
-) {
-    let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) else {
-        return;
-    };
-    for (guard, mut transform) in &mut guards {
-        if let Some(guard) = room.guards.get(guard.index) {
-            let cell = guard.cell();
-            transform.translation = config::ground_position(cell.0, cell.1);
-            transform.rotation =
-                Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 - guard.patrol.heading().angle());
-        }
-    }
-    for (cone, mut transform) in &mut cones {
-        if let Some(guard) = room.guards.get(cone.index) {
-            let cell = guard.cell();
-            transform.translation = config::ground_position(cell.0, cell.1) + Vec3::Y * 0.08;
-            transform.rotation =
-                Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 - guard.vision_angle());
-        }
-    }
-}
-
 fn disc_entity_position(cell: (i32, i32)) -> Vec3 {
     config::ground_position(cell.0, cell.1) + Vec3::Y * 0.35
 }
@@ -3351,209 +2427,6 @@ fn animate_disc_pickups(time: Res<Time>, mut pickups: Query<(&DiscPickupEntity, 
         transform.translation.y = 0.45 + bob;
         transform.rotate_y(0.03);
     }
-}
-
-/// Tracks which alcove the rider is beside, for the ring's folio panel.
-fn update_disc_focus(
-    mut state: ResMut<LightcycleState>,
-    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
-) {
-    let Some(run) = state.run.as_mut() else {
-        return;
-    };
-    let RunEnvironment::Source {
-        layout,
-        focused_block,
-        ..
-    } = &mut run.environment
-    else {
-        return;
-    };
-    *focused_block = layout.focused_block(run.sim.cell);
-    let Some(index) = *focused_block else {
-        return;
-    };
-    let landmark = layout.blocks[index].landmark;
-    if let Ok(mut transform) = marker.single_mut() {
-        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
-    }
-}
-
-fn spawn_city_structures(
-    commands: &mut Commands,
-    assets: &LightcycleAssets,
-    meshes: &mut Assets<Mesh>,
-    arena: &Arena,
-) {
-    let all: Vec<_> = arena.structures.iter().collect();
-    spawn_structure_layer(
-        commands,
-        meshes,
-        &all,
-        assets.city_foundation_material.clone(),
-        city_foundation_mesh,
-    );
-
-    let glass: Vec<_> = arena
-        .structures
-        .iter()
-        .filter(|structure| structure.kind == CityStructureKind::GlassFin)
-        .collect();
-    spawn_structure_layer(
-        commands,
-        meshes,
-        &glass,
-        assets.city_glass_material.clone(),
-        city_body_mesh,
-    );
-
-    let theme = city_theme_index(arena.city_theme);
-    for accent in 0..2 {
-        let solid: Vec<_> = arena
-            .structures
-            .iter()
-            .filter(|structure| {
-                structure.accent as usize == accent && structure.kind != CityStructureKind::GlassFin
-            })
-            .collect();
-        spawn_structure_layer(
-            commands,
-            meshes,
-            &solid,
-            assets.city_foundation_material.clone(),
-            city_body_mesh,
-        );
-
-        let lit: Vec<_> = arena
-            .structures
-            .iter()
-            .filter(|structure| structure.accent as usize == accent)
-            .collect();
-        spawn_structure_layer(
-            commands,
-            meshes,
-            &lit,
-            assets.city_accent_materials[theme][accent].clone(),
-            city_cap_mesh,
-        );
-    }
-
-    // One color for every ground seam, distinct from the lane markings, so the
-    // edge you can crash into never reads as a stripe you can drive along.
-    spawn_structure_layer(
-        commands,
-        meshes,
-        &all,
-        assets.city_accent_materials[theme][CITY_TRIM_ACCENT].clone(),
-        city_base_trim_mesh,
-    );
-
-    for structure in arena
-        .structures
-        .iter()
-        .filter(|structure| structure.kind == CityStructureKind::Pylon)
-        .take(config::LIGHTCYCLE_CITY_BEACON_LIMIT)
-    {
-        let body_height = city_body_height(structure);
-        let (_, emissive) = city_palette()[theme][structure.accent as usize];
-        let phase = structure.pulse_phase as f32 / 3.0;
-        commands.spawn((
-            LightcycleSceneRoot,
-            CityBeacon {
-                base_height: config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + body_height + 0.32,
-                phase,
-            },
-            Mesh3d(assets.unit_cube.clone()),
-            MeshMaterial3d(assets.city_accent_materials[theme][structure.accent as usize].clone()),
-            Transform::from_translation(
-                config::ground_position(structure.cell.0, structure.cell.1)
-                    + Vec3::Y * (config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + body_height + 0.32),
-            )
-            .with_scale(Vec3::splat(0.22 + emissive.red.min(1.0) * 0.04)),
-            Pickable::IGNORE,
-        ));
-    }
-}
-
-fn spawn_structure_layer(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    structures: &[&CityStructure],
-    material: Handle<StandardMaterial>,
-    build: fn(&CityStructure) -> Mesh,
-) {
-    for chunk in structures.chunks(config::MESH_CHUNK_SIZE) {
-        let mut chunk = chunk.iter();
-        let Some(first) = chunk.next() else {
-            continue;
-        };
-        let mut mesh = build(first);
-        for structure in chunk {
-            mesh.merge(&build(structure))
-                .expect("city structure meshes must be merge-compatible");
-        }
-        commands.spawn((
-            LightcycleSceneRoot,
-            Mesh3d(meshes.add(mesh)),
-            MeshMaterial3d(material.clone()),
-            Pickable::IGNORE,
-        ));
-    }
-}
-
-fn city_foundation_mesh(structure: &CityStructure) -> Mesh {
-    let height = config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT;
-    Mesh::from(Cuboid::default()).transformed_by(
-        Transform::from_translation(config::world_position(
-            structure.cell.0,
-            structure.cell.1,
-            height,
-        ))
-        .with_scale(Vec3::new(
-            config::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
-            height,
-            config::LIGHTCYCLE_CITY_STRUCTURE_SIZE,
-        )),
-    )
-}
-
-fn city_body_height(structure: &CityStructure) -> f32 {
-    let tier = structure.height_tier as f32;
-    match structure.kind {
-        CityStructureKind::Barrier => config::LIGHTCYCLE_CITY_BARRIER_HEIGHT + tier * 0.24,
-        CityStructureKind::GlassFin => config::LIGHTCYCLE_CITY_GLASS_HEIGHT + tier * 0.4,
-        CityStructureKind::Pylon => config::LIGHTCYCLE_CITY_PYLON_HEIGHT + tier * 0.7,
-    }
-}
-
-fn city_body_scale(structure: &CityStructure, height: f32) -> Vec3 {
-    let size = config::LIGHTCYCLE_CITY_STRUCTURE_SIZE;
-    match structure.kind {
-        CityStructureKind::Barrier => {
-            if structure.along_x {
-                Vec3::new(size, height, size * 0.42)
-            } else {
-                Vec3::new(size * 0.42, height, size)
-            }
-        }
-        CityStructureKind::GlassFin => {
-            if structure.along_x {
-                Vec3::new(size, height, config::LIGHTCYCLE_CITY_FIN_THICKNESS)
-            } else {
-                Vec3::new(config::LIGHTCYCLE_CITY_FIN_THICKNESS, height, size)
-            }
-        }
-        CityStructureKind::Pylon => Vec3::new(0.5, height, 0.5),
-    }
-}
-
-fn city_body_mesh(structure: &CityStructure) -> Mesh {
-    let height = city_body_height(structure);
-    let position = config::ground_position(structure.cell.0, structure.cell.1)
-        + Vec3::Y * (config::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT + height * 0.5);
-    Mesh::from(Cuboid::default()).transformed_by(
-        Transform::from_translation(position).with_scale(city_body_scale(structure, height)),
-    )
 }
 
 fn city_cap_mesh(structure: &CityStructure) -> Mesh {
@@ -3914,190 +2787,13 @@ fn spawn_document_focus_marker(
     ));
 }
 
-fn spawn_towers(
-    commands: &mut Commands,
-    assets: &LightcycleAssets,
-    meshes: &mut Assets<Mesh>,
-    run: &ActiveRun,
-) {
-    let RunEnvironment::Directory { nodes, .. } = &run.environment else {
-        return;
-    };
-    for (filter, material) in [
-        (
-            (|node: &FileNode| node.is_dir) as fn(&FileNode) -> bool,
-            assets.dir_tower_material.clone(),
-        ),
-        (
-            |node: &FileNode| !node.is_dir && node.is_source(),
-            assets.source_tower_material.clone(),
-        ),
-        (
-            |node: &FileNode| !node.is_dir && node.is_markdown(),
-            assets.markdown_tower_material.clone(),
-        ),
-        (
-            |node: &FileNode| !node.is_dir && !node.is_markdown() && !node.is_source(),
-            assets.file_tower_material.clone(),
-        ),
-    ] {
-        let matching: Vec<&FileNode> = nodes.iter().filter(|node| filter(node)).collect();
-        for chunk in matching.chunks(config::MESH_CHUNK_SIZE) {
-            let Some(mesh) = build_tower_chunk_mesh(chunk) else {
-                continue;
-            };
-            commands.spawn((
-                LightcycleSceneRoot,
-                Mesh3d(meshes.add(mesh)),
-                MeshMaterial3d(material.clone()),
-                Pickable::IGNORE,
-            ));
-        }
-    }
-}
-
-fn build_tower_chunk_mesh(nodes: &[&FileNode]) -> Option<Mesh> {
-    let mut nodes = nodes.iter();
-    let first = tower_cube_mesh(nodes.next()?);
-    let mut mesh = first;
-    for node in nodes {
-        mesh.merge(&tower_cube_mesh(node))
-            .expect("tower cuboid meshes must be merge-compatible");
-    }
-    Some(mesh)
-}
-
-fn tower_cube_mesh(node: &FileNode) -> Mesh {
-    let (x, z) = tower_position(node.grid_pos);
-    let height = node.calculate_height();
-    Mesh::from(Cuboid::default()).transformed_by(
-        Transform::from_translation(config::world_position(x, z, height)).with_scale(Vec3::new(
-            config::LIGHTCYCLE_TOWER_SIZE,
-            height,
-            config::LIGHTCYCLE_TOWER_SIZE,
-        )),
-    )
-}
-
-fn spawn_road_markings(
-    commands: &mut Commands,
-    assets: &LightcycleAssets,
-    meshes: &mut Assets<Mesh>,
-    arena: &Arena,
-) {
-    let mut cells: Vec<_> = arena.roads.iter().copied().collect();
-    // Every road is marked unless the arena is past the ceiling, in which case
-    // the cells nearest the middle are the ones kept.
-    if cells.len() > config::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT {
-        let center = arena.center();
-        cells.sort_unstable_by_key(|cell| {
-            ((cell.0 - center.0).abs() + (cell.1 - center.1).abs(), *cell)
-        });
-        cells.truncate(config::LIGHTCYCLE_CITY_ROAD_RENDER_LIMIT);
-    }
-
-    let theme = city_theme_index(arena.city_theme);
-    for chunk in cells.chunks(config::MESH_CHUNK_SIZE) {
-        // One buffer per chunk, filled straight from the quad descriptions. Going
-        // through a mesh per road cell cost a hundred milliseconds on a district
-        // with fifty thousand of them, on every directory hop.
-        let mut quads = Vec::with_capacity(chunk.len() * 3);
-        for cell in chunk {
-            push_marking_quads(*cell, &arena.roads, &mut quads);
-        }
-        commands.spawn((
-            LightcycleSceneRoot,
-            Mesh3d(meshes.add(marking_chunk_mesh(&quads))),
-            MeshMaterial3d(assets.city_accent_materials[theme][0].clone()),
-            Pickable::IGNORE,
-        ));
-    }
-}
-
 /// One flat quad of ground marking: where it sits, and how far it reaches on
 /// each ground axis.
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct MarkingQuad {
+pub(crate) struct MarkingQuad {
     center: Vec3,
     half_x: f32,
     half_z: f32,
-}
-
-/// Appends the quads one road cell contributes: the junction pad, then a lane out
-/// to each marked neighbour. Takes the buffer rather than returning one, because
-/// a big district asks this for fifty thousand cells at once.
-fn push_marking_quads(
-    cell: (i32, i32),
-    roads: &std::collections::BTreeSet<(i32, i32)>,
-    quads: &mut Vec<MarkingQuad>,
-) {
-    let spacing = config::GRID_SPACING;
-    let line_width = 0.075;
-    let center = config::ground_position(cell.0, cell.1) + Vec3::Y * config::MARKING_HEIGHT;
-    let half = line_width * 1.25;
-    quads.push(MarkingQuad {
-        center,
-        half_x: half,
-        half_z: half,
-    });
-    if roads.contains(&(cell.0 + 1, cell.1)) {
-        quads.push(MarkingQuad {
-            center: center + Vec3::X * spacing * 0.5,
-            half_x: spacing * 0.5,
-            half_z: line_width * 0.5,
-        });
-    }
-    if roads.contains(&(cell.0, cell.1 + 1)) {
-        quads.push(MarkingQuad {
-            center: center + Vec3::Z * spacing * 0.5,
-            half_x: line_width * 0.5,
-            half_z: spacing * 0.5,
-        });
-    }
-}
-
-/// Packs quads into one mesh, four vertices and two triangles each. The winding
-/// runs counter-clockwise seen from above so the faces point up and survive back
-/// face culling.
-fn marking_chunk_mesh(quads: &[MarkingQuad]) -> Mesh {
-    let mut positions = Vec::with_capacity(quads.len() * 4);
-    let mut normals = Vec::with_capacity(quads.len() * 4);
-    let mut indices = Vec::with_capacity(quads.len() * 6);
-    for quad in quads {
-        let base = positions.len() as u32;
-        let (x, y, z) = (quad.center.x, quad.center.y, quad.center.z);
-        for (dx, dz) in [(-1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (1.0, -1.0)] {
-            positions.push([x + dx * quad.half_x, y, z + dz * quad.half_z]);
-            normals.push([0.0, 1.0, 0.0]);
-        }
-        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
-    }
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-    .with_inserted_indices(Indices::U32(indices))
-}
-
-/// World-space plane each wall rail sits in, half a cell outside the playable area.
-fn wall_plane(arena: &Arena, wall: Wall) -> f32 {
-    let spacing = config::GRID_SPACING;
-    match wall {
-        Wall::NegX => (arena.min.0 as f32 - 0.5) * spacing,
-        Wall::PosX => (arena.max.0 as f32 + 0.5) * spacing,
-        Wall::NegZ => (arena.min.1 as f32 - 0.5) * spacing,
-        Wall::PosZ => (arena.max.1 as f32 + 0.5) * spacing,
-    }
-}
-
-/// World-space extent of a wall along its own axis, corner to corner.
-fn wall_extent(arena: &Arena, wall: Wall) -> (f32, f32) {
-    match wall {
-        Wall::NegZ | Wall::PosZ => (wall_plane(arena, Wall::NegX), wall_plane(arena, Wall::PosX)),
-        Wall::NegX | Wall::PosX => (wall_plane(arena, Wall::NegZ), wall_plane(arena, Wall::PosZ)),
-    }
 }
 
 /// Splits a rail's extent around an optional gap, dropping segments too short to
@@ -4111,80 +2807,6 @@ fn rail_segments(min: f32, max: f32, gap: Option<(f32, f32)>) -> Vec<(f32, f32)>
         .into_iter()
         .filter(|(start, end)| end - start > 0.01)
         .collect()
-}
-
-fn spawn_arena_walls(commands: &mut Commands, assets: &LightcycleAssets, arena: &Arena) {
-    for wall in [Wall::NegX, Wall::PosX, Wall::NegZ, Wall::PosZ] {
-        spawn_wall_rail(commands, assets, arena, wall);
-    }
-
-    spawn_parent_gate(commands, assets, arena);
-}
-
-/// Draws one arena wall, leaving a real opening where the parent gate cuts
-/// through it so the gate can be ridden through rather than looked at.
-fn spawn_wall_rail(commands: &mut Commands, assets: &LightcycleAssets, arena: &Arena, wall: Wall) {
-    let height = config::LIGHTCYCLE_WALL_HEIGHT;
-    let thickness = config::LIGHTCYCLE_WALL_THICKNESS;
-    let plane = wall_plane(arena, wall);
-    let (min, max) = wall_extent(arena, wall);
-
-    let gap = arena
-        .parent_portal
-        .filter(|portal| portal.wall == wall)
-        .map(|portal| gate_world_span(&portal));
-
-    let trim_height = config::LIGHTCYCLE_CITY_BASE_TRIM_HEIGHT;
-    let trim_thickness = thickness + config::LIGHTCYCLE_CITY_BASE_TRIM_OVERHANG;
-    let accent = if arena.kind == ArenaKind::Document {
-        assets.document_folio_material.clone()
-    } else {
-        assets.city_accent_materials[city_theme_index(arena.city_theme)][CITY_TRIM_ACCENT].clone()
-    };
-
-    for (start, end) in rail_segments(min, max, gap) {
-        let center = (start + end) * 0.5;
-        let length = end - start;
-        let (translation, scale) = match wall {
-            Wall::NegZ | Wall::PosZ => (
-                Vec3::new(center, height * 0.5, plane),
-                Vec3::new(length, height, thickness),
-            ),
-            Wall::NegX | Wall::PosX => (
-                Vec3::new(plane, height * 0.5, center),
-                Vec3::new(thickness, height, length),
-            ),
-        };
-
-        commands.spawn((
-            LightcycleSceneRoot,
-            Mesh3d(assets.unit_cube.clone()),
-            MeshMaterial3d(assets.wall_material.clone()),
-            Transform::from_translation(translation).with_scale(scale),
-            Pickable::IGNORE,
-        ));
-
-        // Same light-line the structures get, so the perimeter reads as a wall
-        // standing on the floor rather than the floor fading into darkness.
-        let (trim_translation, trim_scale) = match wall {
-            Wall::NegZ | Wall::PosZ => (
-                Vec3::new(center, trim_height * 0.5, plane),
-                Vec3::new(length, trim_height, trim_thickness),
-            ),
-            Wall::NegX | Wall::PosX => (
-                Vec3::new(plane, trim_height * 0.5, center),
-                Vec3::new(trim_thickness, trim_height, length),
-            ),
-        };
-
-        commands.spawn((
-            LightcycleSceneRoot,
-            Mesh3d(assets.unit_cube.clone()),
-            MeshMaterial3d(accent.clone()),
-            Transform::from_translation(trim_translation).with_scale(trim_scale),
-            Pickable::IGNORE,
-        ));
-    }
 }
 
 /// World-space extent of the gate along its wall, covering exactly the cells the
@@ -4425,31 +3047,6 @@ pub fn stack_frame_rock(level: usize, elapsed: f32) -> (f32, f32) {
     let z = (elapsed * config::STACK_FRAME_ROCK_SPEED * 0.63 + offset * 1.7).cos()
         * config::STACK_FRAME_ROCK;
     (x, z)
-}
-
-fn update_document_focus(
-    mut state: ResMut<LightcycleState>,
-    mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
-) {
-    let Some(run) = state.run.as_mut() else {
-        return;
-    };
-    let RunEnvironment::Document {
-        layout,
-        focused_block,
-        ..
-    } = &mut run.environment
-    else {
-        return;
-    };
-    *focused_block = layout.focused_block(run.sim.cell);
-    let Some(index) = *focused_block else {
-        return;
-    };
-    let landmark = layout.blocks[index].landmark;
-    if let Ok(mut transform) = marker.single_mut() {
-        transform.translation = config::ground_position(landmark.0, landmark.1) + Vec3::Y * 0.08;
-    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -5382,54 +3979,6 @@ fn read_lightcycle_input(
     state.run = Some(run);
 }
 
-fn restart_run(run: &mut ActiveRun) {
-    match &mut run.environment {
-        RunEnvironment::Directory { cells, .. } => {
-            let cells = cells.clone();
-            run.sim = spawn_sim(&run.arena, &cells);
-        }
-        RunEnvironment::Document { .. } => {
-            run.sim = spawn_sim(&run.arena, &HashMap::new());
-        }
-        RunEnvironment::Source { layout, sim, .. } => {
-            let spawn = layout.player_spawn;
-            let heading = layout.player_spawn_heading;
-            let seed = layout.seed;
-            let center = ring_center_world(layout);
-            let radius = ring_radius_world(layout);
-            let food_cells = ring_food_cells(&run.arena);
-            run.sim = LightcycleSim::start(spawn, heading);
-            match sim {
-                SourceSim::DiscWars(disc) => *disc = DiscSim::new(layout),
-                SourceSim::Asteroids(field) => {
-                    let mut fresh = AsteroidsSim::new(seed, center, radius);
-                    fresh.angle = heading_facing(heading);
-                    **field = fresh;
-                }
-                SourceSim::Snake(snake) => {
-                    *snake = SnakeSim::new(seed, spawn, &food_cells, config::SNAKE_FOOD_TARGET);
-                }
-                // Each sim re-rolls itself from its own stored seed, so a
-                // restart lays out exactly the same level.
-                SourceSim::Platformer(level) => level.restart(),
-                SourceSim::Breaker(level) => level.restart(),
-                SourceSim::Stealth(room) => room.restart(),
-                SourceSim::Surfer(surfer) => surfer.restart(),
-                SourceSim::Galaga(sim) => sim.restart(),
-                SourceSim::PacMan(sim) => sim.restart(),
-                SourceSim::Columns(sim) => sim.restart(),
-                SourceSim::Tetris(sim) => sim.restart(),
-                SourceSim::Frogger(sim) => sim.restart(),
-                SourceSim::Qbert(sim) => sim.restart(),
-                SourceSim::Bomberman(sim) => sim.restart(),
-                SourceSim::Plinko(sim) => sim.restart(),
-            }
-        }
-    }
-    run.crash_label = None;
-    run.entering_label = None;
-}
-
 fn restore_directory_arena(
     mut state: ResMut<LightcycleState>,
     navigator: Res<NavigatorResource>,
@@ -5463,715 +4012,6 @@ fn restore_directory_arena(
     state.run = Some(run);
 }
 
-#[allow(clippy::too_many_arguments)]
-fn step_lightcycle(
-    time: Res<Time>,
-    transition: Res<ModeTransition>,
-    pause: Res<PauseState>,
-    mut state: ResMut<LightcycleState>,
-    mut navigator: ResMut<NavigatorResource>,
-    mut requests: MessageWriter<DirectoryRequested>,
-    mut documents: MessageWriter<DocumentRequested>,
-    mut sources: MessageWriter<SourceRequested>,
-    mut effects: MessageWriter<MusicSfx>,
-) {
-    // The arena exists from the top of the climb onward, but the camera is
-    // still diving toward it. Hold the cycle on its spawn cell until it lands,
-    // so the run starts from the shot the player is given rather than partway
-    // down the first street.
-    if transition.is_active() {
-        state.clock = 0.0;
-        return;
-    }
-
-    // The pause menu freezes the sim in place; no clock accrues, so there is
-    // no catch-up burst when the run resumes.
-    if pause.paused {
-        state.slow_motion = false;
-        return;
-    }
-
-    let Some(mut run) = state.run.take() else {
-        return;
-    };
-
-    // A ring keeps ticking even while the player is crashed or waiting between
-    // rounds, so the fight can pay out its respawn. Other arenas hold still.
-    let source_run = run.is_source();
-    if run.sim.phase != RunPhase::Running && !source_run {
-        state.run = Some(run);
-        return;
-    }
-
-    state.clock += time.delta_secs();
-    let max_catch_up = config::LIGHTCYCLE_FIXED_STEP * config::LIGHTCYCLE_MAX_SUBSTEPS as f32;
-    if state.clock > max_catch_up {
-        state.clock = max_catch_up;
-    }
-
-    let fixed_step = config::LIGHTCYCLE_FIXED_STEP;
-    // Directory arenas run the collector on a timer: when it fires the world
-    // stalls for a beat, then the sweep passes and play resumes. A revisit to
-    // an already-opened directory rides a cache-hit surge instead.
-    let dt = time.delta_secs();
-    if !source_run {
-        state.cache_boost = (state.cache_boost - dt).max(0.0);
-        state.gc_sweep = (state.gc_sweep - dt).max(0.0);
-        if state.gc_pause > 0.0 {
-            state.gc_pause = (state.gc_pause - dt).max(0.0);
-        } else {
-            state.gc_timer -= dt;
-            if state.gc_timer <= 0.0 {
-                state.gc_timer = config::GC_INTERVAL_SECONDS;
-                state.gc_pause = config::GC_PAUSE_SECONDS;
-                state.gc_sweep = config::GC_SWEEP_SECONDS;
-                effects.write(MusicSfx::Seek);
-            }
-        }
-    }
-
-    // Bullet time stretches the simulated step without changing the real-time
-    // cadence, so the bike, its disc, and the opponent all slow together.
-    let mut step = if source_run && state.slow_motion {
-        fixed_step * config::DISC_BULLET_TIME_SCALE
-    } else {
-        fixed_step
-    };
-    if !source_run && state.gc_pause > 0.0 {
-        step *= config::GC_SLOW_SCALE;
-    }
-    if !source_run && state.cache_boost > 0.0 {
-        let heat = state.cache_boost / config::CACHE_BOOST_SECONDS;
-        step *= 1.0 + (config::CACHE_BOOST_SCALE - 1.0) * heat;
-    }
-    let mut substeps = 0;
-
-    while state.clock >= fixed_step && substeps < config::LIGHTCYCLE_MAX_SUBSTEPS {
-        state.clock -= fixed_step;
-        substeps += 1;
-
-        let outcome = {
-            let arena = &run.arena;
-            let sim = &mut run.sim;
-            match &run.environment {
-                RunEnvironment::Directory { nodes, cells } => {
-                    sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, sim| {
-                        classify_next_content(
-                            next,
-                            arena,
-                            sim,
-                            cells,
-                            |index| nodes[index].is_dir,
-                            |index| nodes[index].is_markdown(),
-                            |index| nodes[index].is_source(),
-                        )
-                    })
-                }
-                RunEnvironment::Document { .. } => {
-                    sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, sim| {
-                        classify_next_content(
-                            next,
-                            arena,
-                            sim,
-                            &HashMap::new(),
-                            |_| false,
-                            |_| false,
-                            |_| false,
-                        )
-                    })
-                }
-                RunEnvironment::Source { sim: source, .. } => match source {
-                    // Parked while the rocks are live: nothing to advance, and
-                    // the field itself is stepped after the loop.
-                    SourceSim::Asteroids(field) if field.is_active() => StepOutcome::Moved,
-                    // Once the field is decided the cycle is handed back, so it
-                    // drives again and can ride out through the gate.
-                    SourceSim::Asteroids(_) => {
-                        sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
-                            classify_next_content(
-                                next,
-                                arena,
-                                state,
-                                &HashMap::new(),
-                                |_| false,
-                                |_| false,
-                                |_| false,
-                            )
-                        })
-                    }
-                    // Snake drives the ordinary grid, but the exit is a solid
-                    // wall until enough power-ups have been eaten. The tail is
-                    // capped after every step so it stays finite.
-                    SourceSim::Snake(snake) => {
-                        let locked = !snake.exit_open;
-                        let outcome =
-                            sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
-                                if locked && is_ring_gate(arena, next) {
-                                    return CellContent::Wall;
-                                }
-                                classify_next_content(
-                                    next,
-                                    arena,
-                                    state,
-                                    &HashMap::new(),
-                                    |_| false,
-                                    |_| false,
-                                    |_| false,
-                                )
-                            });
-                        snake.trim_tail(sim);
-                        outcome
-                    }
-                    // The off-grid games drive their own sims, so the shared
-                    // grid has nothing to advance.
-                    SourceSim::Platformer(_)
-                    | SourceSim::Breaker(_)
-                    | SourceSim::Stealth(_)
-                    | SourceSim::Surfer(_)
-                    | SourceSim::Galaga(_)
-                    | SourceSim::PacMan(_)
-                    | SourceSim::Columns(_)
-                    | SourceSim::Tetris(_)
-                    | SourceSim::Frogger(_)
-                    | SourceSim::Qbert(_)
-                    | SourceSim::Bomberman(_)
-                    | SourceSim::Plinko(_) => StepOutcome::Moved,
-                    SourceSim::DiscWars(disc) => {
-                        // The opponent's body and its live disc are lethal cells
-                        // in the same grid model the cycle already uses.
-                        let opponent = disc.opponent_cell();
-                        let opponent_disc = disc.opponent_disc_cell();
-                        sim.advance(step * config::LIGHTCYCLE_CELLS_PER_SEC, |next, state| {
-                            if Some(next) == opponent {
-                                return CellContent::Opponent;
-                            }
-                            if Some(next) == opponent_disc {
-                                return CellContent::OpponentDisc;
-                            }
-                            classify_next_content(
-                                next,
-                                arena,
-                                state,
-                                &HashMap::new(),
-                                |_| false,
-                                |_| false,
-                                |_| false,
-                            )
-                        })
-                    }
-                },
-            }
-        };
-
-        match outcome {
-            StepOutcome::Moved => {}
-            StepOutcome::Crashed(reason) => {
-                let crash_cell = run.sim.next_cell();
-                let label = match reason {
-                    CrashReason::File => run
-                        .directory_cells()
-                        .and_then(|cells| cells.get(&crash_cell).copied())
-                        .and_then(|index| {
-                            run.directory_nodes()
-                                .and_then(|nodes| nodes.get(index))
-                                .map(|node| format!("file {}", node.name))
-                        })
-                        .unwrap_or_else(|| "file".to_string()),
-                    CrashReason::Trail => "your trail".to_string(),
-                    CrashReason::Opponent => "the recognizer".to_string(),
-                    CrashReason::Disc => "a disc".to_string(),
-                    CrashReason::Hazard => "a hazard tile".to_string(),
-                    // Snake's gate is solid until the exit opens.
-                    CrashReason::Wall
-                        if run.source_snake().is_some() && is_ring_gate(&run.arena, crash_cell) =>
-                    {
-                        "the locked exit".to_string()
-                    }
-                    CrashReason::Wall if run.arena.street_walls.contains(&crash_cell) => {
-                        if run.is_document() {
-                            "paragraph".to_string()
-                        } else if run.is_source() {
-                            "ring wall".to_string()
-                        } else {
-                            "street barrier".to_string()
-                        }
-                    }
-                    CrashReason::Wall => "a dead bus line".to_string(),
-                };
-                run.crash_label = Some(label);
-                run.entering_label = None;
-            }
-            StepOutcome::EnteringDir(index) => {
-                let details = run
-                    .directory_nodes()
-                    .and_then(|nodes| nodes.get(index))
-                    .map(|node| (node.name.clone(), node.path.clone()));
-                if let Some((name, path)) = details {
-                    run.entering_label = Some(format!("DMA → {name}"));
-                    run.crash_label = None;
-                    effects.write(MusicSfx::Beam);
-                    state.entry_fx = Some(crate::lightcycle::EntryFx::new(
-                        path,
-                        config::LIGHTCYCLE_ENTRY_FX_DURATION,
-                    ));
-                } else {
-                    run.sim.phase = RunPhase::Crashed;
-                    run.crash_label = Some("unmapped address".to_string());
-                }
-            }
-            StepOutcome::EnteringDocument(index) => {
-                let details = run
-                    .directory_nodes()
-                    .and_then(|nodes| nodes.get(index))
-                    .map(|node| (node.name.clone(), node.path.clone()));
-                if let Some((name, path)) = details {
-                    run.entering_label = Some(name);
-                    run.crash_label = None;
-                    effects.write(MusicSfx::Beam);
-                    documents.write(DocumentRequested { path });
-                } else {
-                    run.sim.phase = RunPhase::Running;
-                    run.crash_label = Some("unreadable sector".to_string());
-                }
-            }
-            StepOutcome::EnteringSource(index) => {
-                let details = run
-                    .directory_nodes()
-                    .and_then(|nodes| nodes.get(index))
-                    .map(|node| (node.name.clone(), node.path.clone()));
-                if let Some((name, path)) = details {
-                    run.entering_label = Some(name);
-                    run.crash_label = None;
-                    effects.write(MusicSfx::Beam);
-                    sources.write(SourceRequested { path });
-                } else {
-                    run.sim.phase = RunPhase::Running;
-                    run.crash_label = Some("unmapped sector".to_string());
-                }
-            }
-            StepOutcome::GoToParent => {
-                if let Some(parent) = navigator.0.begin_go_to_parent() {
-                    run.entering_label = Some("RET → parent".to_string());
-                    run.crash_label = None;
-                    effects.write(MusicSfx::Portal);
-                    requests.write(DirectoryRequested { path: parent });
-                } else {
-                    run.sim.phase = RunPhase::Crashed;
-                    run.crash_label = Some("a dead bus line".to_string());
-                }
-            }
-            StepOutcome::CloseDocument => {
-                state.restore_directory = true;
-            }
-        }
-
-        if source_run {
-            let cleared = match run.source_game() {
-                Some(SourceGame::Asteroids) => {
-                    step_asteroid_field(&mut run, step, &mut effects);
-                    false
-                }
-                Some(SourceGame::Snake) => {
-                    step_snake(&mut run, &mut effects);
-                    false
-                }
-                Some(SourceGame::Platformer) => step_platformer(&mut run, step, &mut effects),
-                Some(SourceGame::Breaker) => step_breaker(&mut run, step, &mut effects),
-                Some(SourceGame::Stealth) => step_stealth(&mut run, step, &mut effects),
-                Some(SourceGame::RiverSurfer) => step_surfer(&mut run, step, &mut effects),
-                Some(SourceGame::Galaga) => step_galaga(&mut run, step, &mut effects),
-                Some(SourceGame::PacMan) => step_pacman(&mut run, step, &mut effects),
-                Some(SourceGame::Columns) => step_columns(&mut run, step, &mut effects),
-                Some(SourceGame::Tetris) => step_tetris(&mut run, step, &mut effects),
-                Some(SourceGame::Frogger) => step_frogger(&mut run, step, &mut effects),
-                Some(SourceGame::Qbert) => step_qbert(&mut run, step, &mut effects),
-                Some(SourceGame::Bomberman) => step_bomberman(&mut run, step, &mut effects),
-                Some(SourceGame::Plinko) => step_plinko(&mut run, step, &mut effects),
-                Some(SourceGame::DiscWars) => {
-                    step_disc_fight(&mut run, step, &mut effects);
-                    false
-                }
-                None => false,
-            };
-            // Clearing a level is this run's version of riding out the gate.
-            if cleared {
-                state.restore_directory = true;
-            }
-        }
-
-        if run.sim.phase == RunPhase::Crashed && state.crash_fx.is_none() {
-            state.crash_fx = Some(crate::lightcycle::CrashFx::new(
-                config::LIGHTCYCLE_CRASH_FX_DURATION,
-            ));
-            effects.write(MusicSfx::Crash);
-        }
-
-        if run.sim.phase != RunPhase::Running && !source_run {
-            break;
-        }
-    }
-
-    state.run = Some(run);
-}
-
-/// Steps the asteroid field and routes its feedback into sound and labels.
-fn step_asteroid_field(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) {
-    let events = {
-        let Some(field) = run.source_asteroids_mut() else {
-            return;
-        };
-        field.update(dt)
-    };
-
-    for _ in 0..events.destroyed {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        run.crash_label = None;
-        run.entering_label = None;
-        effects.write(MusicSfx::Victory);
-    }
-
-    let lost = run
-        .source_asteroids()
-        .is_some_and(|field| field.phase == AsteroidsPhase::Lost);
-    if lost {
-        run.crash_label = Some("the rock field".to_string());
-        run.entering_label = None;
-    }
-
-    if events.ended {
-        // Hand the wheel back on the frame the field is decided: the bike keeps
-        // the facing the player was holding and can drive to the gate to leave.
-        let facing = run.source_asteroids_mut().map(|field| {
-            field.set_turn(0.0);
-            nearest_heading(field.angle)
-        });
-        if let Some(facing) = facing {
-            run.sim.heading = facing;
-        }
-    }
-}
-
-/// Steps a snake run: collects power-ups, opens the exit and cues the death.
-fn step_snake(run: &mut ActiveRun, effects: &mut MessageWriter<MusicSfx>) {
-    let cell = run.sim.cell;
-    let Some(events) = run.source_snake_mut().map(|snake| snake.eat(cell)) else {
-        return;
-    };
-    if events.ate {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.opened_exit {
-        effects.write(MusicSfx::Beam);
-    }
-
-    // The base grid crash ends the run; the rider keeps their crash FX, and the
-    // snake only adds the sound once.
-    if run.sim.phase == RunPhase::Crashed
-        && run
-            .source_snake_mut()
-            .is_some_and(|snake| snake.note_crash())
-    {
-        effects.write(MusicSfx::Crash);
-    }
-}
-
-/// Steps a platformer level. Returns `true` on the frame the exit is reached,
-/// which hands the run back to the directory it came from.
-fn step_platformer(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, fell) = {
-        let Some(level) = run.source_platformer_mut() else {
-            return false;
-        };
-        let events = level.update(dt);
-        (events, level.phase == PlatformerPhase::Lost)
-    };
-    if events.jumped {
-        effects.write(MusicSfx::Zap);
-    }
-    if events.won {
-        effects.write(MusicSfx::Victory);
-    }
-    // A fall ends the run through the shared crash path, so the burst, the
-    // shake, the label and `R` all behave like any other crash.
-    if fell {
-        crash_source(run, "the void under the level", effects);
-    }
-    events.won
-}
-
-/// Steps a breaker court. Returns `true` when the wall is cleared, which hands
-/// the run back to the directory.
-fn step_breaker(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, missed) = {
-        let Some(level) = run.source_breaker_mut() else {
-            return false;
-        };
-        let events = level.update(dt);
-        (events, level.phase == BreakerPhase::Missed)
-    };
-    if events.launched {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.bounced_off_paddle {
-        effects.write(MusicSfx::Turn);
-    }
-    for _ in 0..events.broke_bricks {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    // The wall below the bike is the one that ends it.
-    if missed {
-        crash_source(run, "the ball past the bike", effects);
-    }
-    events.cleared
-}
-
-/// Steps a stealth run. Returns `true` when the character reaches the door.
-fn step_stealth(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, caught) = {
-        let Some(room) = run.source_stealth_mut() else {
-            return false;
-        };
-        let events = room.update(dt);
-        (events, room.phase == StealthPhase::Caught)
-    };
-    if events.spotted {
-        effects.write(MusicSfx::Zap);
-    }
-    if events.escaped {
-        effects.write(MusicSfx::Victory);
-    }
-    if caught {
-        crash_source(run, "a patrol", effects);
-    }
-    events.escaped
-}
-
-/// Steps a river surfer run. Returns `true` when the bike crosses the finish.
-fn step_surfer(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, crashed) = {
-        let Some(surfer) = run.source_surfer_mut() else {
-            return false;
-        };
-        let events = surfer.update(dt);
-        (events, surfer.phase == SurferPhase::Crashed)
-    };
-    if events.boosted {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.finished {
-        effects.write(MusicSfx::Victory);
-    }
-    if crashed {
-        let label = if events.banked {
-            "the riverbank"
-        } else {
-            "a rock in the river"
-        };
-        crash_source(run, label, effects);
-    }
-    events.finished
-}
-
-/// Steps a Galaga field. Returns `true` when the formation is cleared, which
-/// hands the run back to the directory.
-fn step_galaga(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_galaga_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == GalagaPhase::Lost)
-    };
-    if events.fired {
-        effects.write(MusicSfx::Beam);
-    }
-    for _ in 0..events.killed {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        let label = if events.overrun {
-            "the swarm reached the cycle"
-        } else {
-            "the swarm"
-        };
-        crash_source(run, label, effects);
-    }
-    events.cleared
-}
-
-/// Steps a Pac-Man maze. Returns `true` when every dot is eaten.
-fn step_pacman(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, caught) = {
-        let Some(sim) = run.source_pacman_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == PacPhase::Caught)
-    };
-    if events.dots > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if caught {
-        crash_source(run, "a ghost in the maze", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Columns well. Returns `true` when the well is empty.
-fn step_columns(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_columns_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == ColumnsPhase::Lost)
-    };
-    if events.matched > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.landed {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the gem well", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Tetris board. Returns `true` once the line target is met.
-fn step_tetris(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_tetris_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == TetrisPhase::Lost)
-    };
-    if events.lines > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.locked {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the stack of indentation", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Frogger highway. Returns `true` when the far row is reached.
-fn step_frogger(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, splatted) = {
-        let Some(sim) = run.source_frogger_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == FroggerPhase::Splatted)
-    };
-    if events.splatted {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if splatted {
-        crash_source(run, "the async highway", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Q*bert pyramid. Returns `true` once every cube is lit.
-fn step_qbert(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_qbert_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == QbertPhase::Lost)
-    };
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the pyramid edge", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Bomberman room. Returns `true` once the exit is reached.
-fn step_bomberman(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_bomberman_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == BomberPhase::Lost)
-    };
-    if events.crates > 0 {
-        effects.write(MusicSfx::Portal);
-    }
-    if events.lost_life {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "your own bomb", effects);
-    }
-    events.cleared
-}
-
-/// Steps a Plinko board. Returns `true` when the rack beats the target.
-fn step_plinko(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) -> bool {
-    let (events, lost) = {
-        let Some(sim) = run.source_plinko_mut() else {
-            return false;
-        };
-        let events = sim.update(dt);
-        (events, sim.phase == PlinkoPhase::Lost)
-    };
-    if events.scored > 0 {
-        effects.write(MusicSfx::Beam);
-    }
-    if events.cleared {
-        effects.write(MusicSfx::Victory);
-    }
-    if lost {
-        crash_source(run, "the data", effects);
-    }
-    events.cleared
-}
-
 /// Ends a source run through the shared crash path, so the burst, the shake, the
 /// label and `R` behave the same as a grid crash.
 fn crash_source(run: &mut ActiveRun, label: &str, effects: &mut MessageWriter<MusicSfx>) {
@@ -6182,70 +4022,6 @@ fn crash_source(run: &mut ActiveRun, label: &str, effects: &mut MessageWriter<Mu
     run.sim.phase = RunPhase::Crashed;
     run.crash_label = Some(label.to_string());
     run.entering_label = None;
-}
-
-/// Steps one ring's fight and folds its events back into the shared run.
-fn step_disc_fight(run: &mut ActiveRun, dt: f32, effects: &mut MessageWriter<MusicSfx>) {
-    let snapshot = PlayerSnapshot {
-        cell: run.sim.cell,
-        heading: run.sim.heading,
-        running: run.sim.phase == RunPhase::Running,
-    };
-    let events = {
-        let arena = &run.arena;
-        let RunEnvironment::Source { sim, layout, .. } = &mut run.environment else {
-            return;
-        };
-        let Some(disc) = sim.as_disc_mut() else {
-            return;
-        };
-        disc.update(dt, snapshot, arena, layout)
-    };
-
-    // On the final blow the fanfare replaces the crash, so the win lands clean
-    // instead of the derezz thud sitting on top of it.
-    let match_won = events.match_over == Some(DiscPhase::Won);
-    if (events.opponent_hit || events.player_derezz.is_some()) && !match_won {
-        effects.write(MusicSfx::Crash);
-    }
-    if events.shielded || events.player_recalled || events.opponent_threw {
-        effects.write(MusicSfx::Turn);
-    }
-    for _ in &events.collected {
-        effects.write(MusicSfx::Portal);
-    }
-
-    if let Some(reason) = events.player_derezz
-        && run.sim.phase == RunPhase::Running
-    {
-        run.sim.phase = RunPhase::Crashed;
-        run.sim.crash_reason = Some(reason);
-        run.crash_label = Some(disc_crash_label(reason));
-        run.entering_label = None;
-    }
-
-    if let Some((cell, heading)) = events.respawn {
-        run.sim = LightcycleSim::start(cell, heading);
-        run.crash_label = None;
-        run.entering_label = None;
-    }
-
-    if let Some(phase) = events.match_over {
-        match phase {
-            DiscPhase::Lost => {
-                if let RunEnvironment::Source { language, .. } = &run.environment {
-                    run.crash_label = Some(language.crash_flavor(0).to_string());
-                    run.entering_label = None;
-                }
-            }
-            DiscPhase::Won => {
-                run.crash_label = None;
-                run.entering_label = None;
-                effects.write(MusicSfx::Victory);
-            }
-            DiscPhase::Fighting => {}
-        }
-    }
 }
 
 fn disc_crash_label(reason: CrashReason) -> String {
@@ -6819,7 +4595,7 @@ fn offset_cell_point(cell: (i32, i32), direction: (i32, i32), distance: f32) -> 
 }
 
 /// Continuous render pose for the cycle, in cell coordinates.
-struct CyclePose {
+pub(crate) struct CyclePose {
     position: (f32, f32),
     /// Unit travel direction; the cycle's nose points along it.
     direction: Vec2,
@@ -6827,54 +4603,8 @@ struct CyclePose {
     lean: f32,
 }
 
-/// Ground-level world position of the pose; the model's wheels sit at its origin.
-fn pose_world_position(pose: &CyclePose) -> Vec3 {
-    Vec3::new(
-        pose.position.0 * config::GRID_SPACING,
-        0.0,
-        pose.position.1 * config::GRID_SPACING,
-    )
-}
-
-fn pose_forward(pose: &CyclePose) -> Vec3 {
-    Vec3::new(pose.direction.x, 0.0, pose.direction.y)
-}
-
-/// Yaw along the travel direction, then bank into the corner. The bank rotates
-/// about the cycle's own +X, which is its direction of travel, so it leaves the
-/// forward vector untouched.
-fn pose_rotation(pose: &CyclePose) -> Quat {
-    let yaw = match pose_forward(pose).try_normalize() {
-        Some(forward) => Quat::from_rotation_arc(Vec3::X, forward),
-        None => Quat::IDENTITY,
-    };
-    yaw * Quat::from_rotation_x(pose.lean)
-}
-
 fn cycle_world_position(sim: &LightcycleSim) -> Vec3 {
     pose_world_position(&cycle_cell_pose(sim))
-}
-
-/// Continuous cell-space pose for the rendered cycle.
-///
-/// Straight segments use the raw simulation position and heading. Near
-/// queued/applied turns the pose follows a rounded 90-degree arc around the
-/// intersection, taking its facing from the arc's tangent, so the cycle steers
-/// through the corner instead of sliding around it and rotating afterwards.
-fn cycle_cell_pose(sim: &LightcycleSim) -> CyclePose {
-    if let Some(arc) = corner_arc(sim) {
-        return arc.sample(arc.u);
-    }
-
-    let (dx, dz) = sim.heading.delta();
-    CyclePose {
-        position: (
-            sim.cell.0 as f32 + dx as f32 * sim.cell_t,
-            sim.cell.1 as f32 + dz as f32 * sim.cell_t,
-        ),
-        direction: Vec2::new(dx as f32, dz as f32),
-        lean: 0.0,
-    }
 }
 
 /// The live corner the cycle is riding, if any.
@@ -6935,46 +4665,6 @@ fn corner_arc(sim: &LightcycleSim) -> Option<CornerArc> {
     }
 
     None
-}
-
-/// Samples the rounded corner centered on `corner` at `u`, where 0 is the arc
-/// entry (`radius` before the corner, travelling along `incoming`) and 1 is the
-/// exit (`radius` past it, travelling along `outgoing`).
-fn arc_cell_pose(
-    corner: (i32, i32),
-    incoming: (i32, i32),
-    outgoing: (i32, i32),
-    u: f32,
-    radius: f32,
-) -> CyclePose {
-    let center_x = corner.0 as f32 - incoming.0 as f32 * radius + outgoing.0 as f32 * radius;
-    let center_z = corner.1 as f32 - incoming.1 as f32 * radius + outgoing.1 as f32 * radius;
-
-    let start_angle = (-outgoing.1 as f32).atan2(-outgoing.0 as f32);
-    let end_angle = (incoming.1 as f32).atan2(incoming.0 as f32);
-
-    let mut sweep = end_angle - start_angle;
-    if sweep > std::f32::consts::PI {
-        sweep -= std::f32::consts::TAU;
-    } else if sweep < -std::f32::consts::PI {
-        sweep += std::f32::consts::TAU;
-    }
-
-    // Positive sweep curves toward the cycle's right, which is also the
-    // direction it should bank.
-    let u = u.clamp(0.0, 1.0);
-    let theta = start_angle + sweep * u;
-    let turn_sign = sweep.signum();
-
-    CyclePose {
-        position: (
-            center_x + radius * theta.cos(),
-            center_z + radius * theta.sin(),
-        ),
-        direction: Vec2::new(-theta.sin(), theta.cos()) * turn_sign,
-        // Peaks mid-corner and returns upright by the exit.
-        lean: turn_sign * config::LIGHTCYCLE_LEAN_ANGLE * (std::f32::consts::PI * u).sin(),
-    }
 }
 
 fn update_cycle_transform(
@@ -7093,64 +4783,6 @@ fn update_cycle_transform(
     };
 }
 
-/// Eases the camera's follow direction toward `target` with a frame-rate
-/// independent time constant.
-fn advance_chase_forward(current: Vec3, target: Vec3, delta: f32) -> Vec3 {
-    let blend = 1.0 - (-delta / config::LIGHTCYCLE_CAMERA_TURN_LAG).exp();
-    current
-        .lerp(target, blend.clamp(0.0, 1.0))
-        .try_normalize()
-        .unwrap_or(target)
-}
-
-/// Places the chase rig around the cycle for a follow direction and free-look
-/// offset, returning the camera's offset from the cycle and the direction it
-/// views along.
-///
-/// A zero `look` reproduces the fixed rig: [`config::LIGHTCYCLE_CAMERA_DISTANCE`]
-/// behind the direction of travel and [`config::LIGHTCYCLE_CAMERA_HEIGHT`] above
-/// it. Free look orbits that same radius so dragging never pushes the camera
-/// through the floor or into the cycle.
-fn chase_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
-    let view_forward = Quat::from_rotation_y(look.x) * forward;
-    let pitch = (chase_base_pitch() + look.y).clamp(
-        config::LIGHTCYCLE_CAMERA_MIN_PITCH,
-        config::LIGHTCYCLE_CAMERA_MAX_PITCH,
-    );
-    let radius = chase_rig_radius();
-    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
-    (offset, view_forward)
-}
-
-/// Pitch of the default chase rig above the cycle, in radians.
-fn chase_base_pitch() -> f32 {
-    config::LIGHTCYCLE_CAMERA_HEIGHT.atan2(config::LIGHTCYCLE_CAMERA_DISTANCE)
-}
-
-/// Distance from the cycle to the default chase rig.
-fn chase_rig_radius() -> f32 {
-    Vec2::new(
-        config::LIGHTCYCLE_CAMERA_DISTANCE,
-        config::LIGHTCYCLE_CAMERA_HEIGHT,
-    )
-    .length()
-}
-
-/// The river surfer's chase rig: lower and closer than the street rig, so the
-/// water and the gates read as a course rather than a flyover. Same free-look
-/// orbit, same pitch clamps.
-fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
-    let view_forward = Quat::from_rotation_y(look.x) * forward;
-    let pitch = (config::SURFER_CAMERA_HEIGHT.atan2(config::SURFER_CAMERA_DISTANCE) + look.y)
-        .clamp(
-            config::LIGHTCYCLE_CAMERA_MIN_PITCH,
-            config::LIGHTCYCLE_CAMERA_MAX_PITCH,
-        );
-    let radius = Vec2::new(config::SURFER_CAMERA_DISTANCE, config::SURFER_CAMERA_HEIGHT).length();
-    let offset = Vec3::Y * (radius * pitch.sin()) - view_forward * (radius * pitch.cos());
-    (offset, view_forward)
-}
-
 /// Facing, in radians, for a grid heading, matching the field's aim convention
 /// (`0` is `+X`, growing toward `+Z`).
 fn heading_facing(heading: Heading) -> f32 {
@@ -7179,336 +4811,12 @@ fn nearest_heading(angle: f32) -> Heading {
     }
 }
 
-/// Focus point and ring radius while the field is live. Once it is decided the
-/// camera returns to the chase rig so the player can drive out, and a disc-wars
-/// ring keeps the chase rig throughout.
-fn field_camera_focus(run: &ActiveRun) -> Option<(Vec3, f32)> {
-    if !run.asteroid_field_active() {
-        return None;
-    }
-    let sim = run.source_asteroids()?;
-    Some((Vec3::new(sim.center.0, 0.0, sim.center.1), sim.radius))
-}
-
 /// One wall-hug camera pose: where the camera stands and what it looks at, both
 /// as offsets from the character's cell centre, plus the camera height.
-struct HugShot {
+pub(crate) struct HugShot {
     offset: Vec3,
     look: Vec3,
     height: f32,
-}
-
-/// Picks the wall-hug camera pose for a character with its back to a wall.
-///
-/// The camera is treated as an imaginary second figure standing off the wall
-/// and looking back at the real one. Standing past the corner on the open side
-/// and aiming back across it is what keeps every element of the shot in frame
-/// at once: the character sits on one side, the wall he is hugging runs across
-/// the middle as a low edge, and the corner with the corridor around it opens
-/// on the other side.
-///
-/// When the wall runs on without a corner in reach, the camera trails the
-/// character instead and looks down the corridor ahead of him.
-fn hug_camera_shot(room: &StealthSim) -> Option<HugShot> {
-    let wall = room.hug?;
-    let across = room.peek?;
-    let (px, pz) = unit_of(across);
-    let (wx, wz) = unit_of(wall);
-    let spacing = config::GRID_SPACING;
-
-    // Follow the wall toward the peek until it ends. `run` counts the solid
-    // wall cells passed, so the first open cell behind the wall's end is
-    // `run * spacing` along the wall from the character.
-    let mut cell = room.character;
-    let mut run = 0;
-    while run < config::STEALTH_PEEK_STEPS && room.is_solid(step_cell(cell, wall)) {
-        cell = step_cell(cell, across);
-        run += 1;
-    }
-
-    if run <= config::STEALTH_HUG_CORNER_STEPS {
-        // A reachable corner: stand past it and out from the hugged face. The
-        // farther the corner is, the farther out the camera has to stand for
-        // the corner and the corridor behind it to stay inside the frame.
-        let gap = run as f32 * spacing;
-        let out = config::STEALTH_HUG_CAMERA_OUT
-            + run.saturating_sub(1) as f32 * config::STEALTH_HUG_CAMERA_OUT_STEP;
-        let offset = Vec3::new(
-            px * (gap + config::STEALTH_HUG_CAMERA_PAST) - wx * out,
-            0.0,
-            pz * (gap + config::STEALTH_HUG_CAMERA_PAST) - wz * out,
-        );
-        // Aim at the wall-top corner halfway to the gap cell centre: the
-        // character is then on one side of the view and the corridor around
-        // the corner on the other.
-        let look = Vec3::new(
-            (px * gap + wx * spacing) * 0.5,
-            config::STEALTH_WALL_HEIGHT,
-            (pz * gap + wz * spacing) * 0.5,
-        );
-        Some(HugShot {
-            offset,
-            look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
-        })
-    } else {
-        // No corner in reach: trail the character along the wall and look down
-        // the corridor ahead, with the wall beside him sharing the frame.
-        let offset = Vec3::new(
-            -px * config::STEALTH_HUG_CAMERA_BACK - wx * config::STEALTH_HUG_CAMERA_OUT,
-            0.0,
-            -pz * config::STEALTH_HUG_CAMERA_BACK - wz * config::STEALTH_HUG_CAMERA_OUT,
-        );
-        let look = Vec3::new(
-            px * config::STEALTH_HUG_CAMERA_AIM,
-            config::STEALTH_CAMERA_LOOK,
-            pz * config::STEALTH_HUG_CAMERA_AIM,
-        );
-        Some(HugShot {
-            offset,
-            look,
-            height: config::STEALTH_HUG_CAMERA_HEIGHT,
-        })
-    }
-}
-
-// A Bevy system: the queries are the reason for both of these, and folding them
-// into a SystemParam struct would only move the noise.
-#[allow(clippy::too_many_arguments)]
-fn update_chase_camera(
-    state: Res<LightcycleState>,
-    transition: Res<ModeTransition>,
-    time: Res<Time>,
-    mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mouse_motion: Res<AccumulatedMouseMotion>,
-    mut camera: Single<&mut Transform, (With<Camera3d>, Without<CycleEntity>)>,
-    character: Query<&Transform, Only<CharacterEntity, Camera3d, ChaseCamera>>,
-    mut cycle: Query<(&Transform, &mut ChaseCamera), Without<Camera3d>>,
-) {
-    let Ok((cycle, mut chase)) = cycle.single_mut() else {
-        return;
-    };
-    // The flight owns the camera until it lands on this rig; easing the follow
-    // direction or taking a look drag now would move the pose it is aiming for.
-    if state.run.is_none() || transition.is_active() {
-        return;
-    }
-
-    // The platformer is played from the side, riding along with the runner.
-    if let Some(level) = state.run.as_ref().and_then(|run| run.source_platformer()) {
-        let focus = Vec3::new(
-            level.runner.x + config::PLATFORMER_CAMERA_AHEAD,
-            (level.runner.y + config::PLATFORMER_CAMERA_HEIGHT).max(2.0),
-            0.0,
-        );
-        let target = Vec3::new(focus.x, focus.y, config::PLATFORMER_CAMERA_BACK);
-        let blend = 1.0 - (-config::PLATFORMER_CAMERA_LERP * time.delta_secs()).exp();
-        camera.translation = camera.translation.lerp(target, blend);
-        camera.look_at(focus, Vec3::Y);
-        return;
-    }
-
-    // The breaker is played head-on: the whole court stays in frame while the
-    // bike slides along the bottom.
-    if let Some(level) = state.run.as_ref().and_then(|run| run.source_breaker()) {
-        let centre = Vec3::new(0.0, level.court.1 * 0.5, 0.0);
-        camera.translation = Vec3::new(0.0, centre.y, config::BREAKER_CAMERA_BACK);
-        camera.look_at(centre, Vec3::Y);
-        return;
-    }
-
-    // The stealth run is played from above, like a stakeout.
-    if let Some(room) = state.run.as_ref().and_then(|run| run.source_stealth()) {
-        // Follow where the figure is actually drawn, not the cell it is walking
-        // toward: the sim moves in whole cells, so tracking the cell would lurch
-        // the whole view once per step.
-        let focus = character
-            .single()
-            .map(|transform| transform.translation)
-            .unwrap_or_else(|_| config::ground_position(room.character.0, room.character.1));
-        // The camera holds a bearing round the figure and turns steadily toward
-        // whatever the view should be aimed along: round the far side of the peek
-        // direction when the player is backed against a wall, and plain +Z
-        // otherwise.
-        //
-        // It turns at a fixed rate rather than easing, because that is what makes
-        // the swing watchable: an ease puts nearly all the movement in the first
-        // few frames, which is why the perspective read as changing instantly.
-        // The radius and height still ease, so entering a run flies in as before.
-        // Where the view should sit, and what it should look at, both as offsets
-        // from the figure.
-        //
-        // Backed against a wall, the pose comes from [`hug_camera_shot`]: the
-        // camera acts like an imaginary second figure standing off the wall and
-        // looking back at the real one, so the figure, the wall he is hugging,
-        // the corner and the corridor around it all share the frame.
-        let (want_x, want_z, want_height, look) = match hug_camera_shot(room) {
-            Some(shot) => (shot.offset.x, shot.offset.z, shot.height, shot.look),
-            None => (
-                0.0,
-                config::STEALTH_CAMERA_DISTANCE,
-                config::STEALTH_CAMERA_HEIGHT,
-                Vec3::Y * config::STEALTH_CAMERA_LOOK,
-            ),
-        };
-        let want_radius = (want_x * want_x + want_z * want_z).sqrt();
-        let aim = want_z.atan2(want_x);
-        let offset = camera.translation - focus;
-        let bearing = offset.z.atan2(offset.x);
-        let radius = (offset.x * offset.x + offset.z * offset.z).sqrt();
-        let turn = config::STEALTH_SWING_RATE * time.delta_secs();
-        let to_aim = (aim - bearing + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
-            - std::f32::consts::PI;
-        let bearing = bearing + to_aim.clamp(-turn, turn);
-        let blend = 1.0 - (-config::STEALTH_CAMERA_LERP * time.delta_secs()).exp();
-        let radius = radius + (want_radius - radius) * blend;
-        let height = offset.y + (want_height - offset.y) * blend;
-        camera.translation =
-            focus + Vec3::new(bearing.cos() * radius, height, bearing.sin() * radius);
-        camera.look_at(focus + look, Vec3::Y);
-        return;
-    }
-
-    // The asteroid field is played from above: the whole ring stays in frame, so
-    // pivoting the parked cycle does not whip the camera around with it.
-    if let Some((center, radius)) = state.run.as_ref().and_then(field_camera_focus) {
-        let height = radius * config::ASTEROIDS_CAMERA_FIT + 3.0;
-        camera.translation =
-            center + Vec3::new(0.0, height, height * config::ASTEROIDS_CAMERA_LEAN);
-        camera.look_at(center, Vec3::Y);
-        return;
-    }
-
-    // The Galaga field is played from above too: the whole formation stays in
-    // frame while the cycle slides along the bottom.
-    if state
-        .run
-        .as_ref()
-        .and_then(|run| run.source_galaga())
-        .is_some()
-    {
-        let center = Vec3::ZERO;
-        let height = config::GALAGA_CAMERA_HEIGHT;
-        // Lean the camera in from -Z so the cycle (parked at -Z) sits at the
-        // bottom of the screen and the formation hangs above it.
-        camera.translation = center + Vec3::new(0.0, height, -height * config::GALAGA_CAMERA_LEAN);
-        camera.look_at(center, Vec3::Y);
-        return;
-    }
-
-    // The arcade block: each game gets a small fixed camera tailored to its
-    // board, independent of the parked cycle. Every other source game (and
-    // plain directory riding) keeps the chase camera below.
-    let arcade_game = state
-        .run
-        .as_ref()
-        .and_then(|run| run.source_game())
-        .filter(|game| {
-            matches!(
-                game,
-                SourceGame::PacMan
-                    | SourceGame::Columns
-                    | SourceGame::Tetris
-                    | SourceGame::Frogger
-                    | SourceGame::Qbert
-                    | SourceGame::Bomberman
-                    | SourceGame::Plinko
-            )
-        });
-    if let Some(game) = arcade_game {
-        let (translation, target) = match game {
-            SourceGame::PacMan => (
-                Vec3::new(
-                    0.0,
-                    config::PAC_CAMERA_HEIGHT,
-                    config::PAC_CAMERA_HEIGHT * config::PAC_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Frogger => (
-                Vec3::new(
-                    0.0,
-                    config::FROGGER_CAMERA_HEIGHT,
-                    config::FROGGER_CAMERA_HEIGHT * config::FROGGER_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Qbert => (
-                Vec3::new(
-                    0.0,
-                    config::QBERT_CAMERA_HEIGHT,
-                    -config::QBERT_CAMERA_HEIGHT * config::QBERT_CAMERA_LEAN,
-                ),
-                Vec3::new(0.0, 1.0, 0.0),
-            ),
-            SourceGame::Bomberman => (
-                Vec3::new(
-                    0.0,
-                    config::BOMBER_CAMERA_HEIGHT,
-                    config::BOMBER_CAMERA_HEIGHT * config::BOMBER_CAMERA_LEAN,
-                ),
-                Vec3::ZERO,
-            ),
-            SourceGame::Columns => (
-                Vec3::new(0.0, 10.4, config::COLUMNS_CAMERA_BACK),
-                Vec3::new(0.0, 10.4, 0.0),
-            ),
-            SourceGame::Tetris => (
-                Vec3::new(0.0, 12.0, config::TETRIS_CAMERA_BACK),
-                Vec3::new(0.0, 12.0, 0.0),
-            ),
-            SourceGame::Plinko => (Vec3::new(0.0, 0.0, config::PLINKO_CAMERA_BACK), Vec3::ZERO),
-            _ => unreachable!("filtered to the arcade block above"),
-        };
-        camera.translation = translation;
-        camera.look_at(target, Vec3::Y);
-        return;
-    }
-
-    let travel = cycle.rotation * Vec3::X;
-    chase.forward = advance_chase_forward(
-        chase.forward,
-        Vec3::new(travel.x, 0.0, travel.z),
-        time.delta_secs(),
-    );
-
-    if mouse_buttons.pressed(MouseButton::Right) {
-        if mouse_motion.delta != Vec2::ZERO {
-            chase.apply_look_drag(mouse_motion.delta);
-        }
-    } else {
-        chase.recenter_look(time.delta_secs());
-    }
-
-    let cycle_pos = cycle.translation;
-    let surfing = state
-        .run
-        .as_ref()
-        .and_then(|run| run.source_surfer())
-        .is_some();
-    let (offset, view_forward) = if surfing {
-        surfer_camera_rig(chase.forward, chase.look)
-    } else {
-        chase_camera_rig(chase.forward, chase.look)
-    };
-    let lookahead = if surfing {
-        config::SURFER_CAMERA_LOOKAHEAD
-    } else {
-        config::LIGHTCYCLE_CAMERA_LOOKAHEAD
-    };
-    let look_target = cycle_pos + view_forward * lookahead;
-    let mut camera_position = cycle_pos + offset;
-
-    if let Some(fx) = state.crash_fx.as_ref() {
-        let intensity = (fx.timer / fx.duration).clamp(0.0, 1.0);
-        let t = time.elapsed_secs();
-        let shake =
-            Vec3::new((t * 83.0).sin(), (t * 97.0).sin(), (t * 71.0).sin()) * (intensity * 0.9);
-        camera_position += shake;
-    }
-
-    camera.translation = camera_position;
-    camera.look_at(look_target, Vec3::Y);
 }
 
 #[cfg(test)]
