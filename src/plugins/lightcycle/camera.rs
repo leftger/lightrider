@@ -71,9 +71,9 @@ pub(crate) fn update_chase_camera(
     mouse_motion: Res<AccumulatedMouseMotion>,
     mut camera: Single<&mut Transform, (With<Camera3d>, Without<CycleEntity>)>,
     character: Query<&Transform, Only<CharacterEntity, Camera3d, ChaseCamera>>,
-    mut cycle: Query<(&Transform, &mut ChaseCamera), Without<Camera3d>>,
+    mut cycle: Query<(&Transform, &mut ChaseCamera, Option<&crate::plugins::lightcycle::physics::LightcyclePhysics>), Without<Camera3d>>,
 ) {
-    let Ok((cycle, mut chase)) = cycle.single_mut() else {
+    let Ok((cycle, mut chase, physics)) = cycle.single_mut() else {
         return;
     };
     // The flight owns the camera until it lands on this rig; easing the follow
@@ -247,7 +247,14 @@ pub(crate) fn update_chase_camera(
         config::lightcycle::LIGHTCYCLE_CAMERA_LOOKAHEAD
     };
     let look_target = cycle_pos + view_forward * lookahead;
-    let mut camera_position = cycle_pos + offset;
+
+    let speed_multiplier = if let Some(phys) = physics {
+        let ratio = (phys.current_speed / phys.max_speed).clamp(0.0, 1.6);
+        1.0 + ratio * 0.12
+    } else {
+        1.0
+    };
+    let mut camera_position = cycle_pos + offset * speed_multiplier;
 
     if let Some(fx) = state.crash_fx.as_ref() {
         let intensity = (fx.timer / fx.duration).clamp(0.0, 1.0);
@@ -258,5 +265,12 @@ pub(crate) fn update_chase_camera(
     }
 
     camera.translation = camera_position;
-    camera.look_at(look_target, Vec3::Y);
+
+    let up = if let Some(phys) = physics {
+        let bank = phys.current_lean * 0.22;
+        Quat::from_axis_angle(view_forward.normalize_or_zero(), -bank) * Vec3::Y
+    } else {
+        Vec3::Y
+    };
+    camera.look_at(look_target, up);
 }

@@ -9,7 +9,9 @@ use super::despawn_lightcycle_entities;
 use super::space::{
     heading_facing, level_metres, ring_center_world, ring_food_cells, ring_radius_world,
 };
+use super::physics::{ContinuousTrail, GameLayer, LightcyclePhysics};
 use super::trail::spawn_trail_ribbon;
+use avian3d::prelude::*;
 use crate::asteroids::plugin::spawn_asteroid_field;
 use crate::asteroids::sim::AsteroidsSim;
 use crate::bomberman::plugin::spawn_bomber_room;
@@ -347,7 +349,12 @@ pub(crate) fn spawn_run_entities(
     run: &ActiveRun,
 ) {
     let pose = cycle_cell_pose(&run.sim);
-    commands.spawn((
+    let is_bike_run = run.directory_nodes().is_some()
+        || run.is_document()
+        || run.source_disc().is_some()
+        || run.source_snake().is_some();
+
+    let mut cycle_cmd = commands.spawn((
         LightcycleSceneRoot,
         CycleEntity,
         Transform::from_translation(pose_world_position(&pose)).with_rotation(pose_rotation(&pose)),
@@ -365,6 +372,20 @@ pub(crate) fn spawn_run_entities(
             .with_scale(Vec3::splat(config::lightcycle::LIGHTCYCLE_MODEL_SCALE)),
         )],
     ));
+
+    if is_bike_run {
+        cycle_cmd.insert((
+            RigidBody::Dynamic,
+            Collider::capsule(0.45, 1.4),
+            LinearVelocity::ZERO,
+            AngularVelocity::ZERO,
+            LockedAxes::ROTATION_LOCKED.lock_translation_y(),
+            SweptCcd::default(),
+            CollisionLayers::new([GameLayer::Cycle], [GameLayer::Environment, GameLayer::SensorZone]),
+            LightcyclePhysics::new(run.sim.heading.angle()),
+            ContinuousTrail::default(),
+        ));
+    }
 
     spawn_city_floor(commands, assets, meshes, &run.arena);
     match &run.environment {

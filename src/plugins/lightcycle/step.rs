@@ -160,34 +160,9 @@ pub(crate) fn step_lightcycle(
             let arena = &run.arena;
             let sim = &mut run.sim;
             match &run.environment {
-                RunEnvironment::Directory { nodes, cells } => sim.advance(
-                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
-                    |next, sim| {
-                        classify_next_content(
-                            next,
-                            arena,
-                            sim,
-                            cells,
-                            |index| nodes[index].is_dir,
-                            |index| nodes[index].is_markdown(),
-                            |index| nodes[index].is_source(),
-                        )
-                    },
-                ),
-                RunEnvironment::Document { .. } => sim.advance(
-                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
-                    |next, sim| {
-                        classify_next_content(
-                            next,
-                            arena,
-                            sim,
-                            &HashMap::new(),
-                            |_| false,
-                            |_| false,
-                            |_| false,
-                        )
-                    },
-                ),
+                RunEnvironment::Directory { .. } | RunEnvironment::Document { .. } => {
+                    StepOutcome::Moved
+                }
                 RunEnvironment::Source { sim: source, .. } => match source {
                     // Parked while the rocks are live: nothing to advance, and
                     // the field itself is stepped after the loop.

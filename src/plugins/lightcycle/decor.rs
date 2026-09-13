@@ -15,6 +15,8 @@ use crate::lightcycle::scene::StackFrameEntity;
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
 use crate::music::sfx::MusicSfx;
 use crate::state::{FloodState, LightcycleSceneRoot, PauseState, StackMotion};
+use avian3d::prelude::*;
+use super::physics::{GameLayer, ParentPortalSensor};
 use bevy::prelude::*;
 use std::path::Path;
 
@@ -77,6 +79,10 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
         LightcycleSceneRoot,
         Transform::from_translation(translation).with_rotation(rotation),
         Visibility::default(),
+        Sensor,
+        Collider::cuboid(opening, height, depth),
+        CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+        ParentPortalSensor,
     ));
 
     gate.with_children(|frames| {

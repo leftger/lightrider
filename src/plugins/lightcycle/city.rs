@@ -14,6 +14,8 @@ use crate::lightcycle::scene::LightcycleAssets;
 use crate::lightcycle::scene::MarkingQuad;
 use crate::lightcycle::{ActiveRun, RunEnvironment};
 use crate::state::LightcycleSceneRoot;
+use avian3d::prelude::*;
+use super::physics::{DirectorySensor, DocumentSensor, GameLayer, SolidObstacle, SourceSensor};
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
@@ -208,6 +210,21 @@ pub(crate) fn spawn_city_structures(
             Pickable::IGNORE,
         ));
     }
+
+    for structure in &arena.structures {
+        let height = config::lightcycle::LIGHTCYCLE_CITY_FOUNDATION_HEIGHT;
+        let size = config::lightcycle::LIGHTCYCLE_CITY_STRUCTURE_SIZE;
+        let pos = config::world_position(structure.cell.0, structure.cell.1, height);
+        commands.spawn((
+            LightcycleSceneRoot,
+            Transform::from_translation(pos),
+            RigidBody::Static,
+            Collider::cuboid(size, height * 2.0, size),
+            CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+            SolidObstacle,
+            Pickable::IGNORE,
+        ));
+    }
 }
 
 pub(crate) fn spawn_structure_layer(
@@ -340,6 +357,54 @@ pub(crate) fn spawn_towers(
                 Mesh3d(meshes.add(mesh)),
                 MeshMaterial3d(material.clone()),
                 Pickable::IGNORE,
+            ));
+        }
+    }
+
+    for (index, node) in nodes.iter().enumerate() {
+        let (x, z) = tower_position(node.grid_pos);
+        let height = node.calculate_height();
+        let world_pos = config::world_position(x, z, height);
+
+        if node.is_dir {
+            commands.spawn((
+                LightcycleSceneRoot,
+                Transform::from_translation(world_pos),
+                Sensor,
+                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                DirectorySensor(index),
+            ));
+        } else if node.is_source() {
+            commands.spawn((
+                LightcycleSceneRoot,
+                Transform::from_translation(world_pos),
+                Sensor,
+                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                SourceSensor(index),
+            ));
+        } else if node.is_markdown() {
+            commands.spawn((
+                LightcycleSceneRoot,
+                Transform::from_translation(world_pos),
+                Sensor,
+                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                DocumentSensor(index),
+            ));
+        } else {
+            commands.spawn((
+                LightcycleSceneRoot,
+                Transform::from_translation(world_pos),
+                RigidBody::Static,
+                Collider::cuboid(
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
+                    height,
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
+                ),
+                CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+                SolidObstacle,
             ));
         }
     }
@@ -534,6 +599,10 @@ pub(crate) fn spawn_wall_rail(
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.wall_material.clone()),
             Transform::from_translation(translation).with_scale(scale),
+            RigidBody::Static,
+            Collider::cuboid(scale.x, scale.y, scale.z),
+            CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+            SolidObstacle,
             Pickable::IGNORE,
         ));
 

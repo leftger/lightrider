@@ -28,6 +28,8 @@ use crate::state::{FloodState, HistoryState, NavigatorResource, PauseState};
 use crate::stealth::sim::StealthSim;
 use crate::surfer::sim::SurferSim;
 use crate::tetris::sim::TetrisSim;
+use avian3d::prelude::LinearVelocity;
+use super::physics::{ContinuousTrail, LightcyclePhysics};
 use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -44,6 +46,7 @@ pub(crate) fn read_lightcycle_input(
     mut requests: MessageWriter<DirectoryRequested>,
     mut effects: MessageWriter<MusicSfx>,
     mut warps: MessageWriter<WarpRequested>,
+    mut cycle_physics: Query<(&mut Transform, &mut LinearVelocity, &mut LightcyclePhysics, &mut ContinuousTrail), With<CycleEntity>>,
 ) {
     if history.notice_timer > 0.0 {
         history.notice_timer = (history.notice_timer - time.delta_secs()).max(0.0);
@@ -227,6 +230,17 @@ pub(crate) fn read_lightcycle_input(
 
     if restart {
         restart_run(&mut run);
+        if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
+            let pose = cycle_cell_pose(&run.sim);
+            transform.translation = pose_world_position(&pose);
+            transform.rotation = pose_rotation(&pose);
+            linear_velocity.0 = Vec3::ZERO;
+            phys.heading = run.sim.heading.angle();
+            phys.current_speed = 14.0;
+            phys.current_lean = 0.0;
+            phys.target_lean = 0.0;
+            trail.clear();
+        }
         // The wall that ended the last run would otherwise still be standing
         // past the spawn cell, killing the respawn on its first frame.
         flood.recede();
@@ -257,9 +271,9 @@ pub(crate) fn read_lightcycle_input(
 
 pub(crate) fn update_cycle_transform(
     state: Res<LightcycleState>,
-    mut cycle: Query<(&mut Transform, &mut Visibility), With<CycleEntity>>,
+    mut cycle: Query<(&mut Transform, &mut Visibility, Option<&LightcyclePhysics>), With<CycleEntity>>,
 ) {
-    let Ok((mut transform, mut visibility)) = cycle.single_mut() else {
+    let Ok((mut transform, mut visibility, physics)) = cycle.single_mut() else {
         return;
     };
     let Some(run) = state.run.as_ref() else {
@@ -272,6 +286,10 @@ pub(crate) fn update_cycle_transform(
         return;
     }
     *visibility = Visibility::Visible;
+
+    if physics.is_some() {
+        return;
+    }
 
     // In the breaker the bike is the paddle: it slides along the bottom of the
     // court and rebounds the ball.

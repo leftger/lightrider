@@ -1258,3 +1258,51 @@ fn stack_plates_rock_within_their_limit() {
         assert!(z.abs() <= limit + 0.001, "rock z {z} left its limit");
     }
 }
+
+#[test]
+fn continuous_trail_decimates_and_bounds_segments() {
+    use super::physics::ContinuousTrail;
+    let mut trail = ContinuousTrail::default();
+
+    // Small increments below threshold should be skipped
+    trail.append(Vec2::new(0.0, 0.0), 0.0);
+    trail.append(Vec2::new(0.1, 0.0), 0.0); // dist 0.1 < min_sample_dist
+    assert_eq!(trail.points.len(), 1, "small movements below threshold should be decimated");
+
+    // Movement above threshold appends
+    trail.append(Vec2::new(1.0, 0.0), 0.0);
+    assert_eq!(trail.points.len(), 2, "movement above threshold appends");
+
+    // Angular change above threshold appends even if distance is small
+    trail.append(Vec2::new(1.2, 0.0), 0.1);
+    assert_eq!(trail.points.len(), 3, "angle turn above threshold appends");
+}
+
+#[test]
+fn continuous_trail_self_collision_grace_window_and_detection() {
+    use super::physics::{ContinuousTrail, check_trail_collision};
+    let mut trail = ContinuousTrail::default();
+
+    // Build a straight 20m wall from X=0 to X=20 at Z=0
+    for x in 0..=20 {
+        trail.append(Vec2::new(x as f32, 0.0), 0.0);
+    }
+
+    // Bike near the tail (at X=19.5, Z=0.0) is within the 4.0m grace distance:
+    assert!(
+        !check_trail_collision(Vec2::new(19.5, 0.0), &trail, 0.45),
+        "bike within grace distance of tail should not collide with itself"
+    );
+
+    // Bike far from the tail crossing the old trail segment (at X=5.0, Z=0.1):
+    assert!(
+        check_trail_collision(Vec2::new(5.0, 0.1), &trail, 0.45),
+        "bike intersecting older trail segment outside grace distance must trigger collision"
+    );
+
+    // Bike far from the trail (at X=5.0, Z=5.0) should not collide:
+    assert!(
+        !check_trail_collision(Vec2::new(5.0, 5.0), &trail, 0.45),
+        "bike far from trail should not collide"
+    );
+}

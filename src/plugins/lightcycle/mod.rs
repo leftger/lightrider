@@ -19,6 +19,7 @@ pub(crate) mod input;
 pub(crate) mod load;
 pub(crate) mod run;
 pub(crate) mod space;
+pub(crate) mod physics;
 pub(crate) mod step;
 pub(crate) mod trail;
 
@@ -66,7 +67,8 @@ pub struct LightcyclePlugin;
 
 impl Plugin for LightcyclePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<InteractionMode>()
+        app.add_plugins(self::physics::LightcyclePhysicsPlugin)
+            .init_resource::<InteractionMode>()
             .init_resource::<LightcycleState>()
             .init_resource::<PauseState>()
             .init_resource::<CacheState>()
