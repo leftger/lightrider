@@ -382,7 +382,7 @@ pub(crate) fn step_lightcycle(
             state.crash_fx = Some(crate::lightcycle::CrashFx::new(
                 config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
             ));
-            effects.write(MusicSfx::Crash);
+            effects.write(MusicSfx::GameOver);
         }
 
         if run.sim.phase != RunPhase::Running && !source_run {

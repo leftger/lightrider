@@ -1434,3 +1434,344 @@ fn proximity_to_directory_tower_triggers_beaming_up() {
         "entry transport effect must be created on proximity"
     );
 }
+
+use crate::music::sfx::MusicSfx;
+use bevy::prelude::*;
+
+#[derive(Resource, Default)]
+struct SfxLog(Vec<MusicSfx>);
+
+fn record_sfx(mut reader: MessageReader<MusicSfx>, mut log: ResMut<SfxLog>) {
+    for &sfx in reader.read() {
+        log.0.push(sfx);
+    }
+}
+
+
+#[test]
+fn solid_obstacle_collision_rebounds_without_death() {
+    use crate::lightcycle::logic::RunPhase;
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        LightcyclePhysics, SolidObstacle, handle_lightcycle_collisions,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.init_resource::<SfxLog>();
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(Update, (handle_lightcycle_collisions, record_sfx).chain());
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let cycle_entity = app
+        .world_mut()
+        .spawn((
+            CycleEntity,
+            Transform::from_translation(Vec3::new(4.8, 0.0, 0.0)),
+            LinearVelocity(Vec3::new(12.0, 0.0, 0.0)),
+            LightcyclePhysics::new(0.0),
+        ))
+        .id();
+
+    // Wall spanning along Z (scale.z > scale.x * 1.5) at X = 5.0
+    let wall_entity = app
+        .world_mut()
+        .spawn((
+            SolidObstacle,
+            Transform::from_translation(Vec3::new(5.0, 0.0, 0.0))
+                .with_scale(Vec3::new(0.5, 2.0, 10.0)),
+        ))
+        .id();
+
+    app.world_mut().write_message(CollisionStart {
+        collider1: cycle_entity,
+        collider2: wall_entity,
+        body1: Some(cycle_entity),
+        body2: Some(wall_entity),
+    });
+
+    app.update();
+
+    let (phase, crash_fx) = {
+        let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+        let run = state.run.as_ref().expect("run must still exist");
+        (run.sim.phase, state.crash_fx)
+    };
+    assert_eq!(
+        phase,
+        RunPhase::Running,
+        "cycle must not die on solid obstacle collision"
+    );
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::Crash),
+        "rebound must play Crash sound effect"
+    );
+    assert!(
+        !sfx_log.0.contains(&MusicSfx::GameOver),
+        "rebound must not play GameOver sound effect"
+    );
+
+    let mut cycle_query = app.world_mut().query::<(&LinearVelocity, &LightcyclePhysics)>();
+    let (vel, phys) = cycle_query.single(app.world()).expect("cycle must exist");
+    assert!(
+        vel.0.x < 0.0,
+        "linear velocity must reflect away from the wall (in -X), got {}",
+        vel.0.x
+    );
+    assert!(
+        phys.heading.cos() < 0.0,
+        "heading must reflect away from the wall, cos(heading) = {}",
+        phys.heading.cos()
+    );
+    assert!(
+        crash_fx.as_ref().is_some_and(|fx| fx.spawned),
+        "rebound jolt should trigger shake without spawning crash debris"
+    );
+}
+
+#[test]
+fn non_openable_file_collision_causes_death_with_game_over() {
+    use crate::lightcycle::logic::{CrashReason, RunPhase};
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        LightcyclePhysics, NonOpenableFile, SolidObstacle, handle_lightcycle_collisions,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.init_resource::<SfxLog>();
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(Update, (handle_lightcycle_collisions, record_sfx).chain());
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "data.bin".into(),
+        path.join("data.bin"),
+        false,
+        1024,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let cycle_entity = app
+        .world_mut()
+        .spawn((
+            CycleEntity,
+            Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
+            LinearVelocity(Vec3::new(10.0, 0.0, 0.0)),
+            LightcyclePhysics::new(0.0),
+        ))
+        .id();
+
+    let tower_entity = app
+        .world_mut()
+        .spawn((
+            SolidObstacle,
+            NonOpenableFile(0),
+            Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
+        ))
+        .id();
+
+    app.world_mut().write_message(CollisionStart {
+        collider1: cycle_entity,
+        collider2: tower_entity,
+        body1: Some(cycle_entity),
+        body2: Some(tower_entity),
+    });
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(
+        run.sim.phase,
+        RunPhase::Crashed,
+        "hitting a non-openable file tower must be fatal"
+    );
+    assert_eq!(run.sim.crash_reason, Some(CrashReason::File));
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::GameOver),
+        "fatal death must play GameOver sound effect"
+    );
+    assert!(
+        state.crash_fx.as_ref().is_some_and(|fx| !fx.spawned),
+        "fatal death must schedule crash debris spawning"
+    );
+}
+
+#[test]
+fn gc_sweep_collision_causes_death_with_game_over() {
+    use crate::config;
+    use crate::lightcycle::logic::{CrashReason, RunPhase};
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        ContinuousTrail, LightcyclePhysics, step_continuous_physics,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.init_resource::<SfxLog>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, (step_continuous_physics, record_sfx).chain());
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    let min_z = run.arena.min.1 as f32;
+    let max_z = run.arena.max.1 as f32;
+    let gc_sweep_remaining = config::lightcycle::GC_SWEEP_SECONDS * 0.5;
+    let sweep_plane = super::decor::gc_sweep_plane(
+        gc_sweep_remaining,
+        config::lightcycle::GC_SWEEP_SECONDS,
+        min_z,
+        max_z,
+    );
+    let sweep_world_z = sweep_plane * config::GRID_SPACING;
+
+    {
+        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        state.run = Some(run);
+        state.gc_sweep = gc_sweep_remaining;
+    }
+
+    app.world_mut().spawn((
+        CycleEntity,
+        Transform::from_translation(Vec3::new(0.0, 0.0, sweep_world_z)),
+        LinearVelocity(Vec3::new(5.0, 0.0, 0.0)),
+        LightcyclePhysics::new(0.0),
+        ContinuousTrail::default(),
+    ));
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(
+        run.sim.phase,
+        RunPhase::Crashed,
+        "hitting the GC sweep must be fatal"
+    );
+    assert_eq!(run.sim.crash_reason, Some(CrashReason::Hazard));
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::GameOver),
+        "GC sweep death must play GameOver sound effect"
+    );
+}
+
+#[test]
+fn trail_collision_causes_death_with_game_over() {
+    use crate::lightcycle::logic::{CrashReason, RunPhase};
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        ContinuousTrail, LightcyclePhysics, step_continuous_physics,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.init_resource::<SfxLog>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, (step_continuous_physics, record_sfx).chain());
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let mut trail = ContinuousTrail::default();
+    trail.append(Vec2::new(0.0, 0.0), 0.0);
+    trail.append(Vec2::new(0.0, 10.0), 0.0);
+    trail.append(Vec2::new(0.0, 20.0), 0.0);
+
+    app.world_mut().spawn((
+        CycleEntity,
+        Transform::from_translation(Vec3::new(0.0, 0.0, 5.0)),
+        LinearVelocity(Vec3::new(10.0, 0.0, 0.0)),
+        LightcyclePhysics::new(0.0),
+        trail,
+    ));
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(
+        run.sim.phase,
+        RunPhase::Crashed,
+        "intersecting trail must be fatal"
+    );
+    assert_eq!(run.sim.crash_reason, Some(CrashReason::Trail));
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::GameOver),
+        "trail death must play GameOver sound effect"
+    );
+}
+

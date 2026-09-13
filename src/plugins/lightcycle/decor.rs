@@ -545,7 +545,7 @@ pub(crate) fn update_flood(
         state.crash_fx = Some(crate::lightcycle::CrashFx::new(
             config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
         ));
-        effects.write(MusicSfx::Crash);
+        effects.write(MusicSfx::GameOver);
     }
 
     if progress >= 1.0 {

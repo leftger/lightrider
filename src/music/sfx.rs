@@ -24,6 +24,8 @@ pub enum MusicSfx {
     Zap,
     /// Mechanical disk-head seek: a short low thud for directory hops.
     Seek,
+    /// Arcade game-over descending melody on fatal lightcycle crashes.
+    GameOver,
 }
 
 /// One frame of effect output. `freq` is ignored by effects whose oscillator is
@@ -39,7 +41,7 @@ pub struct SfxVoice {
 impl MusicSfx {
     /// Every effect, in graph order. The score walks this to declare and mix the
     /// chains, so a new variant cannot be forgotten in the output.
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Crash,
         Self::Turn,
         Self::Beam,
@@ -47,6 +49,7 @@ impl MusicSfx {
         Self::Victory,
         Self::Zap,
         Self::Seek,
+        Self::GameOver,
     ];
 
     /// Glicol reference chain this effect drives.
@@ -59,6 +62,7 @@ impl MusicSfx {
             Self::Victory => "~sfx_victory",
             Self::Zap => "~sfx_zap",
             Self::Seek => "~sfx_seek",
+            Self::GameOver => "~sfx_game_over",
         }
     }
 
@@ -77,6 +81,9 @@ impl MusicSfx {
             }
             Self::Zap => format!("{chain}: squ 1800.0 >> lpf 5200.0 0.7 >> mul 0.0 >> pan 0.0;"),
             Self::Seek => format!("{chain}: noise 3 >> lpf 3200.0 0.7 >> mul 0.0 >> pan 0.0;"),
+            Self::GameOver => {
+                format!("{chain}: squ 349.23 >> lpf 2800.0 0.7 >> mul 0.0 >> pan 0.0;")
+            }
         }
     }
 
@@ -89,6 +96,7 @@ impl MusicSfx {
             Self::Victory => 1.8,
             Self::Zap => 0.12,
             Self::Seek => 0.24,
+            Self::GameOver => 1.35,
         }
     }
 
@@ -156,6 +164,32 @@ impl MusicSfx {
                 gain: 0.26 * (1.0 - p).powf(2.2),
                 pan: 0.0,
             },
+            Self::GameOver => {
+                // Classic arcade descending defeat jingle:
+                // 4 distinct staccato steps with a drooping tail.
+                const NOTES: [f32; 4] = [349.23, 311.13, 261.63, 196.00];
+                let note_count = NOTES.len() as f32;
+                let step = ((p * note_count) as usize).min(NOTES.len() - 1);
+                let local_p = (p * note_count).fract();
+
+                let base_freq = NOTES[step];
+                let freq = if step == NOTES.len() - 1 {
+                    base_freq * (1.0 - local_p * 0.25)
+                } else {
+                    base_freq
+                };
+
+                let note_env = (1.0 - local_p * 0.85).max(0.0);
+                let attack = (local_p / 0.08).min(1.0);
+                let master_env = (1.0 - p).powf(0.8);
+
+                SfxVoice {
+                    freq,
+                    cutoff: 2800.0 * (1.0 - p * 0.45),
+                    gain: 0.35 * attack * note_env * master_env,
+                    pan: 0.0,
+                }
+            }
         }
     }
 }
@@ -232,5 +266,16 @@ mod tests {
             MusicSfx::Victory.voice(1.0).gain < 0.01,
             "it should release"
         );
+    }
+
+    #[test]
+    fn the_game_over_is_a_descending_arcade_jingle() {
+        assert!(MusicSfx::GameOver.uses_pitch());
+        let early = MusicSfx::GameOver.voice(0.1);
+        let middle = MusicSfx::GameOver.voice(0.6);
+        let late = MusicSfx::GameOver.voice(0.9);
+        assert!(early.freq > middle.freq, "the jingle should descend: {} vs {}", early.freq, middle.freq);
+        assert!(middle.freq > late.freq, "the jingle should continue descending: {} vs {}", middle.freq, late.freq);
+        assert!(MusicSfx::GameOver.duration() > 1.0);
     }
 }

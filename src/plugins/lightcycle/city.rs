@@ -15,7 +15,9 @@ use crate::lightcycle::scene::MarkingQuad;
 use crate::lightcycle::{ActiveRun, RunEnvironment};
 use crate::state::LightcycleSceneRoot;
 use avian3d::prelude::*;
-use super::physics::{DirectorySensor, DocumentSensor, GameLayer, SolidObstacle, SourceSensor};
+use super::physics::{
+    DirectorySensor, DocumentSensor, GameLayer, NonOpenableFile, SolidObstacle, SourceSensor,
+};
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
@@ -422,6 +424,7 @@ pub(crate) fn spawn_towers(
                 CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
                 CollisionEventsEnabled,
                 SolidObstacle,
+                NonOpenableFile(index),
             ));
         }
     }

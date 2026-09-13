@@ -44,9 +44,13 @@ pub struct SourceSensor(pub usize);
 #[derive(Component)]
 pub struct ParentPortalSensor;
 
-/// Marker for solid obstacles (walls, non-enterable files, city architecture).
+/// Marker for solid obstacles (walls, city architecture).
 #[derive(Component)]
 pub struct SolidObstacle;
+
+/// Component attached to non-openable file towers that cause fatal crashes.
+#[derive(Component)]
+pub struct NonOpenableFile(pub usize);
 
 /// Continuous motorcycle-like physics controller for the lightcycle.
 #[derive(Component, Reflect)]
@@ -380,13 +384,44 @@ pub fn step_continuous_physics(
     );
     trail.append(tail_pos, physics.heading);
 
-    // 8. Trail Collision Detection
+    // 8. Garbage Collector Sweep Collision Detection
+    if state.gc_sweep > 0.0 {
+        let min_z = run.arena.min.1 as f32;
+        let max_z = run.arena.max.1 as f32;
+        let sweep_plane = crate::plugins::lightcycle::decor::gc_sweep_plane(
+            state.gc_sweep,
+            config::lightcycle::GC_SWEEP_SECONDS,
+            min_z,
+            max_z,
+        );
+        let sweep_z = sweep_plane * config::GRID_SPACING;
+        let min_x = (run.arena.min.0 as f32 - 1.0) * config::GRID_SPACING;
+        let max_x = (run.arena.max.0 as f32 + 1.0) * config::GRID_SPACING;
+        if (transform.translation.z - sweep_z).abs() < 1.35
+            && transform.translation.x >= min_x
+            && transform.translation.x <= max_x
+        {
+            run.sim.phase = RunPhase::Crashed;
+            run.sim.crash_reason = Some(CrashReason::Hazard);
+            run.crash_label = Some("garbage collector sweep".to_string());
+            linear_velocity.0 = Vec3::ZERO;
+            physics.current_speed = 0.0;
+            effects.write(MusicSfx::GameOver);
+            state.crash_fx = Some(crate::lightcycle::CrashFx::new(
+                config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
+            ));
+        }
+    }
+
+    // 9. Trail Collision Detection
     let cycle_pos_2d = Vec2::new(transform.translation.x, transform.translation.z);
     if check_trail_collision(cycle_pos_2d, &trail, 0.48) {
         run.sim.phase = RunPhase::Crashed;
         run.sim.crash_reason = Some(CrashReason::Trail);
         run.crash_label = Some("your trail".to_string());
-        effects.write(MusicSfx::Crash);
+        linear_velocity.0 = Vec3::ZERO;
+        physics.current_speed = 0.0;
+        effects.write(MusicSfx::GameOver);
         state.crash_fx = Some(crate::lightcycle::CrashFx::new(
             config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
         ));
@@ -412,16 +447,24 @@ pub fn handle_lightcycle_collisions(
     mut documents: MessageWriter<DocumentRequested>,
     mut sources: MessageWriter<SourceRequested>,
     mut effects: MessageWriter<MusicSfx>,
-    cycle_query: Query<(Entity, &Transform, &LinearVelocity, Option<&CollidingEntities>), With<CycleEntity>>,
+    mut cycle_query: Query<(
+        Entity,
+        &mut Transform,
+        &mut LinearVelocity,
+        Option<&mut LightcyclePhysics>,
+        Option<&CollidingEntities>,
+    ), With<CycleEntity>>,
     sensors: Query<(
         Option<&DirectorySensor>,
         Option<&DocumentSensor>,
         Option<&SourceSensor>,
         Option<&ParentPortalSensor>,
+        Option<&NonOpenableFile>,
         Option<&SolidObstacle>,
-    )>,
+        Option<&Transform>,
+    ), Without<CycleEntity>>,
 ) {
-    let Ok((cycle_entity, cycle_transform, linear_velocity, maybe_colliding)) = cycle_query.single() else {
+    let Ok((cycle_entity, mut cycle_transform, mut linear_velocity, mut maybe_physics, maybe_colliding)) = cycle_query.single_mut() else {
         return;
     };
     let Some(mut run) = state.run.take() else {
@@ -456,7 +499,7 @@ pub fn handle_lightcycle_collisions(
     let mut triggered = false;
 
     for other in colliding_targets {
-        let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, solid)) = sensors.get(other) else {
+        let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, non_openable, solid, maybe_obs_transform)) = sensors.get(other) else {
             continue;
         };
 
@@ -526,21 +569,106 @@ pub fn handle_lightcycle_collisions(
             break;
         }
 
-        if solid.is_some() {
-            let impact_speed = linear_velocity.0.length();
-            if impact_speed > 7.0 {
-                run.sim.phase = RunPhase::Crashed;
-                run.sim.crash_reason = Some(CrashReason::Wall);
-                run.crash_label = Some("street barrier".to_string());
-                effects.write(MusicSfx::Crash);
-                state.crash_fx = Some(crate::lightcycle::CrashFx::new(
-                    config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
-                ));
-                triggered = true;
-            } else {
-                // Glancing blow scrape
-                effects.write(MusicSfx::Turn);
+        if let Some(NonOpenableFile(index)) = non_openable {
+            let file_name = run
+                .directory_nodes()
+                .and_then(|nodes| nodes.get(*index))
+                .map(|node| node.name.clone());
+            run.sim.phase = RunPhase::Crashed;
+            run.sim.crash_reason = Some(CrashReason::File);
+            run.crash_label = file_name.or_else(|| Some("unreadable file".to_string()));
+            linear_velocity.0 = Vec3::ZERO;
+            if let Some(ref mut phys) = maybe_physics {
+                phys.current_speed = 0.0;
             }
+            effects.write(MusicSfx::GameOver);
+            state.crash_fx = Some(crate::lightcycle::CrashFx::new(
+                config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
+            ));
+            triggered = true;
+            break;
+        }
+
+        if solid.is_some() {
+            let (cycle_pos, obs_pos, obs_scale) = if let Some(obs_tf) = maybe_obs_transform {
+                (
+                    Vec2::new(cycle_transform.translation.x, cycle_transform.translation.z),
+                    Vec2::new(obs_tf.translation.x, obs_tf.translation.z),
+                    obs_tf.scale,
+                )
+            } else {
+                (
+                    Vec2::new(cycle_transform.translation.x, cycle_transform.translation.z),
+                    Vec2::ZERO,
+                    Vec3::splat(1.0),
+                )
+            };
+
+            let diff = cycle_pos - obs_pos;
+            let mut normal_2d = if obs_scale.x > obs_scale.z * 1.5 {
+                Vec2::new(0.0, if diff.y != 0.0 { diff.y.signum() } else { 1.0 })
+            } else if obs_scale.z > obs_scale.x * 1.5 {
+                Vec2::new(if diff.x != 0.0 { diff.x.signum() } else { 1.0 }, 0.0)
+            } else if diff.length_squared() > 1e-4 {
+                if diff.x.abs() > diff.y.abs() {
+                    Vec2::new(diff.x.signum(), 0.0)
+                } else {
+                    Vec2::new(0.0, diff.y.signum())
+                }
+            } else {
+                Vec2::new(0.0, 1.0)
+            };
+
+            let fwd = if let Some(ref phys) = maybe_physics {
+                Vec2::new(phys.heading.cos(), phys.heading.sin())
+            } else {
+                let v = Vec2::new(linear_velocity.0.x, linear_velocity.0.z);
+                if v.length_squared() > 1e-4 {
+                    v.normalize()
+                } else {
+                    Vec2::new(1.0, 0.0)
+                }
+            };
+
+            if normal_2d.dot(fwd) > 0.0 {
+                normal_2d = -normal_2d;
+            }
+
+            let dot = fwd.dot(normal_2d);
+            let mut reflected = if dot < 0.0 {
+                fwd - 2.0 * dot * normal_2d
+            } else {
+                fwd + normal_2d * 0.5
+            };
+            if reflected.length_squared() > 1e-4 {
+                reflected = reflected.normalize();
+            } else {
+                reflected = normal_2d;
+            }
+
+            let normal_3d = Vec3::new(normal_2d.x, 0.0, normal_2d.y);
+            cycle_transform.translation += normal_3d * 0.45;
+
+            let incoming_speed = if let Some(ref phys) = maybe_physics {
+                phys.current_speed.abs().max(linear_velocity.0.length())
+            } else {
+                linear_velocity.0.length()
+            };
+            let rebound_speed = (incoming_speed * 0.75).clamp(6.0, 16.0);
+            linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 4.0;
+
+            if let Some(ref mut phys) = maybe_physics {
+                phys.heading = reflected.y.atan2(reflected.x);
+                phys.current_speed = rebound_speed;
+                phys.current_lean = -phys.current_lean * 0.4;
+            }
+
+            let mut jolt = crate::lightcycle::CrashFx::new(0.22);
+            jolt.spawned = true;
+            state.crash_fx = Some(jolt);
+
+            effects.write(MusicSfx::Crash);
+            triggered = true;
             break;
         }
     }
@@ -582,6 +710,18 @@ pub fn handle_lightcycle_collisions(
                     sources.write(SourceRequested {
                         path: node.path.clone(),
                     });
+                } else {
+                    run.sim.phase = RunPhase::Crashed;
+                    run.sim.crash_reason = Some(CrashReason::File);
+                    run.crash_label = Some(node.name.clone());
+                    linear_velocity.0 = Vec3::ZERO;
+                    if let Some(ref mut phys) = maybe_physics {
+                        phys.current_speed = 0.0;
+                    }
+                    effects.write(MusicSfx::GameOver);
+                    state.crash_fx = Some(crate::lightcycle::CrashFx::new(
+                        config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
+                    ));
                 }
             }
         }

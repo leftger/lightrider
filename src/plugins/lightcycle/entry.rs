@@ -29,7 +29,7 @@ pub(crate) fn crash_source(
     if run.sim.phase != RunPhase::Running {
         return;
     }
-    effects.write(MusicSfx::Crash);
+    effects.write(MusicSfx::GameOver);
     run.sim.phase = RunPhase::Crashed;
     run.crash_label = Some(label.to_string());
     run.entering_label = None;
