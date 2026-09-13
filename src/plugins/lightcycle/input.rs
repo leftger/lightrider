@@ -155,17 +155,17 @@ pub(crate) fn read_lightcycle_input(
             }
         } else {
             history.notice = "LIGHTCYCLE: CONTINUOUS MOTORCYCLE PHYSICS".to_string();
-            if let Some(run_ref) = state.run.as_ref() {
-                if let Ok((transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
-                    phys.heading = run_ref.sim.heading.angle();
-                    phys.current_speed = 14.0;
-                    phys.current_lean = 0.0;
-                    phys.target_lean = 0.0;
-                    linear_velocity.0 = Vec3::new(phys.heading.cos(), 0.0, phys.heading.sin()) * phys.current_speed;
-                    trail.clear();
-                    let tail_pos = Vec2::new(transform.translation.x, transform.translation.z);
-                    trail.append(tail_pos, phys.heading);
-                }
+            if let Some(run_ref) = state.run.as_ref()
+                && let Ok((transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut()
+            {
+                phys.heading = run_ref.sim.heading.angle();
+                phys.current_speed = 14.0;
+                phys.current_lean = 0.0;
+                phys.target_lean = 0.0;
+                linear_velocity.0 = Vec3::new(phys.heading.cos(), 0.0, phys.heading.sin()) * phys.current_speed;
+                trail.clear();
+                let tail_pos = Vec2::new(transform.translation.x, transform.translation.z);
+                trail.append(tail_pos, phys.heading);
             }
         }
         history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;

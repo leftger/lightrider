@@ -10,7 +10,7 @@
 //!   turned into per-entry voice parameters by the proximity mixer.
 
 use crate::config;
-use crate::lightcycle::logic::stable_path_seed;
+use crate::lightcycle::logic::{stable_path_seed, RunPhase};
 use crate::lightcycle::{LightcycleState, RunEnvironment};
 use crate::load::DirectoryLoaded;
 use crate::music::arp::ArpState;
@@ -18,10 +18,10 @@ use crate::music::engine::AudioHandle;
 use crate::music::proximity::VoiceMixer;
 use crate::music::proximity::{Listener, NodePoint};
 use crate::music::score::full_code;
-use crate::music::score::{arp_message, base_filter_message, voice_message};
+use crate::music::score::{arp_message, base_filter_message, voice_message, wall_message};
 use crate::music::sfx::MusicSfx;
 use crate::music::theme::{ModeProfile, MusicTheme};
-use crate::state::{InteractionMode, OrbitCameraResource};
+use crate::state::{FloodState, InteractionMode, OrbitCameraResource};
 use bevy::prelude::*;
 use std::f32::consts::TAU;
 use std::fmt::Write as _;
@@ -187,6 +187,8 @@ fn update_proximity(
     mode: Res<InteractionMode>,
     orbit: Res<OrbitCameraResource>,
     lightcycle: Res<LightcycleState>,
+    flood: Option<Res<FloodState>>,
+    camera_query: Query<&Transform, With<Camera3d>>,
     mut music: ResMut<MusicState>,
 ) {
     let listener = match *mode {
@@ -234,6 +236,31 @@ fn update_proximity(
         _ => (1.0, 1.0),
     };
 
+    // Approach warning growl for the red memory flood wall.
+    // Attenuates with distance and maps to 3D space using the camera's orientation.
+    let (wall_gain, wall_pan, wall_rate) = if *mode == InteractionMode::Lightcycle
+        && let Some(run) = &lightcycle.run
+        && let Some(flood) = flood.as_ref()
+    {
+        let (cam_pos, cam_right) = if let Some(cam) = camera_query.iter().next() {
+            (cam.translation, cam.rotation * Vec3::X)
+        } else {
+            let pos = config::ground_position(run.sim.cell.0, run.sim.cell.1);
+            (pos, Vec3::X)
+        };
+        compute_wall_audio_params(
+            cam_pos,
+            cam_right,
+            flood.plane,
+            flood.center_x,
+            flood.width,
+            flood.active,
+            run.sim.phase == RunPhase::Running,
+        )
+    } else {
+        (0.0, 0.0, 2.0)
+    };
+
     // The evolving melody plus a slow filter sweep on the base voices. The
     // mixer and arp advance every frame, but the payload is only published at a
     // fixed rate so a fast frame loop cannot starve the audio thread.
@@ -270,14 +297,15 @@ fn update_proximity(
     };
     let _ = write!(
         params,
-        "{}{}",
+        "{}{}{}",
         arp_message(
             arp_voice.freq,
             arp_cutoff,
             arp_voice.gain * arp_gain,
             arp_voice.pan
         ),
-        base_filter_message(theme, *profile, sweep)
+        base_filter_message(theme, *profile, sweep),
+        wall_message(wall_gain, wall_pan, wall_rate),
     );
     if params != last_params {
         handle.set_voice_params(params);
@@ -312,3 +340,170 @@ fn apply_master_gain(music: Res<MusicState>) {
     music.handle.set_volume(music.volume);
     music.handle.set_enabled(music.enabled);
 }
+
+/// Computes the (gain, pan, rate) for the approaching red wall warning growl.
+///
+/// Distance attenuation increases volume quadratically as the wall approaches,
+/// and the pulse rate quickens from 1.8 Hz to 3.4 Hz.
+/// Stereo pan maps the relative direction of the closest point on the wall
+/// onto the camera's local right axis (`cam_right`).
+pub fn compute_wall_audio_params(
+    cam_pos: Vec3,
+    cam_right: Vec3,
+    flood_plane: f32,
+    flood_center_x: f32,
+    flood_width: f32,
+    flood_active: bool,
+    is_running: bool,
+) -> (f32, f32, f32) {
+    if !flood_active || !is_running {
+        return (0.0, 0.0, 2.0);
+    }
+
+    let wall_z = flood_plane * config::GRID_SPACING;
+    let half_width = (flood_width * 0.5).max(1.0);
+    let min_x = flood_center_x - half_width;
+    let max_x = flood_center_x + half_width;
+    let closest_x = cam_pos.x.clamp(min_x, max_x);
+    let closest_y = cam_pos.y.clamp(0.0, config::lightcycle::FLOOD_HEIGHT);
+    let closest_wall = Vec3::new(closest_x, closest_y, wall_z);
+
+    let to_wall = closest_wall - cam_pos;
+    let dist = to_wall.length();
+
+    const MAX_WALL_AUDIBLE_DIST: f32 = 48.0;
+    if dist < MAX_WALL_AUDIBLE_DIST {
+        let closeness = (1.0 - dist / MAX_WALL_AUDIBLE_DIST).clamp(0.0, 1.0);
+        let gain = closeness * closeness * 0.32;
+        let rate = 1.8 + closeness * 1.6;
+        let dir = if dist > 0.001 {
+            to_wall / dist
+        } else {
+            Vec3::ZERO
+        };
+        let pan = (dir.dot(cam_right) * 0.85).clamp(-0.85, 0.85);
+        (gain, pan, rate)
+    } else {
+        (0.0, 0.0, 1.8)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wall_audio_is_silent_when_inactive_or_not_running() {
+        let (gain, _, _) = compute_wall_audio_params(
+            Vec3::ZERO,
+            Vec3::X,
+            0.0,
+            0.0,
+            20.0,
+            false, // inactive
+            true,
+        );
+        assert_eq!(gain, 0.0);
+
+        let (gain, _, _) = compute_wall_audio_params(
+            Vec3::ZERO,
+            Vec3::X,
+            0.0,
+            0.0,
+            20.0,
+            true,
+            false, // crashed / not running
+        );
+        assert_eq!(gain, 0.0);
+    }
+
+    #[test]
+    fn wall_audio_is_silent_when_far_away() {
+        // Wall at Z = -100.0 (grid -50.0), camera at Z = 0.0
+        let (gain, _, _) = compute_wall_audio_params(
+            Vec3::ZERO,
+            Vec3::X,
+            -50.0,
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+        assert_eq!(gain, 0.0);
+    }
+
+    #[test]
+    fn wall_audio_gain_and_rate_increase_as_wall_approaches() {
+        // Wall at 30 units away
+        let (gain_far, _, rate_far) = compute_wall_audio_params(
+            Vec3::new(0.0, 0.0, 30.0),
+            Vec3::X,
+            0.0, // wall at Z = 0
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+
+        // Wall at 10 units away
+        let (gain_close, _, rate_close) = compute_wall_audio_params(
+            Vec3::new(0.0, 0.0, 10.0),
+            Vec3::X,
+            0.0, // wall at Z = 0
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+
+        assert!(gain_far > 0.0, "far wall should be audible within 48 units");
+        assert!(gain_close > gain_far, "closer wall must have higher gain");
+        assert!(rate_close > rate_far, "closer wall must have faster pulse rate");
+    }
+
+    #[test]
+    fn wall_audio_pans_with_camera_orientation() {
+        // Wall is behind the origin at Z = -10.0 (grid plane = -5.0)
+        let cam_pos = Vec3::ZERO;
+        let flood_plane = -5.0; // wall_z = -10.0
+
+        // 1. Camera facing forward (+Z): cam_right is +X. Wall is directly behind.
+        let (_, pan_forward, _) = compute_wall_audio_params(
+            cam_pos,
+            Vec3::X,
+            flood_plane,
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+        assert!(pan_forward.abs() < 1e-4, "direct behind should be centered pan");
+
+        // 2. Camera turned 90 deg right (facing +X): cam_right is +Z.
+        // Wall is at -Z, so wall is to camera's left!
+        let (_, pan_turn_right, _) = compute_wall_audio_params(
+            cam_pos,
+            Vec3::Z,
+            flood_plane,
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+        assert!(pan_turn_right < -0.5, "wall to camera's left must pan negative (left)");
+
+        // 3. Camera turned 90 deg left (facing -X): cam_right is -Z.
+        // Wall is at -Z, so wall is to camera's right!
+        let (_, pan_turn_left, _) = compute_wall_audio_params(
+            cam_pos,
+            -Vec3::Z,
+            flood_plane,
+            0.0,
+            20.0,
+            true,
+            true,
+        );
+        assert!(pan_turn_left > 0.5, "wall to camera's right must pan positive (right)");
+    }
+}
+

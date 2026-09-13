@@ -273,12 +273,10 @@ impl DiscSim {
                 let delta = player.heading.delta();
                 (delta.0 as f32, delta.1 as f32)
             };
-            let start_pos = player.world_pos.unwrap_or_else(|| {
-                (
-                    player.cell.0 as f32 * config::GRID_SPACING,
-                    player.cell.1 as f32 * config::GRID_SPACING,
-                )
-            });
+            let start_pos = player.world_pos.unwrap_or((
+                player.cell.0 as f32 * config::GRID_SPACING,
+                player.cell.1 as f32 * config::GRID_SPACING,
+            ));
             let launch_pos = (
                 start_pos.0 + norm_dir.0 * 1.2,
                 start_pos.1 + norm_dir.1 * 1.2,
@@ -1490,13 +1488,12 @@ mod tests {
         // Step enough to reach the wall and bounce
         for _ in 0..120 {
             sim.update(1.0 / 60.0, p, &arena, &layout);
-            if let Some(ref d) = sim.player_disc {
-                if let Some(vel) = d.world_vel {
-                    if vel.0 < -1.0 {
-                        // Velocity reflected inwards!
-                        break;
-                    }
-                }
+            if let Some(ref d) = sim.player_disc
+                && let Some(vel) = d.world_vel
+                && vel.0 < -1.0
+            {
+                // Velocity reflected inwards!
+                break;
             }
         }
         let disc = sim.player_disc.as_ref().expect("disc should still be active");

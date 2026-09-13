@@ -80,6 +80,17 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
         theme.node_cutoff(theme.seed)
     );
 
+    // Red wall approaching warning growl ("bwop bwop" resonant sweep).
+    // Modulated in 3D space with distance-attenuated gain.
+    let _ = writeln!(
+        code,
+        "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;"
+    );
+    let _ = writeln!(
+        code,
+        "~red_wall: saw 55.0 >> lpf ~wall_lfo 2.5 >> mul 0.0 >> pan 0.0;"
+    );
+
     match profile {
         ModeProfile::Calm => {
             let root = theme.root_hz();
@@ -232,14 +243,14 @@ pub fn output_chain(profile: ModeProfile) -> String {
     for sfx in MusicSfx::ALL {
         let _ = write!(code, " {}", sfx.chain());
     }
-    code.push_str(" ~arp");
+    code.push_str(" ~arp ~red_wall");
     for name in base_refs(profile) {
         let _ = write!(code, " {name}");
     }
     for slot in 0..MAX_VOICES {
         let _ = write!(code, " {}", voice_chain_name(slot));
     }
-    let _ = write!(code, " >> plate {:.2};\n", config::music::MUSIC_REVERB_PLATE_MIX);
+    let _ = writeln!(code, " >> plate {:.2};", config::music::MUSIC_REVERB_PLATE_MIX);
     code
 }
 
@@ -291,6 +302,13 @@ pub fn arp_message(freq: f32, cutoff: f32, gain: f32, pan: f32) -> String {
     format!("~arp,0,0,{freq:.3};~arp,1,0,{cutoff:.3};~arp,2,0,{gain:.4};~arp,3,0,{pan:.3};")
 }
 
+/// A `send_msg` payload that drives the approaching red-wall warning growl.
+/// Layout: `~wall_lfo` node 0 is the LFO rate, `~red_wall` node 2 is gain,
+/// node 3 is stereo pan.
+pub fn wall_message(gain: f32, pan: f32, rate: f32) -> String {
+    format!("~wall_lfo,0,0,{rate:.2};~red_wall,2,0,{gain:.4};~red_wall,3,0,{pan:.3};")
+}
+
 /// A `send_msg` payload that sweeps the profile's base-voice filters. `sweep`
 /// runs 0..1, closing to ~0.65x and opening to ~1.65x of the base cutoff.
 pub fn base_filter_message(theme: &MusicTheme, profile: ModeProfile, sweep: f32) -> String {
@@ -332,6 +350,7 @@ mod tests {
             assert!(code.contains(name));
         }
         assert!(code.contains("~v7"));
+        assert!(code.contains("~red_wall"));
     }
 
     #[test]
@@ -355,6 +374,8 @@ mod tests {
                 assert!(code.contains(&format!("{chain}:")), "missing {chain}");
             }
             assert!(code.contains("~arp"));
+            assert!(code.contains("~wall_lfo"));
+            assert!(code.contains("~red_wall"));
         }
     }
 
@@ -365,6 +386,14 @@ mod tests {
         assert!(message.contains("~arp,1,0,1200.000;"));
         assert!(message.contains("~arp,2,0,0.0800;"));
         assert!(message.contains("~arp,3,0,-0.300;"));
+    }
+
+    #[test]
+    fn wall_message_addresses_the_fixed_node_layout() {
+        let message = wall_message(0.32, -0.45, 2.6);
+        assert!(message.contains("~wall_lfo,0,0,2.60;"));
+        assert!(message.contains("~red_wall,2,0,0.3200;"));
+        assert!(message.contains("~red_wall,3,0,-0.450;"));
     }
 
     #[test]
