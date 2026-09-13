@@ -385,13 +385,18 @@ pub(crate) fn spawn_run_entities(
         cycle_cmd.insert((
             RigidBody::Dynamic,
             Collider::capsule(0.45, 1.4),
+            Restitution::new(0.65),
+            Friction::new(0.2),
             LinearVelocity::ZERO,
             AngularVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED.lock_translation_y(),
             SweptCcd::default(),
             CollisionEventsEnabled,
             CollidingEntities::default(),
-            CollisionLayers::new([GameLayer::Cycle], [GameLayer::Environment, GameLayer::SensorZone]),
+            CollisionLayers::new(
+                [GameLayer::Cycle],
+                [GameLayer::Environment, GameLayer::Hazard, GameLayer::SensorZone],
+            ),
             LightcyclePhysics::new(run.sim.heading.angle()),
             ContinuousTrail::default(),
         ));

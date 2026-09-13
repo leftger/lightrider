@@ -18,13 +18,14 @@ use crate::plugins::lightcycle::trail::{
 use crate::plugins::transition::ModeTransition;
 use crate::state::{NavigatorResource, PauseState, TrailSceneRoot};
 
-/// Collision layers for separating the cycle, static architecture, sensor portals, and trails.
+/// Collision layers for separating the cycle, static architecture, hazards, and sensor portals.
 #[derive(PhysicsLayer, Default)]
 pub enum GameLayer {
     #[default]
     Default,
     Cycle,
     Environment,
+    Hazard,
     SensorZone,
 }
 
@@ -458,7 +459,7 @@ pub fn handle_lightcycle_collisions(
     mut effects: MessageWriter<MusicSfx>,
     mut cycle_query: Query<(
         Entity,
-        &mut Transform,
+        &Transform,
         &mut LinearVelocity,
         Option<&mut LightcyclePhysics>,
         Option<&CollidingEntities>,
@@ -471,12 +472,13 @@ pub fn handle_lightcycle_collisions(
         Option<&NonOpenableFile>,
         Option<&SolidObstacle>,
         Option<&Transform>,
+        Option<&Restitution>,
     ), Without<CycleEntity>>,
 ) {
     if state.classic_mode {
         return;
     }
-    let Ok((cycle_entity, mut cycle_transform, mut linear_velocity, mut maybe_physics, maybe_colliding)) = cycle_query.single_mut() else {
+    let Ok((cycle_entity, cycle_transform, mut linear_velocity, mut maybe_physics, maybe_colliding)) = cycle_query.single_mut() else {
         return;
     };
     let Some(mut run) = state.run.take() else {
@@ -511,7 +513,7 @@ pub fn handle_lightcycle_collisions(
     let mut triggered = false;
 
     for other in colliding_targets {
-        let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, non_openable, solid, maybe_obs_transform)) = sensors.get(other) else {
+        let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, non_openable, solid, maybe_obs_transform, maybe_restitution)) = sensors.get(other) else {
             continue;
         };
 
@@ -653,22 +655,24 @@ pub fn handle_lightcycle_collisions(
             let dot = fwd.dot(normal_2d);
 
             if dot < 0.0 {
-                let mut reflected = fwd - 2.0 * dot * normal_2d;
+                // Avian dynamic restitution scales the reflection elasticity
+                let restitution = maybe_restitution.map_or(0.65, |r| r.coefficient);
+                let mut reflected = fwd - (1.0 + restitution) * dot * normal_2d;
                 if reflected.length_squared() > 1e-4 {
                     reflected = reflected.normalize();
                 } else {
                     reflected = normal_2d;
                 }
 
-                cycle_transform.translation += normal_3d * 0.45;
-
+                // Avian's XPBD constraint solver handles non-penetration position projection,
+                // eliminating manual push_out translation teleportation that causes corner clipping.
                 let incoming_speed = if let Some(ref phys) = maybe_physics {
                     phys.current_speed.abs().max(linear_velocity.0.length())
                 } else {
                     linear_velocity.0.length()
                 };
-                let rebound_speed = (incoming_speed * 0.75).clamp(6.0, 16.0);
-                linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 4.0;
+                let rebound_speed = (incoming_speed * restitution).clamp(6.0, 16.0);
+                linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 2.0;
 
                 if let Some(ref mut phys) = maybe_physics {
                     phys.heading = reflected.y.atan2(reflected.x);
@@ -682,11 +686,8 @@ pub fn handle_lightcycle_collisions(
                 state.crash_fx = Some(jolt);
 
                 effects.write(MusicSfx::Crash);
-            } else {
-                cycle_transform.translation += normal_3d * 0.25;
-                if let Some(ref mut phys) = maybe_physics {
-                    phys.rebound_timer = 0.8;
-                }
+            } else if let Some(ref mut phys) = maybe_physics {
+                phys.rebound_timer = 0.8;
             }
 
             triggered = true;
