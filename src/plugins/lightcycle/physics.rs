@@ -7,7 +7,7 @@ use crate::disc::load::SourceRequested;
 use crate::document::load::DocumentRequested;
 use crate::lightcycle::logic::{CrashReason, RunPhase};
 use crate::lightcycle::scene::CycleEntity;
-use crate::lightcycle::{EntryFx, LightcycleState};
+use crate::lightcycle::{EntryFx, LightcycleState, RunEnvironment};
 use crate::load::DirectoryRequested;
 use crate::music::sfx::MusicSfx;
 use crate::plugins::lightcycle::run::in_lightcycle_mode;
@@ -302,6 +302,9 @@ pub fn step_continuous_physics(
     // If crashed or not running, zero velocity and return
     if run.sim.phase != RunPhase::Running {
         linear_velocity.0 = Vec3::ZERO;
+        physics.current_speed = 0.0;
+        physics.throttle = 0.0;
+        physics.current_lean = 0.0;
         state.run = Some(run);
         return;
     }
@@ -409,7 +412,7 @@ pub fn handle_lightcycle_collisions(
     mut documents: MessageWriter<DocumentRequested>,
     mut sources: MessageWriter<SourceRequested>,
     mut effects: MessageWriter<MusicSfx>,
-    cycle_query: Query<(Entity, &LinearVelocity), With<CycleEntity>>,
+    cycle_query: Query<(Entity, &Transform, &LinearVelocity, Option<&CollidingEntities>), With<CycleEntity>>,
     sensors: Query<(
         Option<&DirectorySensor>,
         Option<&DocumentSensor>,
@@ -418,13 +421,19 @@ pub fn handle_lightcycle_collisions(
         Option<&SolidObstacle>,
     )>,
 ) {
-    let Ok((cycle_entity, linear_velocity)) = cycle_query.single() else {
+    let Ok((cycle_entity, cycle_transform, linear_velocity, maybe_colliding)) = cycle_query.single() else {
         return;
     };
     let Some(mut run) = state.run.take() else {
         return;
     };
 
+    if run.sim.phase != RunPhase::Running {
+        state.run = Some(run);
+        return;
+    }
+
+    let mut colliding_targets = Vec::new();
     for event in collision_events.read() {
         let other = if event.collider1 == cycle_entity || event.body1 == Some(cycle_entity) {
             event.collider2
@@ -433,14 +442,23 @@ pub fn handle_lightcycle_collisions(
         } else {
             continue;
         };
+        colliding_targets.push(other);
+    }
 
+    if let Some(colliding) = maybe_colliding {
+        for &other in &colliding.0 {
+            if !colliding_targets.contains(&other) {
+                colliding_targets.push(other);
+            }
+        }
+    }
+
+    let mut triggered = false;
+
+    for other in colliding_targets {
         let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, solid)) = sensors.get(other) else {
             continue;
         };
-
-        if run.sim.phase != RunPhase::Running {
-            continue;
-        }
 
         if let Some(DirectorySensor(index)) = dir_sensor {
             let details = run
@@ -456,6 +474,7 @@ pub fn handle_lightcycle_collisions(
                     path,
                     config::lightcycle::LIGHTCYCLE_ENTRY_FX_DURATION,
                 ));
+                triggered = true;
             }
             break;
         }
@@ -471,6 +490,7 @@ pub fn handle_lightcycle_collisions(
                 run.crash_label = None;
                 effects.write(MusicSfx::Beam);
                 documents.write(DocumentRequested { path });
+                triggered = true;
             }
             break;
         }
@@ -486,6 +506,7 @@ pub fn handle_lightcycle_collisions(
                 run.crash_label = None;
                 effects.write(MusicSfx::Beam);
                 sources.write(SourceRequested { path });
+                triggered = true;
             }
             break;
         }
@@ -493,12 +514,14 @@ pub fn handle_lightcycle_collisions(
         if parent_sensor.is_some() {
             if run.is_document() || run.is_source() {
                 state.restore_directory = true;
+                triggered = true;
             } else if let Some(parent) = navigator.0.begin_go_to_parent() {
                 run.sim.pause_for_directory_change();
                 run.entering_label = Some("RET → parent".to_string());
                 run.crash_label = None;
                 effects.write(MusicSfx::Portal);
                 requests.write(DirectoryRequested { path: parent });
+                triggered = true;
             }
             break;
         }
@@ -513,11 +536,54 @@ pub fn handle_lightcycle_collisions(
                 state.crash_fx = Some(crate::lightcycle::CrashFx::new(
                     config::lightcycle::LIGHTCYCLE_CRASH_FX_DURATION,
                 ));
+                triggered = true;
             } else {
                 // Glancing blow scrape
                 effects.write(MusicSfx::Turn);
             }
             break;
+        }
+    }
+
+    if !triggered
+        && let RunEnvironment::Directory { cells, nodes } = &run.environment
+    {
+        let cx = (cycle_transform.translation.x / config::GRID_SPACING).round() as i32;
+        let cz = (cycle_transform.translation.z / config::GRID_SPACING).round() as i32;
+        if let Some(&index) = cells.get(&(cx, cz)) {
+            let tower_pos = config::ground_position(cx, cz);
+            let dist_sq = (cycle_transform.translation.x - tower_pos.x).powi(2)
+                + (cycle_transform.translation.z - tower_pos.z).powi(2);
+            let trigger_radius = config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.75 + 0.45;
+            if dist_sq <= trigger_radius * trigger_radius {
+                let node = &nodes[index];
+                if node.is_dir {
+                    run.sim.phase = RunPhase::EnteringDir;
+                    run.entering_label = Some(format!("DMA → {}", node.name));
+                    run.crash_label = None;
+                    effects.write(MusicSfx::Beam);
+                    state.entry_fx = Some(EntryFx::new(
+                        node.path.clone(),
+                        config::lightcycle::LIGHTCYCLE_ENTRY_FX_DURATION,
+                    ));
+                } else if node.is_markdown() {
+                    run.sim.phase = RunPhase::EnteringDir;
+                    run.entering_label = Some(node.name.clone());
+                    run.crash_label = None;
+                    effects.write(MusicSfx::Beam);
+                    documents.write(DocumentRequested {
+                        path: node.path.clone(),
+                    });
+                } else if node.is_source() {
+                    run.sim.phase = RunPhase::EnteringDir;
+                    run.entering_label = Some(node.name.clone());
+                    run.crash_label = None;
+                    effects.write(MusicSfx::Beam);
+                    sources.write(SourceRequested {
+                        path: node.path.clone(),
+                    });
+                }
+            }
         }
     }
 

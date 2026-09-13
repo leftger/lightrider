@@ -16,6 +16,7 @@ use crate::lightcycle::{ActiveRun, LightcycleState};
 use crate::load::DirectoryRequested;
 use crate::music::sfx::MusicSfx;
 use crate::state::{LightcycleSceneRoot, NavigatorResource};
+use avian3d::prelude::Position;
 use bevy::prelude::*;
 
 /// Ends a source run through the shared crash path, so the burst, the shake, the
@@ -38,6 +39,7 @@ pub(crate) fn spawn_crash_effect(
     mut state: ResMut<LightcycleState>,
     assets: Res<LightcycleAssets>,
     mut commands: Commands,
+    cycle_query: Query<&Transform, With<CycleEntity>>,
 ) {
     let Some(fx) = state.crash_fx.as_mut() else {
         return;
@@ -47,11 +49,15 @@ pub(crate) fn spawn_crash_effect(
     }
     fx.spawned = true;
 
-    let Some(run) = state.run.as_ref() else {
-        return;
+    let origin = if let Ok(transform) = cycle_query.single() {
+        transform.translation + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5
+    } else {
+        let Some(run) = state.run.as_ref() else {
+            return;
+        };
+        cycle_world_position(&run.sim)
+            + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5
     };
-    let origin = cycle_world_position(&run.sim)
-        + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5;
     let count = 18;
 
     for index in 0..count {
@@ -138,6 +144,7 @@ pub(crate) fn spawn_entry_effect(
     mut state: ResMut<LightcycleState>,
     assets: Res<LightcycleAssets>,
     mut commands: Commands,
+    cycle_query: Query<&Transform, With<CycleEntity>>,
 ) {
     let Some(fx) = state.entry_fx.as_mut() else {
         return;
@@ -147,10 +154,14 @@ pub(crate) fn spawn_entry_effect(
     }
     fx.spawned = true;
 
-    let Some(run) = state.run.as_ref() else {
-        return;
+    let origin = if let Ok(transform) = cycle_query.single() {
+        Vec3::new(transform.translation.x, 0.0, transform.translation.z)
+    } else {
+        let Some(run) = state.run.as_ref() else {
+            return;
+        };
+        cycle_world_position(&run.sim)
     };
-    let origin = cycle_world_position(&run.sim);
     commands.spawn((
         LightcycleSceneRoot,
         EntryTransportEntity,
@@ -206,7 +217,7 @@ pub(crate) fn animate_entry_effect(
     mut requests: MessageWriter<DirectoryRequested>,
     mut beam: Query<&mut Transform, Only<EntryBeam, EntryHalo, CycleEntity>>,
     mut halos: Query<(&EntryHalo, &mut Transform), Apart<EntryBeam>>,
-    mut cycle: Query<&mut Transform, Only<CycleEntity, EntryBeam, EntryHalo>>,
+    mut cycle: Query<(&mut Transform, Option<&mut Position>), Only<CycleEntity, EntryBeam, EntryHalo>>,
 ) {
     let Some(fx) = state.entry_fx.as_mut() else {
         return;
@@ -226,12 +237,14 @@ pub(crate) fn animate_entry_effect(
         transform.rotate_y(time.delta_secs() * (1.8 + halo.phase));
     }
 
-    // The cycle rises into the beam only after capture is established. Its base
-    // transform is restored by update_cycle_transform immediately before this
-    // system each frame, so this offset cannot accumulate.
-    if let Ok(mut transform) = cycle.single_mut() {
+    // The cycle rises into the beam only after capture is established.
+    if let Ok((mut transform, mut position)) = cycle.single_mut() {
         let lift = smoothstep((progress - 0.28) / 0.72);
-        transform.translation.y += lift * config::lightcycle::LIGHTCYCLE_ENTRY_HALO_HEIGHT * 0.72;
+        let lift_height = lift * config::lightcycle::LIGHTCYCLE_ENTRY_HALO_HEIGHT * 0.72;
+        transform.translation.y = lift_height;
+        if let Some(pos) = position.as_mut() {
+            pos.0.y = lift_height;
+        }
         transform.scale = Vec3::splat(1.0 - lift * 0.72);
     }
 

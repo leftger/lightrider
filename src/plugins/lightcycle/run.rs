@@ -381,6 +381,8 @@ pub(crate) fn spawn_run_entities(
             AngularVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED.lock_translation_y(),
             SweptCcd::default(),
+            CollisionEventsEnabled,
+            CollidingEntities::default(),
             CollisionLayers::new([GameLayer::Cycle], [GameLayer::Environment, GameLayer::SensorZone]),
             LightcyclePhysics::new(run.sim.heading.angle()),
             ContinuousTrail::default(),

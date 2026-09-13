@@ -150,7 +150,9 @@ impl Plugin for LightcyclePlugin {
                     cleanup_orphaned_entry_effect
                         .after(read_lightcycle_input)
                         .before(spawn_entry_effect),
-                    spawn_entry_effect.after(step_lightcycle),
+                    spawn_entry_effect
+                        .after(step_lightcycle)
+                        .after(self::physics::handle_lightcycle_collisions),
                     animate_entry_effect
                         .after(spawn_entry_effect)
                         .after(update_cycle_transform)

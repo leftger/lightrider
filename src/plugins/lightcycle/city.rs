@@ -221,6 +221,7 @@ pub(crate) fn spawn_city_structures(
             RigidBody::Static,
             Collider::cuboid(size, height * 2.0, size),
             CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+            CollisionEventsEnabled,
             SolidObstacle,
             Pickable::IGNORE,
         ));
@@ -371,8 +372,13 @@ pub(crate) fn spawn_towers(
                 LightcycleSceneRoot,
                 Transform::from_translation(world_pos),
                 Sensor,
-                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                Collider::cuboid(
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                    height + 4.0,
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                ),
                 CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                CollisionEventsEnabled,
                 DirectorySensor(index),
             ));
         } else if node.is_source() {
@@ -380,8 +386,13 @@ pub(crate) fn spawn_towers(
                 LightcycleSceneRoot,
                 Transform::from_translation(world_pos),
                 Sensor,
-                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                Collider::cuboid(
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                    height + 4.0,
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                ),
                 CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                CollisionEventsEnabled,
                 SourceSensor(index),
             ));
         } else if node.is_markdown() {
@@ -389,8 +400,13 @@ pub(crate) fn spawn_towers(
                 LightcycleSceneRoot,
                 Transform::from_translation(world_pos),
                 Sensor,
-                Collider::cylinder(height * 0.5, config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 0.7),
+                Collider::cuboid(
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                    height + 4.0,
+                    config::lightcycle::LIGHTCYCLE_TOWER_SIZE * 1.15,
+                ),
                 CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+                CollisionEventsEnabled,
                 DocumentSensor(index),
             ));
         } else {
@@ -400,10 +416,11 @@ pub(crate) fn spawn_towers(
                 RigidBody::Static,
                 Collider::cuboid(
                     config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
-                    height,
+                    height + 4.0,
                     config::lightcycle::LIGHTCYCLE_TOWER_SIZE,
                 ),
                 CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+                CollisionEventsEnabled,
                 SolidObstacle,
             ));
         }
@@ -602,6 +619,7 @@ pub(crate) fn spawn_wall_rail(
             RigidBody::Static,
             Collider::cuboid(scale.x, scale.y, scale.z),
             CollisionLayers::new([GameLayer::Environment], [GameLayer::Cycle]),
+            CollisionEventsEnabled,
             SolidObstacle,
             Pickable::IGNORE,
         ));

@@ -1306,3 +1306,131 @@ fn continuous_trail_self_collision_grace_window_and_detection() {
         "bike far from trail should not collide"
     );
 }
+
+#[test]
+fn colliding_with_directory_sensor_initiates_beaming_up() {
+    use crate::disc::load::SourceRequested;
+    use crate::document::load::DocumentRequested;
+    use crate::lightcycle::logic::RunPhase;
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::load::DirectoryRequested;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{DirectorySensor, handle_lightcycle_collisions};
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.add_message::<DirectoryRequested>();
+    app.add_message::<DocumentRequested>();
+    app.add_message::<SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(Update, handle_lightcycle_collisions);
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let cycle_entity = app
+        .world_mut()
+        .spawn((
+            CycleEntity,
+            Transform::from_translation(Vec3::new(3.0, 0.0, 3.0)),
+            LinearVelocity(Vec3::new(10.0, 0.0, 0.0)),
+        ))
+        .id();
+
+    let sensor_entity = app
+        .world_mut()
+        .spawn((
+            DirectorySensor(0),
+            Transform::from_translation(Vec3::new(3.0, 0.0, 3.0)),
+        ))
+        .id();
+
+    app.world_mut().write_message(CollisionStart {
+        collider1: cycle_entity,
+        collider2: sensor_entity,
+        body1: Some(cycle_entity),
+        body2: None,
+    });
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(run.sim.phase, RunPhase::EnteringDir);
+    assert!(state.entry_fx.is_some(), "entry transport effect must be created");
+}
+
+#[test]
+fn proximity_to_directory_tower_triggers_beaming_up() {
+    use crate::disc::load::SourceRequested;
+    use crate::document::load::DocumentRequested;
+    use crate::lightcycle::logic::RunPhase;
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::load::DirectoryRequested;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::handle_lightcycle_collisions;
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.add_message::<DirectoryRequested>();
+    app.add_message::<DocumentRequested>();
+    app.add_message::<SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(Update, handle_lightcycle_collisions);
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    let (tower_x, tower_z) = match &run.environment {
+        crate::lightcycle::RunEnvironment::Directory { cells, .. } => {
+            *cells.keys().next().unwrap()
+        }
+        _ => unreachable!(),
+    };
+    let tower_pos = config::ground_position(tower_x, tower_z);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    app.world_mut().spawn((
+        CycleEntity,
+        Transform::from_translation(tower_pos),
+        LinearVelocity(Vec3::new(5.0, 0.0, 0.0)),
+    ));
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(run.sim.phase, RunPhase::EnteringDir);
+    assert!(
+        state.entry_fx.is_some(),
+        "entry transport effect must be created on proximity"
+    );
+}

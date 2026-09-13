@@ -80,8 +80,9 @@ pub(crate) fn spawn_parent_gate(commands: &mut Commands, assets: &LightcycleAsse
         Transform::from_translation(translation).with_rotation(rotation),
         Visibility::default(),
         Sensor,
-        Collider::cuboid(opening, height, depth),
+        Collider::cuboid(opening, height + 4.0, depth + 2.0),
         CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+        CollisionEventsEnabled,
         ParentPortalSensor,
     ));
 
