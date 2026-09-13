@@ -1,10 +1,18 @@
+use crate::asteroids::sim::AsteroidsPhase;
 use crate::config;
-use crate::document::DocumentLoadState;
+use crate::disc::combat::DiscPhase;
+use crate::disc::language::SourceGame;
+use crate::document::load::DocumentLoadState;
 use crate::filesystem::loader::{breadcrumb_label, get_path_components, path_component_name};
-use crate::lightcycle::{LightcycleState, RunEnvironment};
+use crate::lightcycle::logic;
+use crate::lightcycle::{LightcycleState, RunEnvironment, SourceSim};
 use crate::load::{DirectoryLoadState, DirectoryLoaded, DirectoryRequested};
 use crate::plugins::music::MusicState;
-use crate::state::{InteractionMode, NavigatorResource, SelectionState, UiNotice, UiSettings};
+use crate::state::{
+    FloodState, HistoryState, InteractionMode, MachineState, NavigatorResource, PauseState,
+    SelectionState, UiNotice, UiSettings,
+};
+use crate::stealth::sim::StealthSim;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use std::path::PathBuf;
@@ -14,6 +22,7 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default())
+            .init_resource::<MachineState>()
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
@@ -25,6 +34,10 @@ impl Plugin for UiPlugin {
                     update_status_text,
                     update_selection_info,
                     update_folio_panel,
+                    sync_radar,
+                    update_radar,
+                    sync_pause_menu,
+                    update_machine_stats,
                 ),
             );
     }
@@ -70,6 +83,249 @@ struct FolioPanel;
 
 #[derive(Component)]
 struct FolioPanelText;
+
+/// The pause/warp menu overlay, present only while a lightcycle run is paused.
+#[derive(Component)]
+struct PauseMenuPanel;
+
+/// The fake machine telemetry line in the header.
+#[derive(Component)]
+struct MachineStatsText;
+
+/// The radar panel, while a stealth run is on and gone when it is not.
+#[derive(Component)]
+struct RadarPanel;
+
+/// One room cell of the radar, so a shade can be set without rebuilding the grid.
+#[derive(Component)]
+struct RadarCell {
+    cell: (i32, i32),
+}
+
+/// Builds the radar for a stealth run and tears it down when the run ends.
+fn sync_radar(
+    mut commands: Commands,
+    state: Res<LightcycleState>,
+    panels: Query<Entity, With<RadarPanel>>,
+) {
+    if state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+        .is_none()
+    {
+        for panel in &panels {
+            commands.entity(panel).despawn();
+        }
+        return;
+    }
+    if !panels.is_empty() {
+        return;
+    }
+
+    // The grid is fixed for the run, so it is built once and only recoloured.
+    let half_x = config::stealth::STEALTH_WIDTH / 2;
+    let half_z = config::stealth::STEALTH_HEIGHT / 2;
+    let cell = config::radar::RADAR_CELL_SIZE;
+    commands
+        .spawn((
+            RadarPanel,
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(config::radar::RADAR_MARGIN),
+                right: Val::Px(config::radar::RADAR_MARGIN),
+                width: Val::Px((half_x * 2 - 1) as f32 * cell),
+                height: Val::Px((half_z * 2 - 1) as f32 * cell),
+                ..default()
+            },
+            BackgroundColor(config::radar::RADAR_PANEL_COLOR),
+            Pickable::IGNORE,
+        ))
+        .with_children(|panel| {
+            for z in -half_z + 1..half_z {
+                for x in -half_x + 1..half_x {
+                    // A map, so room +Z runs up the panel: north on the radar is
+                    // north in the room, whichever way the camera happens to face.
+                    let across = (x + half_x - 1) as f32 * cell;
+                    let down = (half_z - 1 - z) as f32 * cell;
+                    panel.spawn((
+                        RadarCell { cell: (x, z) },
+                        Node {
+                            position_type: PositionType::Absolute,
+                            left: Val::Px(across),
+                            top: Val::Px(down),
+                            width: Val::Px(cell - config::radar::RADAR_CELL_GAP),
+                            height: Val::Px(cell - config::radar::RADAR_CELL_GAP),
+                            ..default()
+                        },
+                        BackgroundColor(config::radar::RADAR_FLOOR_COLOR),
+                        Pickable::IGNORE,
+                    ));
+                }
+            }
+        });
+}
+
+/// A fake syscall trace the header ticker scrolls through.
+const SYSCALL_TRACE: [&str; 8] = [
+    "mov rax, [rdi]",
+    "call read",
+    "test rax, rax",
+    "jz .retry",
+    "push rbp",
+    "add rsp, 0x18",
+    "int 0x80",
+    "ret",
+];
+
+/// Drives the machine telemetry: a syscall trace cursor plus PC/SP, clock, and
+/// temperature readouts that scale with how much of the directory is loaded.
+fn update_machine_stats(
+    time: Res<Time>,
+    mode: Res<InteractionMode>,
+    lightcycle: Res<LightcycleState>,
+    navigator: Res<NavigatorResource>,
+    mut last_step: Local<usize>,
+    mut machine: ResMut<MachineState>,
+    mut text: Query<&mut Text, With<MachineStatsText>>,
+) {
+    let Ok(mut text) = text.single_mut() else {
+        return;
+    };
+
+    if *mode != InteractionMode::Lightcycle {
+        if **text != "CPU IDLE · BUS 0x00" {
+            **text = "CPU IDLE · BUS 0x00".to_string();
+        }
+        return;
+    }
+
+    let steps = (time.elapsed_secs() / 0.35) as usize;
+    // The ticker advances about three times a second: rebuilding the line and
+    // counting the directory every frame would be pure waste.
+    if steps == *last_step
+        && !navigator.is_changed()
+        && !lightcycle.is_changed()
+        && !mode.is_changed()
+    {
+        return;
+    }
+    *last_step = steps;
+
+    let (dirs, files) = navigator.0.count_by_type();
+    let load = files as f32 + dirs as f32 * 0.5;
+    let boost = if lightcycle.cache_boost > 0.0 {
+        900.0
+    } else {
+        0.0
+    };
+    machine.index = steps % SYSCALL_TRACE.len();
+    machine.pc = (0x1000 + steps as u32 * 4) & 0xFFFF;
+    machine.sp = 0xFFF0_u32.wrapping_sub(steps as u32 * 4) & 0xFFFF;
+    machine.clock_mhz = 3200.0 + (load * 40.0).min(2600.0) + boost;
+    machine.temperature = 38.0 + (load * 0.35).min(28.0);
+
+    let trace = SYSCALL_TRACE[machine.index];
+    let line = format!(
+        "{trace} · PC 0x{:04X} · SP 0x{:04X} · {:.2} GHz · {:.0}°C",
+        machine.pc,
+        machine.sp,
+        machine.clock_mhz / 1000.0,
+        machine.temperature,
+    );
+    if **text != line {
+        **text = line;
+    }
+}
+
+/// Builds, refreshes and tears down the pause/warp menu overlay.
+fn sync_pause_menu(
+    mut commands: Commands,
+    mode: Res<InteractionMode>,
+    pause: Res<PauseState>,
+    panels: Query<Entity, With<PauseMenuPanel>>,
+    mut labels: Query<&mut Text, With<PauseMenuPanel>>,
+) {
+    if *mode != InteractionMode::Lightcycle || !pause.paused {
+        for panel in &panels {
+            commands.entity(panel).despawn();
+        }
+        return;
+    }
+
+    let mut text = String::from("PAUSED\n\n");
+    for (index, game) in SourceGame::ALL.iter().enumerate() {
+        let cursor = if index == pause.warp_index {
+            "> "
+        } else {
+            "  "
+        };
+        text.push_str(&format!("{cursor}{:>2}. {}\n", index + 1, game.label()));
+    }
+    text.push_str("\nW/S select · ENTER/SPACE warp · ESC/P resume");
+
+    if let Ok(mut label) = labels.single_mut() {
+        if **label != text {
+            **label = text;
+        }
+        return;
+    }
+
+    commands
+        .spawn((
+            PauseMenuPanel,
+            Node {
+                position_type: PositionType::Absolute,
+                left: percent(50.0),
+                top: percent(50.0),
+                width: px(360.0),
+                padding: UiRect::all(px(20.0)),
+                ..default()
+            },
+            BackgroundColor(config::UI_PANEL_COLOR),
+            Pickable::IGNORE,
+        ))
+        .with_child((
+            Text::new(text),
+            TextFont {
+                font_size: bevy::text::FontSize::Px(20.0),
+                ..default()
+            },
+            TextColor(config::TEXT_PRIMARY),
+        ));
+}
+
+/// Shades the radar: cover, the figure, the patrols, and everything a patrol can
+/// see.
+///
+/// The sight test is the sim's own, so the radar cannot disagree with the guards
+/// about where is safe to stand — which is the one thing a stealth map must get
+/// right.
+fn update_radar(state: Res<LightcycleState>, mut cells: Query<(&RadarCell, &mut BackgroundColor)>) {
+    let Some(room) = state
+        .run
+        .as_ref()
+        .and_then(|run| run.source_sim::<StealthSim>())
+    else {
+        return;
+    };
+    for (cell, mut shade) in &mut cells {
+        let at = cell.cell;
+        let guard_here = room.guards.iter().any(|guard| guard.cell() == at);
+        let seen = room.guards.iter().any(|guard| room.guard_sees(guard, at));
+        shade.0 = if at == room.character {
+            config::radar::RADAR_PLAYER_COLOR
+        } else if guard_here {
+            config::radar::RADAR_GUARD_COLOR
+        } else if seen {
+            config::radar::RADAR_CONE_COLOR
+        } else if room.is_solid(at) {
+            config::radar::RADAR_SOLID_COLOR
+        } else {
+            config::radar::RADAR_FLOOR_COLOR
+        };
+    }
+}
 
 fn setup_ui(mut commands: Commands) {
     commands
@@ -127,6 +383,20 @@ fn setup_ui(mut commands: Commands) {
                             ..default()
                         },
                         TextColor(config::TEXT_SECONDARY),
+                    ));
+                    // Machine telemetry sits at the far right of the header.
+                    header.spawn((
+                        MachineStatsText,
+                        Node {
+                            margin: UiRect::left(Val::Auto),
+                            ..default()
+                        },
+                        Text::new(""),
+                        TextFont {
+                            font_size: bevy::text::FontSize::Px(config::LABEL_FONT_SIZE),
+                            ..default()
+                        },
+                        TextColor(config::TEXT_PRIMARY),
                     ));
                 });
 
@@ -403,8 +673,8 @@ fn update_footer_text(
         )
     } else {
         (
-            "LIGHTCYCLE  |  A/D: Turn  |  R: Restart  |  M: Explorer  |  Folders: enter  |  .md: read  |  Files/trail/wall: crash  |  Gate: parent/close",
-            "MOUSE: Hold right-drag to look around  |  u/-: Parent directory or close document  |  Breadcrumb: jump to folder  |  Approach text for the folio panel",
+            "LIGHTCYCLE  |  A/D: Turn, Pivot, Walk or Slide  |  WASD: walk in stealth  |  R: Restart  |  M: Explorer  |  Folders: enter  |  .md: read  |  source: .rs/.cpp fight, .c rocks, .py snake, .slint platformer, .lua breaker, .sh stealth (Space: throw/fire/jump/serve)  |  Shift: bullet time  |  Q: recall  |  Gate: parent/close",
+            "MOUSE: Hold right-drag to look around  |  u/-: Parent directory or close  |  Breadcrumb: jump to folder  |  Approach text for the folio panel",
         )
     };
 
@@ -429,6 +699,8 @@ fn update_status_text(
     load_state: Res<DirectoryLoadState>,
     ui_notice: Res<UiNotice>,
     lightcycle: Res<LightcycleState>,
+    flood: Res<FloodState>,
+    history: Res<HistoryState>,
     document_load: Res<DocumentLoadState>,
     music: Res<MusicState>,
     diagnostics: Res<DiagnosticsStore>,
@@ -442,7 +714,7 @@ fn update_status_text(
     let mut status = if *mode == InteractionMode::Lightcycle {
         match &lightcycle.run {
             Some(run) => {
-                let mut status = format!("MODE: LIGHTCYCLE | TRAIL: {}", run.sim.trail.len());
+                let mut status = format!("MODE: LIGHTCYCLE | BUS TRACE: {}", run.sim.trail.len());
                 if run.sim.phase == crate::lightcycle::logic::RunPhase::Ready {
                     status = format!("{status} | READY: no empty spawn cell");
                 }
@@ -459,6 +731,81 @@ fn update_status_text(
                     }
                     if let Some(heading) = layout.current_heading(run.sim.cell) {
                         status = format!("{status} | {heading}");
+                    }
+                    if layout.lossy_utf8 {
+                        status = format!("{status} | lossy utf-8");
+                    }
+                }
+                if let RunEnvironment::Source {
+                    name,
+                    layout,
+                    sim,
+                    language,
+                    ..
+                } = &run.environment
+                {
+                    match sim {
+                        SourceSim::Asteroids(asteroids) => {
+                            status = format!(
+                                "ASTEROIDS {} | LIVES {} | RING: {name} | {} | {status}",
+                                asteroids.score,
+                                asteroids.lives,
+                                language.name(),
+                            );
+                            if asteroids.phase == AsteroidsPhase::Flying {
+                                status = format!("{status} | rocks: {}", asteroids.rocks.len());
+                            } else {
+                                status = format!(
+                                    "{status} | ASTEROIDS: {} | drive out the gate",
+                                    asteroids.phase.label()
+                                );
+                            }
+                        }
+                        SourceSim::Snake(snake) => {
+                            status = format!(
+                                "SNAKE {} | LEFT {} | TAIL {} | RING: {name} | {} | {status}",
+                                snake.eaten,
+                                snake.remaining(),
+                                snake.max_tail,
+                                language.name(),
+                            );
+                            status = format!(
+                                "{status} | EXIT: {}",
+                                if snake.exit_open { "OPEN" } else { "LOCKED" }
+                            );
+                        }
+                        SourceSim::DiscWars(disc) => {
+                            status = format!(
+                                "DISC {}-{} | RING: {name} | {} | {status}",
+                                disc.player_score,
+                                disc.opponent_score,
+                                language.compiler(),
+                            );
+                            if disc.phase != DiscPhase::Fighting {
+                                status = format!("{status} | DISC: {}", disc.phase.label());
+                            }
+                            if let Some(pickup) = disc.last_pickup {
+                                status = format!("{status} | pickup: {}", pickup.label());
+                            }
+                            // LOCK means a throw would currently line up a clear shot.
+                            if disc.has_clear_shot(run.sim.cell, &run.arena) {
+                                status = format!("{status} | LOCK");
+                            }
+                        }
+                        // The uniform games own their status text beside their
+                        // sim. Asteroids, snake and disc wars keep their own
+                        // arms because they carry extra run context.
+                        _ => {
+                            if let Some(game) = sim.as_game() {
+                                status = game.status_line(name, language.name(), &status);
+                            }
+                        }
+                    }
+                    if lightcycle.slow_motion {
+                        status = format!("{status} | BULLET TIME");
+                    }
+                    if layout.truncated {
+                        status = format!("{status} | truncated");
                     }
                     if layout.lossy_utf8 {
                         status = format!("{status} | lossy utf-8");
@@ -502,6 +849,46 @@ fn update_status_text(
             "SHOWING FIRST {} ENTRIES | {status}",
             crate::config::MAX_DIRECTORY_ENTRIES
         );
+    }
+
+    if *mode == InteractionMode::Lightcycle {
+        if lightcycle.grace_room {
+            status = format!("{status} | GRACE ROOM · NO HAZARDS");
+        }
+        // Name the ground layout, so the procedural variety is legible.
+        if lightcycle.run.is_some() {
+            let seed = logic::stable_path_seed(&navigator.0.current_path);
+            status = format!(
+                "{status} | GROUND: {}",
+                logic::ViaPattern::from_seed(seed).label().to_uppercase()
+            );
+        }
+        if lightcycle.quarantined {
+            status = format!("{status} | QUARANTINE");
+        }
+        if flood.active && flood.timer > flood.delay {
+            status = format!("{status} | MEM OVERFLOW");
+        }
+        if !history.notice.is_empty() {
+            status = format!("{status} | {}", history.notice);
+        } else if history.depth() > 1 {
+            let redo = if history.can_fast_forward() {
+                " ↻"
+            } else {
+                ""
+            };
+            status = format!("{status} | HISTORY {}{redo}", history.depth());
+        }
+        if lightcycle.cache_boost > 0.0 {
+            status = format!("{status} | CACHE HIT");
+        }
+        // The stall itself is under a third of a second, so the label follows
+        // the sweep instead: it is up for as long as the wave is on the arena.
+        if lightcycle.gc_pause > 0.0 {
+            status = format!("{status} | **GC PAUSE**");
+        } else if lightcycle.gc_sweep > 0.0 {
+            status = format!("{status} | GC SWEEP");
+        }
     }
 
     if ui_settings.show_fps
@@ -621,15 +1008,27 @@ fn update_folio_panel(
             } => focused_block.and_then(|index| {
                 layout.blocks.get(index).map(|block| {
                     let kind = match block.kind {
-                        crate::document::DocBlockKind::Heading(level) => {
+                        crate::document::parse::DocBlockKind::Heading(level) => {
                             format!("HEADING {level}")
                         }
-                        crate::document::DocBlockKind::Paragraph => "PARAGRAPH".to_string(),
+                        crate::document::parse::DocBlockKind::Paragraph => "PARAGRAPH".to_string(),
                     };
                     format!("{name}\n{}\n{kind}\n\n{}", path.display(), block.text)
                 })
             }),
             RunEnvironment::Directory { .. } => None,
+            RunEnvironment::Source {
+                name,
+                path,
+                layout,
+                focused_block,
+                ..
+            } => focused_block.and_then(|index| {
+                layout
+                    .blocks
+                    .get(index)
+                    .map(|block| format!("{name}\n{}\nSIGNATURE\n\n{}", path.display(), block.text))
+            }),
         });
 
     if let Some(content) = content {

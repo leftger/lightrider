@@ -1,26 +1,47 @@
 use bevy::prelude::*;
 
+mod asteroids;
+mod bomberman;
+mod breaker;
+mod byte_load;
 mod cli;
+mod columns;
 mod command;
 mod config;
+mod disc;
 mod document;
 mod filesystem;
+mod frogger;
+mod galaga;
+mod grid;
 mod lightcycle;
 mod load;
+mod minigame;
 mod music;
+mod pacman;
 mod platform;
+mod platformer;
+mod plinko;
 mod plugins;
+mod qbert;
+mod rng;
+mod snake;
 mod state;
+mod stealth;
+mod surfer;
+mod tetris;
+mod text;
 
 use cli::Options;
 use config::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
-use document::DocumentLoadState;
+use disc::load::SourceLoadState;
+use document::load::DocumentLoadState;
 use load::DirectoryLoadState;
 use plugins::RaptorPlugins;
 use plugins::music::MusicState;
 use state::{
-    NavigatorResource, OrbitCameraResource, ScanEffectResource, SelectionState, UiNotice,
-    UiSettings,
+    NavigatorResource, OrbitCameraResource, RenderSettings, ScanEffectResource, SelectionState,
+    UiNotice, UiSettings,
 };
 
 fn main() {
@@ -48,9 +69,16 @@ fn main() {
         .insert_resource(UiNotice::default())
         .insert_resource(DirectoryLoadState::default())
         .insert_resource(DocumentLoadState::default())
+        .insert_resource(SourceLoadState::default())
         .insert_resource(OrbitCameraResource::default())
         .insert_resource(SelectionState::default())
         .insert_resource(ScanEffectResource::default())
+        .insert_resource(RenderSettings {
+            msaa: options.render.msaa,
+            bloom: options.render.bloom,
+            scanlines: options.render.scanlines,
+            vignette: options.render.vignette,
+        })
         .insert_resource(MusicState::with_settings(
             options.music,
             options.music_volume,
@@ -60,7 +88,10 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: WINDOW_TITLE.into(),
-                        resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
+                        resolution: options
+                            .window
+                            .unwrap_or((WINDOW_WIDTH, WINDOW_HEIGHT))
+                            .into(),
                         ..default()
                     }),
                     ..default()
@@ -71,5 +102,11 @@ fn main() {
                 }),
         )
         .add_plugins(RaptorPlugins)
+        .add_plugins(plugins::bench::BenchmarkPlugin {
+            config: plugins::bench::BenchConfig {
+                seconds: options.bench_seconds,
+                ride: options.bench_ride,
+            },
+        })
         .run();
 }

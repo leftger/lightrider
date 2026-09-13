@@ -1,49 +1,36 @@
+//! Background byte loader for markdown documents.
+//!
+//! The state machine and the capped reader live in [`crate::byte_load`]; what is
+//! left here is this loader's policy: which cap applies, and what the file is
+//! called when it is refused.
+
+use crate::byte_load::{ByteLoad, read_capped};
 use crate::config;
 use bevy::prelude::{Message, Resource};
-use bevy::tasks::{IoTaskPool, Task, futures::check_ready};
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 #[derive(Resource, Default)]
-pub struct DocumentLoadState {
-    pub generation: u64,
-    pub loading: bool,
-    pub pending_task: Option<Task<DocumentLoadResult>>,
-    pub last_error: Option<String>,
+pub struct DocumentLoadState(ByteLoad<Vec<u8>>);
+
+impl Deref for DocumentLoadState {
+    type Target = ByteLoad<Vec<u8>>;
+
+    fn deref(&self) -> &ByteLoad<Vec<u8>> {
+        &self.0
+    }
+}
+
+impl DerefMut for DocumentLoadState {
+    fn deref_mut(&mut self) -> &mut ByteLoad<Vec<u8>> {
+        &mut self.0
+    }
 }
 
 impl DocumentLoadState {
-    pub fn next_generation(&mut self) -> u64 {
-        self.generation += 1;
-        self.generation
-    }
-
-    pub fn poll(&mut self) -> Option<DocumentLoadResult> {
-        let result = check_ready(self.pending_task.as_mut()?)?;
-        self.pending_task = None;
-        if result.generation == self.generation {
-            self.loading = false;
-        }
-        Some(result)
-    }
-
     pub fn begin_load(&mut self, generation: u64, path: PathBuf) {
-        self.loading = true;
-        self.last_error = None;
-        self.pending_task = Some(IoTaskPool::get().spawn(async move {
-            let result = load_document_bytes(&path);
-            DocumentLoadResult {
-                generation,
-                path,
-                result,
-            }
-        }));
+        self.0.begin_load(generation, path, load_document_bytes);
     }
-}
-
-pub struct DocumentLoadResult {
-    pub generation: u64,
-    pub path: PathBuf,
-    pub result: Result<Vec<u8>, String>,
 }
 
 #[derive(Message, Debug)]
@@ -64,19 +51,34 @@ pub struct DocumentLoadFailed {
 }
 
 fn load_document_bytes(path: &std::path::Path) -> Result<Vec<u8>, String> {
-    let metadata = std::fs::metadata(path).map_err(|error| error.to_string())?;
-    if metadata.is_dir() {
-        return Err("path is a directory".to_string());
-    }
-    if metadata.len() > config::DOCUMENT_MAX_BYTES as u64 * 4 {
-        return Err(format!(
-            "document larger than {} bytes",
-            config::DOCUMENT_MAX_BYTES
+    read_capped(path, config::document::DOCUMENT_MAX_BYTES, "document")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::load_document_bytes;
+    use std::io::Write;
+    use std::path::PathBuf;
+
+    fn temp_path(name: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "raptor-document-load-{}-{name}",
+            std::process::id()
         ));
+        path
     }
-    let mut bytes = std::fs::read(path).map_err(|error| error.to_string())?;
-    if bytes.len() > config::DOCUMENT_MAX_BYTES {
-        bytes.truncate(config::DOCUMENT_MAX_BYTES);
+
+    /// The shared reader covers the error cases; what matters here is that the
+    /// document loader is wired to it.
+    #[test]
+    fn reading_a_document_returns_its_bytes() {
+        let path = temp_path("ok.md");
+        std::fs::File::create(&path)
+            .unwrap()
+            .write_all(b"# title")
+            .unwrap();
+        assert_eq!(load_document_bytes(&path).unwrap(), b"# title");
+        let _ = std::fs::remove_file(path);
     }
-    Ok(bytes)
 }

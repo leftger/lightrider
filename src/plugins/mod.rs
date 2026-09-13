@@ -1,3 +1,4 @@
+pub mod bench;
 pub mod camera;
 pub mod effects;
 pub mod filesystem;
@@ -6,6 +7,7 @@ pub mod lightcycle;
 pub mod music;
 pub mod scene;
 pub mod selection;
+pub mod transition;
 pub mod ui;
 
 use bevy::prelude::*;
@@ -22,6 +24,7 @@ impl Plugin for RaptorPlugins {
             labels::LabelsPlugin,
             ui::UiPlugin,
             effects::EffectsPlugin,
+            transition::ModeTransitionPlugin,
             lightcycle::LightcyclePlugin,
             music::MusicPlugin,
         ));

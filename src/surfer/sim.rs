@@ -1,0 +1,641 @@
+//! Bevy-free river surfer: a hoverbike runs a procedural river to the finish.
+//!
+//! The course runs down the `Z` axis of the lightcycle world, on the `X`/`Z`
+//! plane every other game uses. The river is a ribbon whose centreline sways
+//! with a seeded sine, and the bike rides it with an always-on throttle: steer
+//! to stay between the banks, hold boost through the gates, and cross the
+//! finish gate at the far end. Running onto a bank or into a rock ends the run.
+
+use crate::config;
+use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
+use crate::rng::Rng;
+
+/// A rock sticking out of the river. Touching one ends the run.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Rock {
+    pub x: f32,
+    pub z: f32,
+    pub radius: f32,
+}
+
+impl Rock {
+    /// Axis-aligned half-extents of the obstacle's bounding box.
+    #[allow(dead_code)]
+    pub fn half_extents(&self) -> (f32, f32) {
+        (self.radius, self.radius)
+    }
+
+    /// World-space bounding box `(min_x, max_x, min_z, max_z)`.
+    #[allow(dead_code)]
+    pub fn bounds(&self) -> (f32, f32, f32, f32) {
+        (
+            self.x - self.radius,
+            self.x + self.radius,
+            self.z - self.radius,
+            self.z + self.radius,
+        )
+    }
+
+    /// Tests whether the bike's oriented bounding box (OBB) intersects the rock's
+    /// axis-aligned bounding box (AABB) using the Separating Axis Theorem (SAT).
+    pub fn intersects_bike(&self, bike_x: f32, bike_z: f32, heading: f32) -> bool {
+        let c = heading.cos();
+        let s = heading.sin();
+        let dx = bike_x - self.x;
+        let dz = bike_z - self.z;
+
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+        let er = config::surfer::SURFER_BOAT_HALF_WIDTH;
+        let rx = self.radius;
+        let rz = self.radius;
+
+        // Axis 1: Rock X axis (1, 0)
+        if dx.abs() > rx + ef * c.abs() + er * s.abs() {
+            return false;
+        }
+
+        // Axis 2: Rock Z axis (0, 1)
+        if dz.abs() > rz + ef * s.abs() + er * c.abs() {
+            return false;
+        }
+
+        // Axis 3: Bike Forward axis (c, s)
+        if (dx * c + dz * s).abs() > ef + rx * c.abs() + rz * s.abs() {
+            return false;
+        }
+
+        // Axis 4: Bike Lateral axis (-s, c)
+        if (-dx * s + dz * c).abs() > er + rx * s.abs() + rz * c.abs() {
+            return false;
+        }
+
+        true
+    }
+}
+
+/// A floating gate. Riding through it gives a burst of speed, once.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BoostGate {
+    pub x: f32,
+    pub z: f32,
+    pub taken: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SurferPhase {
+    Riding,
+    /// Crossed the finish gate.
+    Finished,
+    /// Beached on a bank or wrapped around a rock.
+    Crashed,
+}
+
+impl SurferPhase {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Riding => "RIDING",
+            Self::Finished => "FINISHED",
+            Self::Crashed => "WRECKED",
+        }
+    }
+}
+
+/// What one frame produced, for sound and labels.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SurferEvents {
+    pub boosted: bool,
+    pub banked: bool,
+    pub hit_rock: bool,
+    pub finished: bool,
+}
+
+/// One input frame: a held lateral axis and a held boost.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct SurferInput {
+    /// `-1.0` left, `1.0` right.
+    pub steer: f32,
+    pub boost: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SurferSim {
+    /// World position on the `X`/`Z` plane.
+    pub x: f32,
+    pub z: f32,
+    /// Facing on the `X`/`Z` plane: `0` is `+X`, growing toward `+Z`.
+    pub heading: f32,
+    pub speed: f32,
+    /// Hover height over the water, with the wave bob included.
+    pub height: f32,
+    pub phase: SurferPhase,
+    /// Length of the course, in world units.
+    pub length: f32,
+    /// Half width of the playable river.
+    pub width: f32,
+    pub rocks: Vec<Rock>,
+    pub gates: Vec<BoostGate>,
+    /// Latched from the keyboard each frame.
+    pub input: SurferInput,
+    time: f32,
+    seed: u64,
+    lines: usize,
+}
+
+impl SurferSim {
+    /// Lays out a river course from `seed`, scaled by how many lines the source
+    /// file holds.
+    pub fn new(seed: u64, lines: usize) -> Self {
+        let length = (lines as f32 * config::surfer::SURFER_METRES_PER_LINE).clamp(
+            config::surfer::SURFER_MIN_LENGTH,
+            config::surfer::SURFER_MAX_LENGTH,
+        );
+        let mut rng = Rng::from_state(seed | 1);
+        let width = config::surfer::SURFER_HALF_WIDTH;
+
+        let usable =
+            length - config::surfer::SURFER_START_CLEAR - config::surfer::SURFER_FINISH_MARGIN;
+        let rock_count = ((usable / config::surfer::SURFER_ROCK_SPACING).floor() as usize)
+            .clamp(4, config::surfer::SURFER_MAX_ROCKS);
+        let mut rocks = Vec::with_capacity(rock_count);
+        for index in 0..rock_count {
+            let t = (index as f32 + 0.5) / rock_count as f32;
+            // A little jitter around the even spacing, but never so much that
+            // two rocks crowd into one stretch of clear water.
+            let jitter = (rng.unit() * 2.0 - 1.0) * config::surfer::SURFER_ROCK_SPACING * 0.12;
+            let z = (config::surfer::SURFER_START_CLEAR + t * usable + jitter).clamp(
+                config::surfer::SURFER_START_CLEAR,
+                length - config::surfer::SURFER_FINISH_MARGIN,
+            );
+            let radius = config::surfer::SURFER_ROCK_RADIUS * (0.85 + rng.unit() * 0.35);
+            // Rocks alternate sides and stay far enough off both banks that the
+            // other side of the river is always a passable line.
+            let max_sway = width
+                - radius
+                - config::surfer::SURFER_BOAT_RADIUS
+                - config::surfer::SURFER_ROCK_CLEAR_GAP;
+            let side = if index % 2 == 0 { 1.0 } else { -1.0 };
+            let sway = side * max_sway * (0.5 + rng.unit() * 0.4);
+            let x = centerline_at(z, seed) + sway;
+            rocks.push(Rock { x, z, radius });
+        }
+
+        let mut gates = Vec::with_capacity(config::surfer::SURFER_GATES);
+        for index in 0..config::surfer::SURFER_GATES {
+            let t = (index as f32 + 0.5) / config::surfer::SURFER_GATES as f32;
+            let z = length * (0.18 + 0.66 * t);
+            let sway = (rng.unit() * 2.0 - 1.0) * width * 0.35;
+            gates.push(BoostGate {
+                x: centerline_at(z, seed) + sway,
+                z,
+                taken: false,
+            });
+        }
+
+        Self {
+            x: centerline_at(0.0, seed),
+            z: 0.0,
+            heading: std::f32::consts::FRAC_PI_2,
+            speed: config::surfer::SURFER_BASE_SPEED,
+            height: config::surfer::SURFER_HOVER_HEIGHT,
+            phase: SurferPhase::Riding,
+            length,
+            width,
+            rocks,
+            gates,
+            input: SurferInput::default(),
+            time: 0.0,
+            seed,
+            lines,
+        }
+    }
+
+    /// The river centreline at `z`, in world `X`. Shared by the sim and the
+    /// renderer so the water ribbon and the banks always agree.
+    pub fn centerline(&self, z: f32) -> f32 {
+        centerline_at(z, self.seed)
+    }
+
+    /// Latches a frame's input.
+    pub fn set_input(&mut self, steer: f32, boost: bool) {
+        self.input = SurferInput { steer, boost };
+    }
+
+    /// How far along the course the bike is, `0.0..=1.0`.
+    pub fn progress(&self) -> f32 {
+        (self.z / self.length).clamp(0.0, 1.0)
+    }
+
+    /// Advances one frame. The bike always has the throttle open; the player
+    /// only steers and chooses when to boost.
+    pub fn update(&mut self, dt: f32) -> SurferEvents {
+        let mut events = SurferEvents::default();
+        let input = std::mem::take(&mut self.input);
+        self.input.steer = input.steer;
+        self.input.boost = input.boost;
+
+        if self.phase != SurferPhase::Riding {
+            return events;
+        }
+
+        self.heading += input.steer.clamp(-1.0, 1.0) * config::surfer::SURFER_TURN_RATE * dt;
+        let target = if input.boost {
+            config::surfer::SURFER_BOOST_SPEED
+        } else {
+            config::surfer::SURFER_BASE_SPEED
+        };
+        let blend = 1.0 - (-config::surfer::SURFER_ACCEL * dt).exp();
+        self.speed += (target - self.speed) * blend;
+
+        let (dx, dz) = (self.heading.cos(), self.heading.sin());
+        let prev_z = self.z;
+        self.x += dx * self.speed * dt;
+        self.z += dz * self.speed * dt;
+        self.time += dt;
+        self.height = config::surfer::SURFER_HOVER_HEIGHT
+            + config::surfer::SURFER_WAVE_AMPLITUDE
+                * (self.time * config::surfer::SURFER_WAVE_RATE
+                    + self.x * config::surfer::SURFER_WAVE_SPACE)
+                    .sin();
+
+        // The bank is the river's edge. Sized against the bike's oriented bounding
+        // box so the nose beaches the moment it touches when steering into the bank.
+        let bike_reach_x = config::surfer::SURFER_BOAT_HALF_LENGTH * dx.abs()
+            + config::surfer::SURFER_BOAT_HALF_WIDTH * dz.abs();
+        if (self.x - self.centerline(self.z)).abs() > self.width - bike_reach_x {
+            self.phase = SurferPhase::Crashed;
+            events.banked = true;
+            return events;
+        }
+
+        // Obstacles end the run on contact, tested against the rock's bounding box
+        // and the bike's oriented bounding box using SAT.
+        for rock in &self.rocks {
+            if rock.intersects_bike(self.x, self.z, self.heading) {
+                self.phase = SurferPhase::Crashed;
+                events.hit_rock = true;
+                return events;
+            }
+        }
+
+        // Gates: crossing the plane gives a burst of speed, once each.
+        for gate in &mut self.gates {
+            if gate.taken {
+                continue;
+            }
+            if (prev_z < gate.z && self.z >= gate.z)
+                && (self.x - gate.x).abs() < config::surfer::SURFER_GATE_SPAN
+            {
+                gate.taken = true;
+                self.speed = self.speed.max(config::surfer::SURFER_BOOST_SPEED);
+                events.boosted = true;
+            }
+        }
+
+        if self.z >= self.length {
+            self.phase = SurferPhase::Finished;
+            events.finished = true;
+        }
+
+        events
+    }
+
+    /// Restarts from the same seed and file length, as `R` does.
+    pub fn restart(&mut self) {
+        *self = Self::new(self.seed, self.lines);
+    }
+}
+
+/// The seeded sine the river follows. Deterministic per file.
+fn centerline_at(z: f32, seed: u64) -> f32 {
+    let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
+    let wave = std::f32::consts::TAU / config::surfer::SURFER_RIVER_WAVELENGTH;
+    config::surfer::SURFER_RIVER_AMP * (wave * z + phase).sin()
+}
+
+impl SourceGameSim for SurferSim {
+    fn tick(&mut self, dt: f32) -> GameTick {
+        let events = self.update(dt);
+        let mut tick = GameTick::default();
+        if events.boosted {
+            tick.sound(GameSound::Beam);
+        }
+        if events.finished {
+            tick.sound(GameSound::Victory);
+        }
+        tick.cleared = events.finished;
+        if self.phase == SurferPhase::Crashed {
+            tick.lost = true;
+            tick.label = Some(if events.banked {
+                "the riverbank".to_string()
+            } else {
+                "a rock in the river".to_string()
+            });
+        }
+        tick
+    }
+
+    fn status_line(&self, ring: &str, language: &str, inner: &str) -> String {
+        let mut status = format!(
+            "SURFER {}% | RIVER: {ring} | {language} | {inner}",
+            (self.progress() * 100.0).round() as u32
+        );
+        status = format!("{status} | {}", self.phase.label());
+        status
+    }
+
+    fn input(&mut self, input: &GameInput) {
+        self.set_input(input.steer as f32, input.boost);
+    }
+
+    fn restart(&mut self) {
+        SurferSim::restart(self);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SurferPhase, SurferSim};
+    use crate::config;
+
+    fn sim(lines: usize) -> SurferSim {
+        SurferSim::new(4, lines)
+    }
+
+    #[test]
+    fn the_same_seed_lays_out_the_same_river() {
+        let a = sim(200);
+        let b = sim(200);
+        assert_eq!(a.length, b.length);
+        assert_eq!(a.rocks, b.rocks);
+        assert_eq!(a.gates, b.gates);
+        assert!(a.length >= config::surfer::SURFER_MIN_LENGTH);
+        assert!(!a.rocks.is_empty());
+        assert!(!a.gates.is_empty());
+    }
+
+    #[test]
+    fn a_longer_file_makes_a_longer_river() {
+        assert!(sim(600).length > sim(200).length);
+        assert!(sim(20_000).length <= config::surfer::SURFER_MAX_LENGTH);
+    }
+
+    #[test]
+    fn the_bike_spawns_on_the_river() {
+        for seed in [1_u64, 7, 42, 999] {
+            let course = SurferSim::new(seed, 200);
+            let bank_gap = (course.x - course.centerline(course.z)).abs();
+            assert!(
+                bank_gap <= course.width,
+                "seed {seed} spawns the bike {bank_gap} from the centreline, past the bank"
+            );
+        }
+    }
+
+    #[test]
+    fn every_rock_leaves_a_passable_line_past_it() {
+        for seed in [1_u64, 3, 42, 999] {
+            let course = SurferSim::new(seed, 200);
+            for rock in &course.rocks {
+                let sway = (rock.x - course.centerline(rock.z)).abs();
+                let open_side = course.width - sway - rock.radius;
+                assert!(
+                    open_side
+                        >= config::surfer::SURFER_BOAT_RADIUS
+                            + config::surfer::SURFER_ROCK_CLEAR_GAP
+                            - 0.001,
+                    "seed {seed} rock at z={} leaves only {open_side} of clear water on the open side",
+                    rock.z
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rocks_keep_their_distance_down_the_river() {
+        for seed in [1_u64, 3, 42, 999] {
+            let mut course = SurferSim::new(seed, 200);
+            course.rocks.sort_by(|a, b| a.z.total_cmp(&b.z));
+            for pair in course.rocks.windows(2) {
+                let gap = pair[1].z - pair[0].z;
+                assert!(
+                    gap >= config::surfer::SURFER_ROCK_SPACING * 0.7,
+                    "seed {seed} squeezes two rocks {gap} apart, leaving no room to dodge"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_throttle_is_always_open() {
+        let mut course = sim(200);
+        let start = course.z;
+        for _ in 0..30 {
+            course.set_input(0.0, false);
+            course.update(1.0 / 60.0);
+        }
+        assert!(course.z > start, "the bike should ride forward on its own");
+        assert_eq!(course.phase, SurferPhase::Riding);
+    }
+
+    #[test]
+    fn steering_turns_the_bike() {
+        let mut course = sim(200);
+        let start = course.heading;
+        course.set_input(1.0, false);
+        course.update(1.0 / 60.0);
+        assert!(
+            course.heading > start,
+            "holding right should turn the nose the way the lightcycle's right turn does"
+        );
+        let after_right = course.heading;
+        course.set_input(-1.0, false);
+        course.update(1.0 / 60.0);
+        assert!(
+            course.heading < after_right,
+            "holding left should turn it back"
+        );
+    }
+
+    #[test]
+    fn boost_speeds_the_bike_up() {
+        let mut course = sim(200);
+        course.set_input(0.0, true);
+        for _ in 0..60 {
+            course.update(1.0 / 60.0);
+        }
+        assert!(course.speed > config::surfer::SURFER_BASE_SPEED + 1.0);
+    }
+
+    #[test]
+    fn riding_through_a_gate_boosts_once() {
+        let mut course = sim(200);
+        let gate = course.gates[0];
+        course.heading = std::f32::consts::FRAC_PI_2;
+        course.x = gate.x;
+        course.z = gate.z - 1.0;
+        course.speed = config::surfer::SURFER_BASE_SPEED;
+        let mut boosted = false;
+        for _ in 0..120 {
+            course.set_input(0.0, false);
+            if course.update(1.0 / 60.0).boosted {
+                boosted = true;
+            }
+            if course.z > gate.z + 2.0 {
+                break;
+            }
+        }
+        assert!(boosted, "crossing the gate should boost");
+        assert!(course.gates[0].taken);
+    }
+
+    #[test]
+    fn running_onto_the_bank_wrecks_the_bike() {
+        let mut course = sim(200);
+        course.heading = 0.0; // straight at the +X bank
+        course.x = course.centerline(0.0);
+        course.z = 0.0;
+        let mut banked = false;
+        for _ in 0..600 {
+            course.set_input(0.0, false);
+            if course.update(1.0 / 60.0).banked {
+                banked = true;
+                break;
+            }
+        }
+        assert!(banked, "the bike should beach on the bank");
+        assert_eq!(course.phase, SurferPhase::Crashed);
+    }
+
+    #[test]
+    fn hitting_a_rock_wrecks_the_bike() {
+        let mut course = sim(200);
+        let rock = course.rocks[0];
+        course.heading = std::f32::consts::FRAC_PI_2;
+        course.x = rock.x;
+        course.z = rock.z - 1.0;
+        let mut hit = false;
+        for _ in 0..600 {
+            course.set_input(0.0, false);
+            if course.update(1.0 / 60.0).hit_rock {
+                hit = true;
+                break;
+            }
+        }
+        assert!(hit, "the bike should hit the rock");
+        assert_eq!(course.phase, SurferPhase::Crashed);
+    }
+
+    #[test]
+    fn crossing_the_finish_ends_the_run() {
+        let mut course = sim(200);
+        course.z = course.length - 0.5;
+        course.x = course.centerline(course.z);
+        let mut finished = false;
+        for _ in 0..30 {
+            course.set_input(0.0, false);
+            if course.update(1.0 / 60.0).finished {
+                finished = true;
+                break;
+            }
+        }
+        assert!(finished, "crossing the line should finish the run");
+        assert_eq!(course.phase, SurferPhase::Finished);
+    }
+
+    #[test]
+    fn restarting_relays_the_same_course() {
+        let mut course = sim(200);
+        course.rocks.clear();
+        course.restart();
+        assert_eq!(course.rocks, sim(200).rocks);
+        assert_eq!(course.phase, SurferPhase::Riding);
+    }
+
+    #[test]
+    fn rock_bounding_box_methods_match_geometry() {
+        let rock = super::Rock {
+            x: 5.0,
+            z: 10.0,
+            radius: 1.5,
+        };
+        assert_eq!(rock.half_extents(), (1.5, 1.5));
+        assert_eq!(rock.bounds(), (3.5, 6.5, 8.5, 11.5));
+    }
+
+    #[test]
+    fn rock_bounding_box_collision_matches_visible_edges() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 10.0,
+            radius: 1.25,
+        };
+        let heading = std::f32::consts::FRAC_PI_2; // facing +Z down the river
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+
+        // Bike nose is at bike_z + ef.
+        // Rock front face is at rock.z - 1.25 = 8.75.
+        // When bike_z = 8.75 - ef - 0.1, nose is at 8.65, so no contact.
+        let bike_z_clear = 8.75 - ef - 0.1;
+        assert!(
+            !rock.intersects_bike(0.0, bike_z_clear, heading),
+            "bike in front of rock should not collide"
+        );
+
+        // When bike_z = 8.75 - ef, nose touches front edge at 8.75.
+        let bike_z_touch = 8.75 - ef;
+        assert!(
+            rock.intersects_bike(0.0, bike_z_touch, heading),
+            "bike touching rock front edge must collide"
+        );
+    }
+
+    #[test]
+    fn rock_bounding_box_side_clearance_avoids_ghost_collision() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 10.0,
+            radius: 1.25,
+        };
+        let heading = std::f32::consts::FRAC_PI_2; // facing +Z
+        let er = config::surfer::SURFER_BOAT_HALF_WIDTH;
+
+        // Rock right edge is at x = 1.25.
+        // Bike left edge is at bike_x - er.
+        // If bike_x = 1.25 + er + 0.05, left edge is 5cm clear of the rock.
+        let bike_x_clear = 1.25 + er + 0.05;
+        assert!(
+            !rock.intersects_bike(bike_x_clear, 10.0, heading),
+            "bike with lateral clearance should not suffer ghost collisions"
+        );
+
+        // If bike_x = 1.25 + er - 0.02, left edge penetrates rock by 2cm.
+        let bike_x_touch = 1.25 + er - 0.02;
+        assert!(
+            rock.intersects_bike(bike_x_touch, 10.0, heading),
+            "bike intersecting side of rock must collide"
+        );
+    }
+
+    #[test]
+    fn rock_bounding_box_corner_and_angle_detection() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 0.0,
+            radius: 1.25,
+        };
+        // 45-degree angle approaching corner
+        let heading = std::f32::consts::FRAC_PI_4;
+        let c = heading.cos();
+        let s = heading.sin();
+
+        // Far away along the diagonal
+        assert!(!rock.intersects_bike(-5.0, -5.0, heading));
+
+        // When the bike's oriented box reaches the corner
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+        let rx = rock.radius;
+        // The forward extent reaches the corner
+        let dist = (rx * (c + s) + ef) / 2.0_f32.sqrt();
+        assert!(rock.intersects_bike(-dist * 0.95, -dist * 0.95, heading));
+    }
+}

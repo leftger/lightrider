@@ -1,53 +1,38 @@
-use crate::filesystem::DirectoryContents;
+use crate::byte_load::ByteLoad;
+use crate::filesystem::loader::{DirectoryContents, load_directory};
 use bevy::prelude::{Message, Resource};
-use bevy::tasks::{IoTaskPool, Task, futures::check_ready};
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
-/// Background load bookkeeping. Each requested scan replaces the previous task.
+/// Background directory-scan bookkeeping.
+///
+/// The generation counter, the single in-flight task slot and the error string
+/// live in [`ByteLoad`]; this adds only the scan's own policy: which reader
+/// runs, and the hidden-files flag it needs. Each requested scan replaces the
+/// previous one.
 #[derive(Resource, Default)]
-pub struct DirectoryLoadState {
-    pub generation: u64,
-    pub loading: bool,
-    pub pending_task: Option<Task<DirectoryLoadResult>>,
-    pub last_error: Option<String>,
+pub struct DirectoryLoadState(ByteLoad<DirectoryContents>);
+
+impl Deref for DirectoryLoadState {
+    type Target = ByteLoad<DirectoryContents>;
+
+    fn deref(&self) -> &ByteLoad<DirectoryContents> {
+        &self.0
+    }
+}
+
+impl DerefMut for DirectoryLoadState {
+    fn deref_mut(&mut self) -> &mut ByteLoad<DirectoryContents> {
+        &mut self.0
+    }
 }
 
 impl DirectoryLoadState {
-    pub fn next_generation(&mut self) -> u64 {
-        self.generation += 1;
-        self.generation
-    }
-
-    /// Poll the active background scan without blocking.
-    pub fn poll(&mut self) -> Option<DirectoryLoadResult> {
-        let result = check_ready(self.pending_task.as_mut()?)?;
-        self.pending_task = None;
-        if result.generation == self.generation {
-            self.loading = false;
-        }
-        Some(result)
-    }
-
     pub fn begin_scan(&mut self, generation: u64, path: PathBuf, show_hidden: bool) {
-        self.loading = true;
-        self.last_error = None;
-
-        self.pending_task = Some(IoTaskPool::get().spawn(async move {
-            let result = crate::filesystem::loader::load_directory(&path, show_hidden)
-                .map_err(|error| error.to_string());
-            DirectoryLoadResult {
-                generation,
-                path,
-                result,
-            }
-        }));
+        self.0.begin_load(generation, path, move |path| {
+            load_directory(path, show_hidden).map_err(|error| error.to_string())
+        });
     }
-}
-
-pub struct DirectoryLoadResult {
-    pub generation: u64,
-    pub path: PathBuf,
-    pub result: Result<DirectoryContents, String>,
 }
 
 #[derive(Message, Debug)]

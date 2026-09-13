@@ -137,7 +137,7 @@ fn handle_commands(
 
 fn execute_command(
     command: Command,
-    navigator: &mut crate::filesystem::Navigator,
+    navigator: &mut crate::filesystem::navigator::Navigator,
     selection: &mut SelectionState,
     orbit: &mut OrbitCameraResource,
     ui_settings: &mut UiSettings,
@@ -240,7 +240,7 @@ fn execute_command(
 fn move_selection(
     dx: i32,
     dz: i32,
-    navigator: &crate::filesystem::Navigator,
+    navigator: &crate::filesystem::navigator::Navigator,
     selection: &mut SelectionState,
     orbit: &mut OrbitCameraResource,
 ) {
@@ -303,7 +303,7 @@ fn move_selection(
 }
 
 fn focus_camera_on_selection(
-    navigator: &crate::filesystem::Navigator,
+    navigator: &crate::filesystem::navigator::Navigator,
     selection: &SelectionState,
     orbit: &mut OrbitCameraResource,
 ) {
@@ -502,7 +502,8 @@ fn grid_cells_along_segment(start: Vec2, end: Vec2) -> Vec<(i32, i32)> {
 #[cfg(test)]
 mod tests {
     use super::{grid_cells_along_segment, move_selection, ray_box_intersection};
-    use crate::filesystem::{FileNode, Navigator};
+    use crate::filesystem::navigator::Navigator;
+    use crate::filesystem::node::FileNode;
     use crate::state::{OrbitCameraResource, SelectionState};
     use bevy::prelude::{Dir3, Ray3d, Vec2, Vec3};
     use std::path::PathBuf;

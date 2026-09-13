@@ -20,13 +20,14 @@
 //! Voice chain node positions are fixed: `0` = oscillator, `1` = low-pass
 //! (param 0 cutoff), `2` = gain, `3` = pan. See [`voice_message`].
 
+use super::sfx::{MusicSfx, SfxVoice};
 use super::theme::{ModeProfile, MusicTheme};
 use crate::config;
 use std::fmt::Write;
 
 /// Width of the compiled voice bank. Always the hard cap so a profile switch
 /// never needs to rebuild the graph.
-pub const MAX_VOICES: usize = config::MUSIC_MAX_VOICES;
+pub const MAX_VOICES: usize = config::music::MUSIC_MAX_VOICES;
 
 /// Chain name of one proximity voice as it appears in the Glicol graph. The
 /// leading `~` marks it as a reference chain (not sent to the DAC on its own)
@@ -38,8 +39,8 @@ pub fn voice_chain_name(slot: usize) -> String {
 /// Base chain names mixed into the output for a profile.
 pub fn base_refs(profile: ModeProfile) -> &'static [&'static str] {
     match profile {
-        ModeProfile::Calm => &["~pad0", "~pad1"],
-        ModeProfile::Action => &["~bass", "~lead"],
+        ModeProfile::Calm => &["~pad0", "~pad1", "~dune", "~pulse"],
+        ModeProfile::Action => &["~kick", "~snare", "~hat", "~sub", "~bass", "~growl", "~lead"],
     }
 }
 
@@ -59,19 +60,16 @@ fn action_base_cutoffs(theme: &MusicTheme) -> (f32, f32) {
     )
 }
 
-/// Definitions for the profile's base voices plus the shared accent and
-/// arpeggiator chains.
+/// Definitions for the profile's base voices plus the shared arpeggiator and
+/// sound-effect chains.
 pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
     let wave = theme.family.waveform();
     let mut code = String::new();
 
-    // Shared, silent until an accent opens it. Node layout: 0 noise, 1 low-pass
-    // (param 0 cutoff), 2 gain, 3 pan. See [`accent_message`]. Glicol's `noise`
-    // node takes an integer seed, not a float.
-    let _ = writeln!(
-        code,
-        "~accent: noise 1 >> lpf 1800.0 0.7 >> mul 0.0 >> pan 0.0;"
-    );
+    // Shared effects, all silent until triggered. See [`MusicSfx::declaration`].
+    for sfx in MusicSfx::ALL {
+        let _ = writeln!(code, "{}", sfx.declaration());
+    }
 
     // Shared evolving melody, retriggered from the control side. Layout:
     // 0 osc, 1 low-pass, 2 gain, 3 pan. See [`arp_message`].
@@ -82,43 +80,141 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
         theme.node_cutoff(theme.seed)
     );
 
+    // Red wall approaching warning growl ("bwop bwop" resonant sweep).
+    // Modulated in 3D space with distance-attenuated gain.
+    let _ = writeln!(
+        code,
+        "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;"
+    );
+    let _ = writeln!(
+        code,
+        "~red_wall: saw 55.0 >> lpf ~wall_lfo 2.5 >> mul 0.0 >> pan 0.0;"
+    );
+
     match profile {
         ModeProfile::Calm => {
             let root = theme.root_hz();
             let fifth = theme.degree_hz(4, 0);
+            let sub_root = theme.degree_hz(0, -1);
             let (c0, c1) = calm_pad_cutoffs(theme);
             let _ = writeln!(
                 code,
                 "~pad0: {wave} {root:.2} >> lpf {c0:.1} 0.7 >> mul {:.3} >> pan -0.25;",
-                config::MUSIC_CALM_PAD_GAIN
+                config::music::MUSIC_CALM_PAD_GAIN
             );
             let _ = writeln!(
                 code,
                 "~pad1: {wave} {fifth:.2} >> lpf {c1:.1} 0.7 >> mul {:.3} >> pan 0.25;",
-                config::MUSIC_CALM_PAD_GAIN * 0.8
+                config::music::MUSIC_CALM_PAD_GAIN * 0.85
+            );
+            // Dune 2 desert brass / war-horn drone: warm resonant sub-saw swell
+            // Harmonically locked to sub-root or fifth to avoid dissonant clashes with pads
+            let drone_freq = match (theme.seed >> 12) % 2 {
+                0 => sub_root,
+                _ => theme.degree_hz(4, -1),
+            };
+            let drone_cutoff = 240.0 + ((theme.seed >> 16) % 60) as f32;
+            let _ = writeln!(
+                code,
+                "~dune: saw {drone_freq:.2} >> lpf {drone_cutoff:.1} 0.85 >> mul {:.3} >> pan 0.0;",
+                config::music::MUSIC_CALM_DUNE_GAIN
+            );
+            // Distant Dune desert heartbeat thumper
+            let pulse_hz = (theme.bpm(ModeProfile::Calm) / 60.0) * 0.5;
+            let _ = writeln!(
+                code,
+                "~pulse: imp {pulse_hz:.3} >> bd 0.12 >> lpf 240.0 0.8 >> mul {:.3} >> pan 0.0;",
+                config::music::MUSIC_CALM_PULSE_GAIN
             );
         }
         ModeProfile::Action => {
             let bass = theme.degree_hz(0, -1);
+            let sub = theme.degree_hz(0, -2);
             let lead = theme.degree_hz(4, 1);
             let (c0, c1) = action_base_cutoffs(theme);
-            // Tempo-synced tremolo in 0..1, so the arrangement pumps.
-            let pump_hz = (theme.bpm(ModeProfile::Action) / 60.0) * config::MUSIC_ACTION_PUMP_RATE;
-            let half_depth = config::MUSIC_ACTION_PUMP_DEPTH / 2.0;
+            let bpm = theme.bpm(ModeProfile::Action);
+            let beat_hz = (bpm / 60.0) * config::music::MUSIC_ACTION_PUMP_RATE;
+            // Procedural variation in sidechain ducking depth
+            let pump_depth = (config::music::MUSIC_ACTION_PUMP_DEPTH
+                + ((theme.seed >> 12) % 15) as f32 / 100.0)
+                .clamp(0.5, 0.85);
+            let half_depth = pump_depth / 2.0;
+
+            // Daft Punk French Touch sidechain ducking envelope
             let _ = writeln!(
                 code,
-                "~pump: sin {pump_hz:.3} >> mul {half_depth:.3} >> add {:.3};",
+                "~pump: sin {beat_hz:.3} >> mul {half_depth:.3} >> add {:.3};",
                 1.0 - half_depth
             );
+
+            // Daft Punk 4-on-the-floor kick
             let _ = writeln!(
                 code,
-                "~bass: saw {bass:.2} >> lpf {c0:.1} 0.8 >> mul {:.3} >> mul ~pump >> pan -0.15;",
-                config::MUSIC_ACTION_BASS_GAIN
+                "~kick: imp {beat_hz:.3} >> bd 0.07 >> mul {:.3} >> pan 0.0;",
+                config::music::MUSIC_ACTION_KICK_GAIN
+            );
+
+            // Skrillex backbeat electro snare on 2 and 4
+            let snare_hz = beat_hz * 0.5;
+            let _ = writeln!(
+                code,
+                "~snare: imp {snare_hz:.3} >> sn 0.055 >> mul {:.3} >> pan 0.04;",
+                config::music::MUSIC_ACTION_SNARE_GAIN
+            );
+
+            // deadmau5 driving eighth-note or sixteenth-note offbeat hi-hat (procedural rate)
+            let hat_mult = match (theme.seed >> 18) % 3 {
+                0 => 2.0, // standard eighth-note offbeats (deadmau5)
+                1 => 4.0, // driving sixteenth-note rolling electro hats (Daft Punk TRON)
+                _ => 2.0,
+            };
+            let hat_hz = beat_hz * hat_mult;
+            let hat_decay = if hat_mult > 2.5 { 0.016 } else { 0.024 };
+            let _ = writeln!(
+                code,
+                "~hat: imp {hat_hz:.3} >> hh {hat_decay:.3} >> mul {:.3} >> pan 0.16;",
+                config::music::MUSIC_ACTION_HAT_GAIN
+            );
+
+            // deadmau5 clean sub-bass
+            let _ = writeln!(
+                code,
+                "~sub: sin {sub:.2} >> mul {:.3} >> mul ~pump >> pan 0.0;",
+                config::music::MUSIC_ACTION_SUB_GAIN
+            );
+
+            // Daft Punk / deadmau5 pumping electro bassline
+            let _ = writeln!(
+                code,
+                "~bass: saw {bass:.2} >> lpf {c0:.1} 1.2 >> mul {:.3} >> mul ~pump >> pan -0.18;",
+                config::music::MUSIC_ACTION_BASS_GAIN
+            );
+
+            // Skrillex modulated wobble growl bass (procedurally selected LFO speed & span)
+            let wobble_mult = match (theme.seed >> 20) % 4 {
+                0 => 1.0, // half-time growl
+                1 => 2.0, // classic eighth-note electro wobble
+                2 => 3.0, // triplet wobble groove
+                _ => 4.0, // rapid sixteenth growl
+            };
+            let wobble_hz = beat_hz * wobble_mult;
+            let wobble_span = 700.0 + ((theme.seed >> 24) % 400) as f32;
+            let wobble_center = 1100.0 + ((theme.seed >> 28) % 300) as f32;
+            let _ = writeln!(
+                code,
+                "~wobble: sin {wobble_hz:.3} >> mul {wobble_span:.1} >> add {wobble_center:.1};"
             );
             let _ = writeln!(
                 code,
-                "~lead: squ {lead:.2} >> lpf {c1:.1} 0.7 >> mul {:.3} >> mul ~pump >> pan 0.2;",
-                config::MUSIC_ACTION_LEAD_GAIN
+                "~growl: squ {bass:.2} >> lpf ~wobble 2.2 >> mul {:.3} >> mul ~pump >> pan 0.22;",
+                config::music::MUSIC_ACTION_GROWL_GAIN
+            );
+
+            // Daft Punk / TRON: Legacy synth lead
+            let _ = writeln!(
+                code,
+                "~lead: squ {lead:.2} >> lpf {c1:.1} 0.8 >> mul {:.3} >> mul ~pump >> pan 0.15;",
+                config::music::MUSIC_ACTION_LEAD_GAIN
             );
         }
     }
@@ -140,17 +236,21 @@ pub fn voice_bank(theme: &MusicTheme) -> String {
     code
 }
 
-/// The single `o:` chain mixing the profile's base voices, the accent, the
-/// arpeggiator, and the whole bank.
+/// The single `o:` chain mixing the profile's base voices, the sound effects,
+/// the arpeggiator, and the whole bank, processed through plate reverb.
 pub fn output_chain(profile: ModeProfile) -> String {
-    let mut code = String::from("o: mix ~accent ~arp");
+    let mut code = String::from("o: mix");
+    for sfx in MusicSfx::ALL {
+        let _ = write!(code, " {}", sfx.chain());
+    }
+    code.push_str(" ~arp ~red_wall");
     for name in base_refs(profile) {
         let _ = write!(code, " {name}");
     }
     for slot in 0..MAX_VOICES {
         let _ = write!(code, " {}", voice_chain_name(slot));
     }
-    code.push_str(";\n");
+    let _ = writeln!(code, " >> plate {:.2};", config::music::MUSIC_REVERB_PLATE_MIX);
     code
 }
 
@@ -171,16 +271,42 @@ pub fn voice_message(slot: usize, freq: f32, cutoff: f32, gain: f32, pan: f32) -
     )
 }
 
-/// A Glicol `send_msg` payload that opens the shared accent chain. Matches the
-/// layout produced by [`base_voices`]: 1 = low-pass cutoff, 2 = gain.
-pub fn accent_message(cutoff: f32, gain: f32) -> String {
-    format!("~accent,1,0,{cutoff:.1};~accent,2,0,{gain:.4};")
+/// A Glicol `send_msg` payload that drives one sound effect's chain. Matches the
+/// layout produced by [`base_voices`]: 0 = oscillator, 1 = low-pass cutoff,
+/// 2 = gain, 3 = pan.
+///
+/// The noise-based effects have no frequency to set, so their oscillator node is
+/// left alone (see [`MusicSfx::uses_pitch`]).
+pub fn sfx_message(sfx: MusicSfx, voice: SfxVoice) -> String {
+    let chain = sfx.chain();
+    let mut message = String::new();
+    if sfx.uses_pitch() {
+        let _ = write!(message, "{chain},0,0,{:.3};", voice.freq);
+    }
+    let _ = write!(
+        message,
+        "{chain},1,0,{:.3};{chain},2,0,{:.4};{chain},3,0,{:.3};",
+        voice.cutoff, voice.gain, voice.pan
+    );
+    message
+}
+
+/// A `send_msg` payload that closes a sound effect's chain once it has run out.
+pub fn sfx_silence_message(sfx: MusicSfx) -> String {
+    format!("{},2,0,0.0000;", sfx.chain())
 }
 
 /// A `send_msg` payload that plays one arpeggiator note. Layout: 0 oscillator,
 /// 1 low-pass, 2 gain, 3 pan.
 pub fn arp_message(freq: f32, cutoff: f32, gain: f32, pan: f32) -> String {
     format!("~arp,0,0,{freq:.3};~arp,1,0,{cutoff:.3};~arp,2,0,{gain:.4};~arp,3,0,{pan:.3};")
+}
+
+/// A `send_msg` payload that drives the approaching red-wall warning growl.
+/// Layout: `~wall_lfo` node 0 is the LFO rate, `~red_wall` node 2 is gain,
+/// node 3 is stereo pan.
+pub fn wall_message(gain: f32, pan: f32, rate: f32) -> String {
+    format!("~wall_lfo,0,0,{rate:.2};~red_wall,2,0,{gain:.4};~red_wall,3,0,{pan:.3};")
 }
 
 /// A `send_msg` payload that sweeps the profile's base-voice filters. `sweep`
@@ -191,8 +317,8 @@ pub fn base_filter_message(theme: &MusicTheme, profile: ModeProfile, sweep: f32)
         ModeProfile::Calm => calm_pad_cutoffs(theme),
         ModeProfile::Action => action_base_cutoffs(theme),
     };
-    let c0 = (c0 * open).clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
-    let c1 = (c1 * open).clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+    let c0 = (c0 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+    let c1 = (c1 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
     match profile {
         ModeProfile::Calm => format!("~pad0,1,0,{c0:.1};~pad1,1,0,{c1:.1};"),
         ModeProfile::Action => format!("~bass,1,0,{c0:.1};~lead,1,0,{c1:.1};"),
@@ -224,6 +350,7 @@ mod tests {
             assert!(code.contains(name));
         }
         assert!(code.contains("~v7"));
+        assert!(code.contains("~red_wall"));
     }
 
     #[test]
@@ -236,15 +363,20 @@ mod tests {
     }
 
     #[test]
-    fn only_action_pumps_and_both_profiles_carry_the_accent() {
+    fn only_action_pumps_and_both_profiles_carry_the_shared_chains() {
         let calm = full_code(&theme(), ModeProfile::Calm);
         let action = full_code(&theme(), ModeProfile::Action);
         assert!(!calm.contains("~pump"));
         assert!(action.contains("~pump"));
-        assert!(calm.contains("~accent"));
-        assert!(action.contains("~accent"));
-        assert!(calm.contains("~arp"));
-        assert!(action.contains("~arp"));
+        for code in [&calm, &action] {
+            for sfx in MusicSfx::ALL {
+                let chain = sfx.chain();
+                assert!(code.contains(&format!("{chain}:")), "missing {chain}");
+            }
+            assert!(code.contains("~arp"));
+            assert!(code.contains("~wall_lfo"));
+            assert!(code.contains("~red_wall"));
+        }
     }
 
     #[test]
@@ -254,6 +386,14 @@ mod tests {
         assert!(message.contains("~arp,1,0,1200.000;"));
         assert!(message.contains("~arp,2,0,0.0800;"));
         assert!(message.contains("~arp,3,0,-0.300;"));
+    }
+
+    #[test]
+    fn wall_message_addresses_the_fixed_node_layout() {
+        let message = wall_message(0.32, -0.45, 2.6);
+        assert!(message.contains("~wall_lfo,0,0,2.60;"));
+        assert!(message.contains("~red_wall,2,0,0.3200;"));
+        assert!(message.contains("~red_wall,3,0,-0.450;"));
     }
 
     #[test]
@@ -267,10 +407,40 @@ mod tests {
     }
 
     #[test]
-    fn accent_message_addresses_the_fixed_node_layout() {
-        let message = accent_message(1400.0, 0.375);
-        assert!(message.contains("~accent,1,0,1400.0;"));
-        assert!(message.contains("~accent,2,0,0.3750;"));
+    fn sfx_messages_address_the_fixed_node_layout() {
+        let voice = SfxVoice {
+            freq: 880.0,
+            cutoff: 1400.0,
+            gain: 0.375,
+            pan: -0.1,
+        };
+
+        let turn = sfx_message(MusicSfx::Turn, voice);
+        assert!(turn.contains("~sfx_turn,0,0,880.000;"));
+        assert!(turn.contains("~sfx_turn,1,0,1400.000;"));
+        assert!(turn.contains("~sfx_turn,2,0,0.3750;"));
+        assert!(turn.contains("~sfx_turn,3,0,-0.100;"));
+
+        // The crash's first node is noise, which has no frequency to set.
+        let crash = sfx_message(MusicSfx::Crash, voice);
+        assert!(!crash.contains("~sfx_crash,0,0,"));
+        assert!(crash.contains("~sfx_crash,2,0,0.3750;"));
+
+        assert_eq!(
+            sfx_silence_message(MusicSfx::Crash),
+            "~sfx_crash,2,0,0.0000;"
+        );
+    }
+
+    #[test]
+    fn every_sfx_chain_is_declared_and_mixed() {
+        let code = full_code(&theme(), ModeProfile::Calm);
+        let output = output_chain(ModeProfile::Calm);
+        for sfx in MusicSfx::ALL {
+            let chain = sfx.chain();
+            assert!(code.contains(&format!("{chain}:")), "{chain} not declared");
+            assert!(output.contains(chain), "{chain} not mixed into the output");
+        }
     }
 
     #[test]
@@ -301,5 +471,54 @@ mod tests {
                 rendered.err()
             );
         }
+    }
+
+    /// The base voices carry the piece on their own, so a compiled graph that
+    /// renders silence means the mix is broken even though nothing errored.
+    #[test]
+    fn both_profiles_are_audible_before_any_parameter_is_sent() {
+        for profile in ModeProfile::ALL {
+            let code = full_code(&theme(), profile);
+            let channels = render_offline(&code, 64).expect("graph should compile");
+            let peak = crate::music::engine::peak(&channels);
+            assert!(
+                peak > 0.01,
+                "{profile:?} rendered near silence (peak {peak})\n{code}"
+            );
+            assert!(peak <= 1.0, "{profile:?} clipped (peak {peak})");
+        }
+    }
+
+    #[test]
+    fn daft_punk_deadmau5_skrillex_dune_elements_compiled_and_audible() {
+        let theme = theme();
+        let action = full_code(&theme, ModeProfile::Action);
+        // Daft Punk 4-on-the-floor kick & French touch sidechain pump
+        assert!(action.contains("~kick: imp"));
+        assert!(action.contains("~pump: sin"));
+        // Skrillex backbeat snare & modulated wobble growl
+        assert!(action.contains("~snare: imp"));
+        assert!(action.contains("~growl: squ"));
+        assert!(action.contains("~wobble: sin"));
+        // deadmau5 offbeat hats & sub bass
+        assert!(action.contains("~hat: imp"));
+        assert!(action.contains("~sub: sin"));
+        // Dune 2 desert war-horn drone in calm profile (softened resonance and half gain 0.060)
+        let calm = full_code(&theme, ModeProfile::Calm);
+        assert!(calm.contains("~dune: saw"));
+        assert!(calm.contains("0.85 >> mul 0.060"));
+        assert!(calm.contains("~pulse: imp"));
+
+        // Verify plate reverb is present in both
+        assert!(action.contains("plate"));
+        assert!(calm.contains("plate"));
+
+        let rendered_action = render_offline(&action, 64).expect("action must compile");
+        let peak_action = crate::music::engine::peak(&rendered_action);
+        assert!(peak_action > 0.01 && peak_action <= 1.0);
+
+        let rendered_calm = render_offline(&calm, 64).expect("calm must compile");
+        let peak_calm = crate::music::engine::peak(&rendered_calm);
+        assert!(peak_calm > 0.01 && peak_calm <= 1.0);
     }
 }

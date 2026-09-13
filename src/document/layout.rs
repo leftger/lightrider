@@ -124,10 +124,10 @@ pub fn build_document_arena_from_parse(
         occupied.iter().copied(),
         Some(GatePlacement::for_path(
             &gate_path,
-            config::LIGHTCYCLE_PORTAL_WIDTH_CELLS,
+            config::lightcycle::LIGHTCYCLE_PORTAL_WIDTH_CELLS,
         )),
-        config::LIGHTCYCLE_ARENA_PADDING,
-        config::DOCUMENT_MIN_ARENA_SPAN,
+        config::lightcycle::LIGHTCYCLE_ARENA_PADDING,
+        config::document::DOCUMENT_MIN_ARENA_SPAN,
     );
     arena.kind = ArenaKind::Document;
     let approaches = arena.parent_gate_approaches();
@@ -233,8 +233,9 @@ fn route_to_spine(
 }
 
 fn row_width_for_seed(seed: u64) -> i32 {
-    let span = config::DOCUMENT_ROW_WIDTH_MAX - config::DOCUMENT_ROW_WIDTH_MIN + 1;
-    config::DOCUMENT_ROW_WIDTH_MIN + (seed % span as u64) as i32
+    let span =
+        config::document::DOCUMENT_ROW_WIDTH_MAX - config::document::DOCUMENT_ROW_WIDTH_MIN + 1;
+    config::document::DOCUMENT_ROW_WIDTH_MIN + (seed % span as u64) as i32
 }
 
 struct SpineCursor {
@@ -360,6 +361,7 @@ mod tests {
             &std::collections::HashMap::new(),
             |_| false,
             |_| false,
+            |_| false,
         );
         assert_eq!(content, crate::lightcycle::logic::CellContent::ClosePortal);
         let approach = arena.parent_gate_approaches()[arena.parent_gate_approaches().len() / 2];
@@ -378,6 +380,7 @@ mod tests {
                 &std::collections::HashMap::new(),
                 |_| false,
                 |_| false,
+                |_| false,
             )
         });
         assert_eq!(
@@ -394,7 +397,7 @@ mod tests {
         let spawn = arena
             .nearest_empty_cell(
                 |cell| arena.street_walls.contains(&cell),
-                crate::config::LIGHTCYCLE_SPAWN_SEARCH_RADIUS,
+                crate::config::lightcycle::LIGHTCYCLE_SPAWN_SEARCH_RADIUS,
             )
             .unwrap();
         let sim = LightcycleSim::start(spawn, crate::lightcycle::logic::Heading::PosX);

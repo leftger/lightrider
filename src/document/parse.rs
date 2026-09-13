@@ -1,4 +1,5 @@
 use crate::config;
+use crate::text::truncate_chars;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocBlockKind {
@@ -25,9 +26,9 @@ pub struct ParseLimits {
 impl Default for ParseLimits {
     fn default() -> Self {
         Self {
-            max_bytes: config::DOCUMENT_MAX_BYTES,
-            max_blocks: config::DOCUMENT_MAX_BLOCKS,
-            max_text_chars: config::DOCUMENT_MAX_TEXT_CHARS,
+            max_bytes: config::document::DOCUMENT_MAX_BYTES,
+            max_blocks: config::document::DOCUMENT_MAX_BLOCKS,
+            max_text_chars: config::document::DOCUMENT_MAX_TEXT_CHARS,
         }
     }
 }
@@ -176,8 +177,8 @@ fn push_block(blocks: &mut Vec<DocBlock>, kind: DocBlockKind, text: &str, limits
         return;
     }
     let preview_limit = match kind {
-        DocBlockKind::Heading(_) => config::DOCUMENT_HEADING_GLYPHS,
-        DocBlockKind::Paragraph => config::DOCUMENT_PARAGRAPH_GLYPHS,
+        DocBlockKind::Heading(_) => config::document::DOCUMENT_HEADING_GLYPHS,
+        DocBlockKind::Paragraph => config::document::DOCUMENT_PARAGRAPH_GLYPHS,
     };
     let preview = truncate_chars(&text, preview_limit);
     blocks.push(DocBlock {
@@ -185,14 +186,6 @@ fn push_block(blocks: &mut Vec<DocBlock>, kind: DocBlockKind, text: &str, limits
         text,
         preview,
     });
-}
-
-pub fn truncate_chars(text: &str, max_chars: usize) -> String {
-    let count = text.chars().count();
-    if count <= max_chars {
-        return text.to_string();
-    }
-    text.chars().take(max_chars).collect()
 }
 
 #[cfg(test)]

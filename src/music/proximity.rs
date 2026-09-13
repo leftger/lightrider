@@ -9,7 +9,7 @@
 use super::theme::{ModeProfile, MusicTheme};
 use crate::config;
 
-const MAX: usize = config::MUSIC_MAX_VOICES;
+const MAX: usize = config::music::MUSIC_MAX_VOICES;
 
 /// Where the music is "listening" from, on the ground plane.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -105,7 +105,7 @@ impl VoiceMixer {
     ) -> Vec<VoiceTarget> {
         let dt = dt.clamp(0.0, 1.0);
         let radius = profile.proximity_radius();
-        let cutoff_distance = radius * config::MUSIC_PROXIMITY_CUTOFF_MULTIPLIER;
+        let cutoff_distance = radius * config::music::MUSIC_PROXIMITY_CUTOFF_MULTIPLIER;
         let budget = profile.voice_budget().min(MAX);
         let ceiling = profile.gain_ceiling();
         let tau = profile.smoothing_tau();
@@ -135,7 +135,7 @@ impl VoiceMixer {
                     .iter()
                     .find(|(candidate, _)| *candidate == position)
                     .map_or(0.0, |(_, weight)| *weight);
-                if weight < config::MUSIC_SLOT_RELEASE_THRESHOLD {
+                if weight < config::music::MUSIC_SLOT_RELEASE_THRESHOLD {
                     *slot = None;
                 }
             }
@@ -145,7 +145,8 @@ impl VoiceMixer {
         // entries. Already-assigned entries keep their slot, and a newcomer must
         // clear the acquire threshold so the release band cannot flicker.
         for &(position, weight) in &candidates {
-            if weight < config::MUSIC_SLOT_ACQUIRE_THRESHOLD || self.slots.contains(&Some(position))
+            if weight < config::music::MUSIC_SLOT_ACQUIRE_THRESHOLD
+                || self.slots.contains(&Some(position))
             {
                 continue;
             }
@@ -169,14 +170,14 @@ impl VoiceMixer {
                         let direction = ((node.x - listener.x) / radius).clamp(-1.0, 1.0);
                         let level = if node.is_dir { 0.8 } else { 1.0 };
                         let cutoff = (theme.node_cutoff(node.node_seed)
-                            + weight * config::MUSIC_VOICE_CUTOFF_SPAN)
-                            .clamp(config::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+                            + weight * config::music::MUSIC_VOICE_CUTOFF_SPAN)
+                            .clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
                         (
                             Some(node.index),
                             theme.node_hz(node.node_seed, node.is_dir),
                             cutoff,
                             weight * ceiling * level,
-                            direction * config::MUSIC_PAN_RANGE,
+                            direction * config::music::MUSIC_PAN_RANGE,
                         )
                     }
                     None => (

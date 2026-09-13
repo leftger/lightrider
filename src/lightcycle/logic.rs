@@ -3,6 +3,8 @@
 //! This module deliberately contains no Bevy types so movement, collisions,
 //! spawn search, and parent-portal rules can be unit-tested on a plain thread.
 
+use crate::config;
+use crate::grid::chebyshev;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::Path;
 
@@ -16,6 +18,16 @@ pub enum Heading {
 }
 
 impl Heading {
+    /// Facing as an angle on the `X`/`Z` plane: `0` is `+X`, growing toward `+Z`.
+    pub fn angle(self) -> f32 {
+        match self {
+            Heading::PosX => 0.0,
+            Heading::PosZ => std::f32::consts::FRAC_PI_2,
+            Heading::NegX => std::f32::consts::PI,
+            Heading::NegZ => -std::f32::consts::FRAC_PI_2,
+        }
+    }
+
     pub fn delta(self) -> (i32, i32) {
         match self {
             Heading::PosX => (1, 0),
@@ -43,6 +55,16 @@ impl Heading {
             (Heading::NegZ, Turn::Right) => Heading::PosX,
         }
     }
+
+    /// The heading directly opposite this one, used when a disc turns back.
+    pub fn opposite(self) -> Self {
+        match self {
+            Heading::PosX => Heading::NegX,
+            Heading::NegX => Heading::PosX,
+            Heading::PosZ => Heading::NegZ,
+            Heading::NegZ => Heading::PosZ,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +89,12 @@ pub enum CrashReason {
     File,
     Trail,
     Wall,
+    /// Rode into the Recognizer opponent's body.
+    Opponent,
+    /// Rode into a live disc.
+    Disc,
+    /// Lingered on too many hazard tiles in a row.
+    Hazard,
 }
 
 /// Result of one or more cell-boundary crossings during an advance.
@@ -76,6 +104,7 @@ pub enum StepOutcome {
     Crashed(CrashReason),
     EnteringDir(usize),
     EnteringDocument(usize),
+    EnteringSource(usize),
     GoToParent,
     CloseDocument,
 }
@@ -87,10 +116,18 @@ pub enum CellContent {
     File(usize),
     Dir(usize),
     Markdown(usize),
+    /// A rideable source file: entering starts a disc-wars ring.
+    Source(usize),
     Trail,
     Wall,
     ParentPortal,
     ClosePortal,
+    /// The opponent's body.
+    #[allow(dead_code)]
+    Opponent,
+    /// A live opponent disc.
+    #[allow(dead_code)]
+    OpponentDisc,
 }
 
 /// Which external navigation request a run is waiting on.
@@ -98,6 +135,7 @@ pub enum CellContent {
 pub enum EntryRequest {
     Directory(usize),
     Document(usize),
+    Source(usize),
     Parent,
 }
 
@@ -208,6 +246,201 @@ impl ParentPortal {
     }
 }
 
+/// How a district lays the data plates out along its roads.
+///
+/// Every district used to get one plate per sampled road cell, which read as
+/// clutter. The layout is now part of the district's seed, so each one has a
+/// recognisable ground pattern of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViaPattern {
+    /// Scattered singles.
+    Dotted,
+    /// Dashed lines running corner to corner.
+    Dashes,
+    /// A few dense plazas.
+    Clusters,
+    /// Square rings around a seeded plaza.
+    Rings,
+    /// Very few, bigger pads.
+    Sparse,
+}
+
+impl ViaPattern {
+    pub const ALL: [Self; 5] = [
+        Self::Dotted,
+        Self::Dashes,
+        Self::Clusters,
+        Self::Rings,
+        Self::Sparse,
+    ];
+
+    pub(crate) fn from_seed(seed: u64) -> Self {
+        // Mix the whole seed rather than slicing bits off it: taking a shifted
+        // window meant every small seed picked the same layout.
+        let mixed = cell_hash(seed, (7, 7));
+        Self::ALL[(mixed % Self::ALL.len() as u64) as usize]
+    }
+
+    /// How many neighbourhoods the layout works around. The anchored layouts
+    /// have to tile the district rather than sit on one plaza, or a big room
+    /// ends up with the same handful of plates a small one got.
+    fn anchor_count(self, roads: usize) -> usize {
+        // Anchors are derived from the plate target, not from a fixed divisor,
+        // so a district this big produces enough candidates to actually reach
+        // it. Over-provisioned on purpose: the thinning pass trims the surplus,
+        // and the yield per anchor depends on how dense the roads are.
+        match self {
+            Self::Clusters => (plate_target(roads, self) / 5).clamp(1, 160),
+            Self::Rings => (plate_target(roads, self) / 10).clamp(1, 160),
+            _ => 0,
+        }
+    }
+
+    /// Relative density, before the district's size is taken into account.
+    fn density_factor(self) -> f32 {
+        match self {
+            Self::Dotted => 1.2,
+            Self::Dashes => 1.0,
+            Self::Clusters => 1.4,
+            Self::Rings => 1.1,
+            Self::Sparse => 0.6,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Dotted => "dotted",
+            Self::Dashes => "dashed",
+            Self::Clusters => "clustered",
+            Self::Rings => "ringed",
+            Self::Sparse => "sparse",
+        }
+    }
+}
+
+/// One decorative plate on a road cell.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RoadPlate {
+    pub cell: (i32, i32),
+    /// Which district accent the plate wears: `0` primary, `1` secondary.
+    pub accent: usize,
+    /// Size multiplier on the base plate footprint.
+    pub scale: f32,
+    /// Rotation about Y, in radians.
+    pub yaw: f32,
+}
+
+/// How many plates a district of `roads` road cells should carry under
+/// `pattern`: a fraction of the ground, with a floor so a small folder is not
+/// bare and a ceiling so the draw calls stay bounded.
+fn plate_target(roads: usize, pattern: ViaPattern) -> usize {
+    ((roads as f32 * config::lightcycle::PLATE_DENSITY * pattern.density_factor()) as usize)
+        .clamp(config::lightcycle::PLATE_MIN, config::lightcycle::PLATE_MAX)
+}
+
+/// Lays a district's data plates out on its roads.
+///
+/// The pattern comes from the same path seed as the street plan and the theme,
+/// so a directory always draws the same ground and two directories rarely draw
+/// the same one. Both the layout *and* the number of plates scale with the
+/// district: a room ten times the size gets roughly ten times the ground.
+pub fn road_plates(seed: u64, roads: &BTreeSet<(i32, i32)>) -> Vec<RoadPlate> {
+    let pattern = ViaPattern::from_seed(seed);
+    let cells: Vec<(i32, i32)> = roads.iter().copied().collect();
+    if cells.is_empty() {
+        return Vec::new();
+    }
+    let anchors = spread_anchors(seed, &cells, pattern.anchor_count(cells.len()));
+    // Box the anchors' neighbourhoods once: testing every road cell against
+    // every anchor would be quadratic in a district this size.
+    let marked = anchor_neighbourhoods(pattern, &anchors);
+    let dash_phase = (seed >> 16) % 6;
+
+    let mut plates = Vec::new();
+    for &cell in &cells {
+        let noise = cell_hash(seed ^ 0x9e37_9a7e_u64, cell);
+        let kept = match pattern {
+            ViaPattern::Dotted => noise % 100 < 10,
+            // One cell in six along a diagonal, and only every other cell on it,
+            // so the plates read as dashes rather than a continuous line.
+            ViaPattern::Dashes => {
+                (cell.0 + cell.1).rem_euclid(6) == dash_phase as i32
+                    && (cell.0 - cell.1).rem_euclid(2) == 0
+            }
+            ViaPattern::Clusters => marked.contains(&cell) && noise % 100 < 45,
+            ViaPattern::Rings => marked.contains(&cell),
+            ViaPattern::Sparse => noise % 100 < 5,
+        };
+        if !kept {
+            continue;
+        }
+        let base = match pattern {
+            ViaPattern::Sparse => 1.15,
+            _ => 0.85,
+        };
+        plates.push(RoadPlate {
+            cell,
+            accent: ((noise >> 17) % 2) as usize,
+            scale: base + ((noise >> 25) % 100) as f32 / 100.0 * 0.35,
+            // Dashes lie along their line; everything else is axis-aligned.
+            yaw: if pattern == ViaPattern::Dashes {
+                0.0
+            } else {
+                (noise >> 33) as f32 % 2.0 * std::f32::consts::FRAC_PI_2
+            },
+        });
+    }
+
+    thin(&mut plates, plate_target(cells.len(), pattern));
+    plates
+}
+
+/// The cells an anchored layout works on: everything within three of a cluster
+/// anchor, or the square rings at two and four around a ring anchor.
+fn anchor_neighbourhoods(pattern: ViaPattern, anchors: &[(i32, i32)]) -> HashSet<(i32, i32)> {
+    let mut marked = HashSet::new();
+    let radii: &[i32] = match pattern {
+        ViaPattern::Clusters => &[1, 2, 3],
+        ViaPattern::Rings => &[2, 4],
+        _ => return marked,
+    };
+    for &(anchor_x, anchor_z) in anchors {
+        for dx in -4_i32..=4 {
+            for dz in -4_i32..=4 {
+                if radii.contains(&chebyshev((0, 0), (dx, dz))) {
+                    marked.insert((anchor_x + dx, anchor_z + dz));
+                }
+            }
+        }
+    }
+    marked
+}
+
+/// Picks `count` cells spread across the district's roads.
+fn spread_anchors(seed: u64, cells: &[(i32, i32)], count: usize) -> Vec<(i32, i32)> {
+    if count == 0 {
+        return Vec::new();
+    }
+    let step = (cells.len() / count).max(1);
+    let offset = cell_hash(seed ^ 0x00dd_1e55_u64, (0, 0)) as usize % step;
+    (0..count)
+        .map(|index| cells[(offset + index * step) % cells.len()])
+        .collect()
+}
+
+/// Keeps at most `target` plates, evenly spaced through the list. The list is in
+/// road order, so thinning spreads the survivors over the district instead of
+/// cropping one end of it.
+fn thin(plates: &mut Vec<RoadPlate>, target: usize) {
+    if plates.len() <= target {
+        return;
+    }
+    let stride = plates.len() as f32 / target as f32;
+    *plates = (0..target)
+        .map(|index| plates[(index as f32 * stride) as usize])
+        .collect();
+}
+
 /// Visual family for one path-seeded TRON district.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CityTheme {
@@ -258,13 +491,15 @@ fn expand_axis(min: i32, max: i32, span: i32) -> (i32, i32) {
     (min - before, max + (extra - before))
 }
 
-/// Directory cities and markdown pages share bounds and portals, but the
-/// kind decides which generator and palette may run.
+/// Directory cities, markdown pages, and disc-wars rings share bounds and
+/// portals, but the kind decides which generator and palette may run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ArenaKind {
     #[default]
     Directory,
     Document,
+    /// A circular source-file ring. Its close gate behaves like a document's.
+    Disc,
 }
 
 /// `min`/`max` are inclusive cell coordinates inside the arena. Everything one
@@ -916,6 +1151,11 @@ impl LightcycleSim {
                     self.pending_request = Some(EntryRequest::Document(index));
                     return StepOutcome::EnteringDocument(index);
                 }
+                CellContent::Source(index) => {
+                    self.phase = RunPhase::EnteringDir;
+                    self.pending_request = Some(EntryRequest::Source(index));
+                    return StepOutcome::EnteringSource(index);
+                }
                 CellContent::File(_) => {
                     return self.crash(CrashReason::File);
                 }
@@ -924,6 +1164,12 @@ impl LightcycleSim {
                 }
                 CellContent::Wall => {
                     return self.crash(CrashReason::Wall);
+                }
+                CellContent::Opponent => {
+                    return self.crash(CrashReason::Opponent);
+                }
+                CellContent::OpponentDisc => {
+                    return self.crash(CrashReason::Disc);
                 }
                 CellContent::ParentPortal => {
                     self.phase = RunPhase::EnteringDir;
@@ -950,6 +1196,9 @@ impl LightcycleSim {
 }
 
 /// Convenience classifier shared by the Bevy plugin and unit tests.
+///
+/// The three predicates separate the enterable file types: markdown opens a
+/// page, source opens a disc-wars ring, and anything else is a hard crash.
 pub fn classify_next_content(
     cell: (i32, i32),
     arena: &Arena,
@@ -957,12 +1206,13 @@ pub fn classify_next_content(
     cells: &HashMap<(i32, i32), usize>,
     is_dir: impl Fn(usize) -> bool,
     is_markdown: impl Fn(usize) -> bool,
+    is_source: impl Fn(usize) -> bool,
 ) -> CellContent {
     if arena
         .parent_portal
         .is_some_and(|portal| portal.contains(cell))
     {
-        return if arena.kind == ArenaKind::Document {
+        return if matches!(arena.kind, ArenaKind::Document | ArenaKind::Disc) {
             CellContent::ClosePortal
         } else {
             CellContent::ParentPortal
@@ -982,6 +1232,8 @@ pub fn classify_next_content(
             CellContent::Dir(index)
         } else if is_markdown(index) {
             CellContent::Markdown(index)
+        } else if is_source(index) {
+            CellContent::Source(index)
         } else {
             CellContent::File(index)
         };
@@ -989,12 +1241,24 @@ pub fn classify_next_content(
     CellContent::Empty
 }
 
+/// One cell along `heading`.
+pub(crate) fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
+    match heading {
+        Heading::PosX => (cell.0 + 1, cell.1),
+        Heading::NegX => (cell.0 - 1, cell.1),
+        Heading::PosZ => (cell.0, cell.1 + 1),
+        Heading::NegZ => (cell.0, cell.1 - 1),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         Arena, ArenaKind, CellContent, CityTheme, CrashReason, EntryRequest, GatePlacement,
-        Heading, LightcycleSim, RunPhase, StepOutcome, Turn, Wall, classify_next_content,
+        Heading, LightcycleSim, RunPhase, StepOutcome, Turn, ViaPattern, Wall,
+        classify_next_content, road_plates,
     };
+    use crate::config;
     use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
     use std::path::PathBuf;
 
@@ -1068,6 +1332,7 @@ mod tests {
                     sim,
                     &self.cells,
                     |index| self.is_dir[index],
+                    |_| false,
                     |_| false,
                 )
             }
@@ -1336,11 +1601,57 @@ mod tests {
         let layout = TestLayout::new(&[(1, 0)], &[], None);
         let mut sim = LightcycleSim::start((0, 0), Heading::PosX);
         let outcome = sim.advance(1.0, |cell, sim| {
-            classify_next_content(cell, &layout.arena, sim, &layout.cells, |_| false, |_| true)
+            classify_next_content(
+                cell,
+                &layout.arena,
+                sim,
+                &layout.cells,
+                |_| false,
+                |_| true,
+                |_| false,
+            )
         });
         assert_eq!(outcome, StepOutcome::EnteringDocument(0));
         assert_eq!(sim.pending_request, Some(EntryRequest::Document(0)));
         assert_eq!(sim.phase, RunPhase::EnteringDir);
+    }
+
+    #[test]
+    fn next_cell_is_source_requests_a_ring_not_a_crash() {
+        let layout = TestLayout::new(&[(1, 0)], &[], None);
+        let mut sim = LightcycleSim::start((0, 0), Heading::PosX);
+        let outcome = sim.advance(1.0, |cell, sim| {
+            classify_next_content(
+                cell,
+                &layout.arena,
+                sim,
+                &layout.cells,
+                |_| false,
+                |_| false,
+                |_| true,
+            )
+        });
+        assert_eq!(outcome, StepOutcome::EnteringSource(0));
+        assert_eq!(sim.pending_request, Some(EntryRequest::Source(0)));
+        assert_eq!(sim.phase, RunPhase::EnteringDir);
+    }
+
+    #[test]
+    fn a_source_file_still_crashes_when_the_source_predicate_is_absent() {
+        let layout = TestLayout::new(&[(1, 0)], &[], None);
+        let mut sim = LightcycleSim::start((0, 0), Heading::PosX);
+        let outcome = sim.advance(1.0, |cell, sim| {
+            classify_next_content(
+                cell,
+                &layout.arena,
+                sim,
+                &layout.cells,
+                |_| false,
+                |_| false,
+                |_| false,
+            )
+        });
+        assert_eq!(outcome, StepOutcome::Crashed(CrashReason::File));
     }
 
     #[test]
@@ -1713,6 +2024,129 @@ mod tests {
         }
     }
 
+    /// A lattice of roads big enough to lay a pattern out on.
+    fn road_lattice(span: i32) -> BTreeSet<(i32, i32)> {
+        let mut roads = BTreeSet::new();
+        for x in 0..span {
+            for z in 0..span {
+                if x % 4 == 0 || z % 4 == 0 {
+                    roads.insert((x, z));
+                }
+            }
+        }
+        roads
+    }
+
+    #[test]
+    fn the_ground_keeps_up_as_a_district_grows() {
+        // The bug this guards: an anchored layout placed the same handful of
+        // plates however big the room was, so a huge directory looked bare.
+        let small = road_lattice(20);
+        let large = road_lattice(120);
+        for seed in 0..60_u64 {
+            let few = road_plates(seed, &small).len();
+            let many = road_plates(seed, &large).len();
+            assert!(
+                many >= few,
+                "seed {seed} put {few} plates in a small room and {many} in a large one"
+            );
+            assert!(
+                many >= 100,
+                "seed {seed} left a {} road room with only {many} plates",
+                large.len()
+            );
+        }
+    }
+
+    #[test]
+    fn the_plate_count_is_bounded() {
+        let huge = road_lattice(200);
+        for seed in 0..20_u64 {
+            let plates = road_plates(seed, &huge);
+            assert!(
+                plates.len() <= config::lightcycle::PLATE_MAX,
+                "{} plates is over the ceiling",
+                plates.len()
+            );
+        }
+    }
+
+    #[test]
+    fn a_district_lays_plates_only_on_its_roads() {
+        let roads = road_lattice(40);
+        for seed in 0..24_u64 {
+            for plate in road_plates(seed, &roads) {
+                assert!(
+                    roads.contains(&plate.cell),
+                    "seed {seed} plated a cell that is not a road"
+                );
+                assert!(plate.accent < 2, "accent index out of range");
+                assert!((0.5..=1.6).contains(&plate.scale), "scale {}", plate.scale);
+            }
+        }
+    }
+
+    #[test]
+    fn a_district_draws_the_same_ground_every_time() {
+        let roads = road_lattice(40);
+        let first = road_plates(0x1234_5678, &roads);
+        let again = road_plates(0x1234_5678, &roads);
+        assert_eq!(first, again, "the same directory must lay out the same");
+        assert!(!first.is_empty(), "and it should lay out something");
+    }
+
+    #[test]
+    fn different_districts_draw_different_ground() {
+        let roads = road_lattice(40);
+        let layouts: Vec<_> = (0..12_u64).map(|seed| road_plates(seed, &roads)).collect();
+        let distinct = layouts
+            .iter()
+            .filter(|layout| **layout != layouts[0])
+            .count();
+        assert!(distinct >= 10, "layouts should vary between seeds");
+    }
+
+    #[test]
+    fn plates_are_sparse_rather_than_one_per_road_cell() {
+        let roads = road_lattice(40);
+        for seed in 0..40_u64 {
+            let plates = road_plates(seed, &roads);
+            assert!(
+                plates.len() * 3 < roads.len(),
+                "seed {seed} plated {} of {} road cells",
+                plates.len(),
+                roads.len()
+            );
+        }
+    }
+
+    #[test]
+    fn every_layout_gets_used() {
+        let mut seen = Vec::new();
+        for seed in 0..200_u64 {
+            let pattern = ViaPattern::from_seed(seed);
+            if !seen.contains(&pattern) {
+                seen.push(pattern);
+            }
+        }
+        assert_eq!(seen.len(), ViaPattern::ALL.len(), "all layouts get used");
+    }
+
+    #[test]
+    fn dense_patterns_are_clustered_not_uniform() {
+        // A clustered district should leave big parts of the grid bare.
+        let roads = road_lattice(40);
+        let clustered = (0..40_u64)
+            .map(|seed| road_plates(seed, &roads))
+            .find(|plates| plates.len() > 12)
+            .expect("some seed should produce a pattern");
+        let columns: BTreeSet<i32> = clustered.iter().map(|plate| plate.cell.0).collect();
+        assert!(
+            columns.len() < 40,
+            "a pattern should not touch every column"
+        );
+    }
+
     #[test]
     fn dense_four_by_four_room_has_visible_architecture() {
         let occupied: Vec<_> = (0..4)
@@ -1764,7 +2198,15 @@ mod tests {
         let wall = *arena.street_walls.iter().next().unwrap();
         let sim = LightcycleSim::start(arena.center(), Heading::PosX);
         assert_eq!(
-            classify_next_content(wall, &arena, &sim, &HashMap::new(), |_| false, |_| false),
+            classify_next_content(
+                wall,
+                &arena,
+                &sim,
+                &HashMap::new(),
+                |_| false,
+                |_| false,
+                |_| false,
+            ),
             CellContent::Wall
         );
     }

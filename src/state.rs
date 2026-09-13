@@ -1,7 +1,7 @@
 use crate::config;
-use crate::filesystem::Navigator;
+use crate::filesystem::navigator::Navigator;
 use bevy::prelude::{Component, Resource};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Resource)]
 pub struct NavigatorResource(pub Navigator);
@@ -36,6 +36,201 @@ impl Default for UiSettings {
 #[derive(Resource, Default)]
 pub struct UiNotice {
     pub message: Option<String>,
+}
+
+/// Pause-menu state for the lightcycle mode: whether the run is frozen and
+/// which warp target the menu cursor points at.
+#[derive(Resource, Default)]
+pub struct PauseState {
+    pub paused: bool,
+    pub warp_index: usize,
+}
+
+/// Which directories the rider has already opened, so a revisit can be a
+/// cache hit.
+#[derive(Resource, Default)]
+pub struct CacheState {
+    pub visited: std::collections::HashSet<PathBuf>,
+}
+
+/// Raster settings that trade looks for frame time.
+///
+/// These are the levers that actually matter on a weak GPU: multisampling,
+/// HDR bloom, the full-screen scanline overlay, and the window size.
+#[derive(Resource, Debug, Clone, Copy, PartialEq)]
+pub struct RenderSettings {
+    /// Multisample count: 1, 2, 4, or 8.
+    pub msaa: u32,
+    /// HDR bloom while riding (lightcycle mode). Measured at about 15ms a
+    /// frame on integrated graphics, because it forces the HDR pipeline.
+    pub bloom: bool,
+    /// Full-screen scanline overlay.
+    pub scanlines: bool,
+    /// Vignette post-process on the camera.
+    pub vignette: bool,
+}
+
+impl Default for RenderSettings {
+    fn default() -> Self {
+        Self {
+            msaa: config::MSAA_SAMPLES,
+            bloom: true,
+            scanlines: true,
+            vignette: true,
+        }
+    }
+}
+
+impl RenderSettings {
+    /// Multisampling as a Bevy sample count.
+    pub fn msaa_samples(&self) -> u32 {
+        self.msaa.max(1)
+    }
+}
+
+/// Drives the occasional plunge of the directory call stack through the arena.
+#[derive(Resource, Debug, Clone, Copy, PartialEq)]
+pub struct StackMotion {
+    /// Seconds until the next plunge begins.
+    pub timer: f32,
+    /// Progress through a plunge in `0.0..1.0`, or `None` while idle.
+    pub plunge: Option<f32>,
+}
+
+impl Default for StackMotion {
+    fn default() -> Self {
+        Self {
+            timer: config::lightcycle::STACK_PLUNGE_INTERVAL,
+            plunge: None,
+        }
+    }
+}
+
+impl StackMotion {
+    /// Ticks the clock by `dt` and reports progress through a running plunge.
+    pub fn advance(&mut self, dt: f32) -> Option<f32> {
+        match self.plunge {
+            Some(progress) => {
+                let next = progress + dt / config::lightcycle::STACK_PLUNGE_SECONDS;
+                if next >= 1.0 {
+                    self.plunge = None;
+                    self.timer = config::lightcycle::STACK_PLUNGE_INTERVAL;
+                    None
+                } else {
+                    self.plunge = Some(next);
+                    Some(next)
+                }
+            }
+            None => {
+                self.timer -= dt;
+                if self.timer <= 0.0 {
+                    self.plunge = Some(0.0);
+                }
+                self.plunge
+            }
+        }
+    }
+}
+
+/// The fake machine telemetry shown in the HUD: a syscall trace cursor and
+/// register/clock readouts.
+#[derive(Resource, Default)]
+pub struct MachineState {
+    pub index: usize,
+    pub pc: u32,
+    pub sp: u32,
+    pub clock_mhz: f32,
+    pub temperature: f32,
+}
+
+/// The rising memory flood that chases a directory run.
+///
+/// `plane` is the flood's grid-Z line, in the same cell coordinates the arena
+/// and the bike use, so contact is a plain comparison.
+#[derive(Resource, Default)]
+pub struct FloodState {
+    pub active: bool,
+    pub timer: f32,
+    pub delay: f32,
+    pub min_z: f32,
+    pub max_z: f32,
+    pub center_x: f32,
+    pub width: f32,
+    pub plane: f32,
+}
+
+impl FloodState {
+    /// Sends the flood back to the arena's edge and restarts its countdown.
+    ///
+    /// A restarted run gets its full delay back: otherwise the wall it died to
+    /// is still standing past the spawn cell, and the respawn dies instantly to
+    /// a hazard it never had a chance to outrun.
+    pub fn recede(&mut self) {
+        self.timer = 0.0;
+        self.plane = self.min_z;
+    }
+}
+
+/// Directory visit history, played as a version-control time machine.
+///
+/// `past` is the commit log of directories already ridden; `future` holds what
+/// a rewind undid, so a fast-forward can put it back.
+#[derive(Resource, Default)]
+pub struct HistoryState {
+    pub past: Vec<PathBuf>,
+    pub future: Vec<PathBuf>,
+    /// Last rewind/fast-forward result shown on the status line.
+    pub notice: String,
+    pub notice_timer: f32,
+}
+
+impl HistoryState {
+    /// Records riding into `path`. A load that lands where the log already
+    /// points (a rewind or fast-forward arriving) is not a new commit, and any
+    /// redo branch is dropped when the rider genuinely goes somewhere new.
+    pub fn commit(&mut self, path: &Path) {
+        if self.past.last().is_some_and(|last| last == path) {
+            return;
+        }
+        self.past.push(path.to_path_buf());
+        if self.past.len() > config::history::HISTORY_LIMIT {
+            self.past.remove(0);
+        }
+        self.future.clear();
+    }
+
+    /// Steps back one directory: the present lands on the redo stack and the
+    /// previous commit becomes the target.
+    pub fn rewind(&mut self) -> Option<PathBuf> {
+        if !self.can_rewind() {
+            return None;
+        }
+        let current = self.past.pop()?;
+        self.future.push(current);
+        self.past.last().cloned()
+    }
+
+    /// Steps forward again, undoing a rewind.
+    pub fn fast_forward(&mut self) -> Option<PathBuf> {
+        let target = self.future.pop()?;
+        self.past.push(target.clone());
+        Some(target)
+    }
+
+    /// How deep the commit log is, for the HUD.
+    pub fn depth(&self) -> usize {
+        self.past.len()
+    }
+
+    /// True while a redo branch is waiting.
+    pub fn can_rewind(&self) -> bool {
+        self.past.len() > 1
+    }
+
+    /// True while a fast-forward is available.
+    pub fn can_fast_forward(&self) -> bool {
+        !self.future.is_empty()
+    }
 }
 
 #[derive(Resource)]
@@ -141,3 +336,74 @@ pub struct LightcycleSceneRoot;
 /// Trail mesh chunks owned by the lightcycle mode.
 #[derive(Component, Debug)]
 pub struct TrailSceneRoot;
+
+#[cfg(test)]
+mod tests {
+    use super::HistoryState;
+    use std::path::{Path, PathBuf};
+
+    fn path(name: &str) -> PathBuf {
+        PathBuf::from(name)
+    }
+
+    #[test]
+    fn a_revisit_of_the_same_directory_is_not_a_new_commit() {
+        let mut history = HistoryState::default();
+        history.commit(Path::new("/a"));
+        history.commit(Path::new("/a"));
+        assert_eq!(history.depth(), 1, "the log should not grow on a revisit");
+    }
+
+    #[test]
+    fn rewinding_walks_back_and_fast_forwarding_restores() {
+        let mut history = HistoryState::default();
+        history.commit(Path::new("/a"));
+        history.commit(Path::new("/b"));
+        history.commit(Path::new("/c"));
+
+        assert_eq!(history.rewind(), Some(path("/b")));
+        assert_eq!(history.rewind(), Some(path("/a")));
+        assert!(history.can_fast_forward());
+
+        assert_eq!(history.fast_forward(), Some(path("/b")));
+        assert_eq!(history.fast_forward(), Some(path("/c")));
+        assert!(!history.can_fast_forward(), "the redo branch is spent");
+    }
+
+    #[test]
+    fn the_first_commit_has_nowhere_to_rewind_to() {
+        let mut history = HistoryState::default();
+        history.commit(Path::new("/a"));
+        assert_eq!(history.rewind(), None);
+        assert_eq!(
+            history.depth(),
+            1,
+            "a refused rewind must not consume the log"
+        );
+    }
+
+    #[test]
+    fn going_somewhere_new_drops_the_redo_branch() {
+        let mut history = HistoryState::default();
+        history.commit(Path::new("/a"));
+        history.commit(Path::new("/b"));
+        assert_eq!(history.rewind(), Some(path("/a")));
+        assert!(history.can_fast_forward());
+
+        history.commit(Path::new("/elsewhere"));
+        assert!(
+            !history.can_fast_forward(),
+            "a new commit forks the history"
+        );
+        assert_eq!(history.depth(), 2);
+    }
+
+    #[test]
+    fn the_log_is_capped() {
+        let mut history = HistoryState::default();
+        for index in 0..(crate::config::history::HISTORY_LIMIT + 8) {
+            history.commit(Path::new(&format!("/dir{index}")));
+        }
+        assert_eq!(history.depth(), crate::config::history::HISTORY_LIMIT);
+    }
+}
