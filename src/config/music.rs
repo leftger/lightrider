@@ -14,11 +14,12 @@ pub const MUSIC_MIN_VOLUME: f32 = 0.0;
 pub const MUSIC_MAX_VOLUME: f32 = 1.0;
 
 /// Calm (Explorer) base tempo range, in BPM.
-pub const MUSIC_CALM_BPM_MIN: f32 = 60.0;
+pub const MUSIC_CALM_BPM_MIN: f32 = 72.0;
 
 pub const MUSIC_CALM_BPM_MAX: f32 = 80.0;
 
 /// Action (Lightcycle) tempo is the folder theme scaled by this factor.
+/// Base 75-80 BPM * 1.6 gives 120-128 BPM (quintessential French/electro house).
 pub const MUSIC_ACTION_TEMPO_MULTIPLIER: f32 = 1.6;
 
 /// How many per-entry voices may sound at once per profile.
@@ -36,9 +37,9 @@ pub const MUSIC_ACTION_PROXIMITY_RADIUS: f32 = 13.0;
 pub const MUSIC_PROXIMITY_CUTOFF_MULTIPLIER: f32 = 3.0;
 
 /// Peak gain a single proximity voice may reach.
-pub const MUSIC_CALM_GAIN_CEILING: f32 = 0.25;
+pub const MUSIC_CALM_GAIN_CEILING: f32 = 0.22;
 
-pub const MUSIC_ACTION_GAIN_CEILING: f32 = 0.6;
+pub const MUSIC_ACTION_GAIN_CEILING: f32 = 0.5;
 
 /// One-pole time constant for voice gain / pan / filter smoothing, in seconds.
 pub const MUSIC_CALM_SMOOTHING_TAU: f32 = 0.15;
@@ -62,17 +63,43 @@ pub const MUSIC_VOICE_CUTOFF_SPAN: f32 = 2400.0;
 
 pub const MUSIC_VOICE_CUTOFF_MIN: f32 = 300.0;
 
-pub const MUSIC_CALM_PAD_GAIN: f32 = 0.16;
+pub const MUSIC_CALM_PAD_GAIN: f32 = 0.14;
 
-pub const MUSIC_ACTION_BASS_GAIN: f32 = 0.22;
+/// Dune 2 desert brass war-horn drone gain in Calm mode (toned down to half power).
+pub const MUSIC_CALM_DUNE_GAIN: f32 = 0.06;
 
-pub const MUSIC_ACTION_LEAD_GAIN: f32 = 0.14;
+/// Subtle ambient desert heartbeat pulse in Calm mode.
+pub const MUSIC_CALM_PULSE_GAIN: f32 = 0.08;
 
-/// Action-only amplitude pumping on the bass/lead, expressed as a fraction of
-/// full gain. `RATE` is pumps per beat, so tempo changes the pulse speed.
-pub const MUSIC_ACTION_PUMP_DEPTH: f32 = 0.5;
+/// Daft Punk 4-on-the-floor kick drum gain.
+pub const MUSIC_ACTION_KICK_GAIN: f32 = 0.26;
 
-pub const MUSIC_ACTION_PUMP_RATE: f32 = 2.0;
+/// Skrillex / electro backbeat snare gain.
+pub const MUSIC_ACTION_SNARE_GAIN: f32 = 0.16;
+
+/// deadmau5 driving eighth-note offbeat hi-hat gain.
+pub const MUSIC_ACTION_HAT_GAIN: f32 = 0.12;
+
+/// deadmau5 clean sub-bass gain.
+pub const MUSIC_ACTION_SUB_GAIN: f32 = 0.18;
+
+/// Daft Punk pumping electro sawtooth bass gain.
+pub const MUSIC_ACTION_BASS_GAIN: f32 = 0.16;
+
+/// Skrillex modulated wobble growl bass gain.
+pub const MUSIC_ACTION_GROWL_GAIN: f32 = 0.14;
+
+/// Daft Punk / TRON: Legacy synth lead gain.
+pub const MUSIC_ACTION_LEAD_GAIN: f32 = 0.12;
+
+/// Action French Touch sidechain pumping depth on synths (fraction of full gain).
+pub const MUSIC_ACTION_PUMP_DEPTH: f32 = 0.65;
+
+/// Sidechain pump rate in cycles per beat. 1.0 = one pump per beat (quarter-note ducking).
+pub const MUSIC_ACTION_PUMP_RATE: f32 = 1.0;
+
+/// Reverb plate mix level applied to output.
+pub const MUSIC_REVERB_PLATE_MIX: f32 = 0.08;
 
 /// Seconds the graph crossfade takes when a room or profile changes. Long
 /// enough to read as a blend, short enough to feel responsive while browsing.
@@ -83,19 +110,19 @@ pub const MUSIC_CROSSFADE_SECONDS: f32 = 0.7;
 pub const MUSIC_PARAMS_HZ: f32 = 60.0;
 
 /// Arpeggiator. `BEATS` is step length in beats, so tempo drives the rate:
-/// Explorer gets one soft note per beat, Lightcycle eighths. `TAU` is the
-/// per-note decay time constant, and `GAIN` the per-note peak.
+/// Explorer gets one soft note per beat, Lightcycle gets rapid sixteenth notes
+/// (4 per beat) for driving progressive electro (deadmau5 / Daft Punk "Derezzed").
 pub const MUSIC_CALM_ARP_BEATS: f32 = 1.0;
 
-pub const MUSIC_ACTION_ARP_BEATS: f32 = 2.0;
+pub const MUSIC_ACTION_ARP_BEATS: f32 = 4.0;
 
-pub const MUSIC_CALM_ARP_TAU: f32 = 0.26;
+pub const MUSIC_CALM_ARP_TAU: f32 = 0.28;
 
-pub const MUSIC_ACTION_ARP_TAU: f32 = 0.11;
+pub const MUSIC_ACTION_ARP_TAU: f32 = 0.09;
 
 pub const MUSIC_CALM_ARP_GAIN: f32 = 0.10;
 
-pub const MUSIC_ACTION_ARP_GAIN: f32 = 0.17;
+pub const MUSIC_ACTION_ARP_GAIN: f32 = 0.14;
 
 /// Slow filter sweep applied to the base voices, in cycles per second.
 pub const MUSIC_CALM_SWEEP_RATE: f32 = 0.05;

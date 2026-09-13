@@ -100,6 +100,8 @@ pub struct LightcyclePhysics {
     pub normal_grip: f32,
     /// Reduced lateral grip when drifting.
     pub drift_grip: f32,
+    /// Timer for trail self-collision immunity while rebounding off a solid obstacle.
+    pub rebound_timer: f32,
 }
 
 impl Default for LightcyclePhysics {
@@ -131,6 +133,7 @@ impl LightcyclePhysics {
             lateral_grip: 18.0,
             normal_grip: 18.0,
             drift_grip: 3.5,
+            rebound_timer: 0.0,
         }
     }
 }
@@ -246,9 +249,10 @@ pub fn read_continuous_physics_input(
     keys: Res<ButtonInput<KeyCode>>,
     pause: Res<PauseState>,
     transition: Res<ModeTransition>,
+    state: Res<LightcycleState>,
     mut cycle: Query<&mut LightcyclePhysics, With<CycleEntity>>,
 ) {
-    if pause.paused || transition.is_active() {
+    if state.classic_mode || pause.paused || transition.is_active() {
         return;
     }
     let Ok(mut physics) = cycle.single_mut() else {
@@ -281,6 +285,7 @@ pub fn step_continuous_physics(
     time: Res<Time>,
     pause: Res<PauseState>,
     transition: Res<ModeTransition>,
+    flood: Res<crate::state::FloodState>,
     mut state: ResMut<LightcycleState>,
     mut effects: MessageWriter<MusicSfx>,
     mut cycle_query: Query<(
@@ -290,7 +295,7 @@ pub fn step_continuous_physics(
         &mut ContinuousTrail,
     ), With<CycleEntity>>,
 ) {
-    if pause.paused || transition.is_active() {
+    if state.classic_mode || pause.paused || transition.is_active() {
         return;
     }
 
@@ -314,6 +319,7 @@ pub fn step_continuous_physics(
     }
 
     let dt = time.delta_secs();
+    physics.rebound_timer = (physics.rebound_timer - dt).max(0.0);
 
     // 1. Steering with speed scaling
     let speed_ref = physics.turn_reference_speed;
@@ -384,26 +390,18 @@ pub fn step_continuous_physics(
     );
     trail.append(tail_pos, physics.heading);
 
-    // 8. Garbage Collector Sweep Collision Detection
-    if state.gc_sweep > 0.0 {
-        let min_z = run.arena.min.1 as f32;
-        let max_z = run.arena.max.1 as f32;
-        let sweep_plane = crate::plugins::lightcycle::decor::gc_sweep_plane(
-            state.gc_sweep,
-            config::lightcycle::GC_SWEEP_SECONDS,
-            min_z,
-            max_z,
-        );
-        let sweep_z = sweep_plane * config::GRID_SPACING;
+    // 8. Memory Flood Sweep (Red Sweeping Bar) Collision Detection
+    if flood.active && flood.timer > flood.delay {
+        let flood_z = flood.plane * config::GRID_SPACING;
         let min_x = (run.arena.min.0 as f32 - 1.0) * config::GRID_SPACING;
         let max_x = (run.arena.max.0 as f32 + 1.0) * config::GRID_SPACING;
-        if (transform.translation.z - sweep_z).abs() < 1.35
+        if transform.translation.z <= flood_z + 0.5
             && transform.translation.x >= min_x
             && transform.translation.x <= max_x
         {
             run.sim.phase = RunPhase::Crashed;
             run.sim.crash_reason = Some(CrashReason::Hazard);
-            run.crash_label = Some("garbage collector sweep".to_string());
+            run.crash_label = Some("a buffer overflow".to_string());
             linear_velocity.0 = Vec3::ZERO;
             physics.current_speed = 0.0;
             effects.write(MusicSfx::GameOver);
@@ -413,9 +411,9 @@ pub fn step_continuous_physics(
         }
     }
 
-    // 9. Trail Collision Detection
+    // 9. Trail Collision Detection (suppressed while recovering from obstacle rebound)
     let cycle_pos_2d = Vec2::new(transform.translation.x, transform.translation.z);
-    if check_trail_collision(cycle_pos_2d, &trail, 0.48) {
+    if physics.rebound_timer <= 0.0 && check_trail_collision(cycle_pos_2d, &trail, 0.48) {
         run.sim.phase = RunPhase::Crashed;
         run.sim.crash_reason = Some(CrashReason::Trail);
         run.crash_label = Some("your trail".to_string());
@@ -433,6 +431,17 @@ pub fn step_continuous_physics(
     run.sim.cell = (cell_x, cell_z);
     run.sim.heading = nearest_heading(physics.heading);
     run.sim.cell_t = 0.0;
+    run.world_position = Some((transform.translation.x, transform.translation.z));
+    run.world_heading = Some(physics.heading);
+    run.world_velocity = Some((linear_velocity.0.x, linear_velocity.0.z));
+
+    if !state.restore_directory
+        && (run.is_source() || run.is_document())
+        && run.arena.parent_portal.as_ref().is_some_and(|p| p.contains(run.sim.cell))
+    {
+        effects.write(MusicSfx::Portal);
+        state.restore_directory = true;
+    }
 
     state.run = Some(run);
 }
@@ -464,6 +473,9 @@ pub fn handle_lightcycle_collisions(
         Option<&Transform>,
     ), Without<CycleEntity>>,
 ) {
+    if state.classic_mode {
+        return;
+    }
     let Ok((cycle_entity, mut cycle_transform, mut linear_velocity, mut maybe_physics, maybe_colliding)) = cycle_query.single_mut() else {
         return;
     };
@@ -556,6 +568,7 @@ pub fn handle_lightcycle_collisions(
 
         if parent_sensor.is_some() {
             if run.is_document() || run.is_source() {
+                effects.write(MusicSfx::Portal);
                 state.restore_directory = true;
                 triggered = true;
             } else if let Some(parent) = navigator.0.begin_go_to_parent() {
@@ -604,19 +617,25 @@ pub fn handle_lightcycle_collisions(
                 )
             };
 
-            let diff = cycle_pos - obs_pos;
-            let mut normal_2d = if obs_scale.x > obs_scale.z * 1.5 {
-                Vec2::new(0.0, if diff.y != 0.0 { diff.y.signum() } else { 1.0 })
-            } else if obs_scale.z > obs_scale.x * 1.5 {
-                Vec2::new(if diff.x != 0.0 { diff.x.signum() } else { 1.0 }, 0.0)
-            } else if diff.length_squared() > 1e-4 {
-                if diff.x.abs() > diff.y.abs() {
-                    Vec2::new(diff.x.signum(), 0.0)
-                } else {
-                    Vec2::new(0.0, diff.y.signum())
-                }
+            let hx = obs_scale.x * 0.5;
+            let hz = obs_scale.z * 0.5;
+            let clamped_x = cycle_pos.x.clamp(obs_pos.x - hx, obs_pos.x + hx);
+            let clamped_z = cycle_pos.y.clamp(obs_pos.y - hz, obs_pos.y + hz);
+            let closest = Vec2::new(clamped_x, clamped_z);
+            let delta = cycle_pos - closest;
+
+            let normal_2d = if delta.length_squared() > 1e-5 {
+                delta.normalize()
             } else {
-                Vec2::new(0.0, 1.0)
+                let dx = cycle_pos.x - obs_pos.x;
+                let dz = cycle_pos.y - obs_pos.y;
+                let dist_x = hx - dx.abs();
+                let dist_z = hz - dz.abs();
+                if dist_x < dist_z {
+                    Vec2::new(if dx != 0.0 { dx.signum() } else { 1.0 }, 0.0)
+                } else {
+                    Vec2::new(0.0, if dz != 0.0 { dz.signum() } else { 1.0 })
+                }
             };
 
             let fwd = if let Some(ref phys) = maybe_physics {
@@ -630,44 +649,46 @@ pub fn handle_lightcycle_collisions(
                 }
             };
 
-            if normal_2d.dot(fwd) > 0.0 {
-                normal_2d = -normal_2d;
-            }
-
-            let dot = fwd.dot(normal_2d);
-            let mut reflected = if dot < 0.0 {
-                fwd - 2.0 * dot * normal_2d
-            } else {
-                fwd + normal_2d * 0.5
-            };
-            if reflected.length_squared() > 1e-4 {
-                reflected = reflected.normalize();
-            } else {
-                reflected = normal_2d;
-            }
-
             let normal_3d = Vec3::new(normal_2d.x, 0.0, normal_2d.y);
-            cycle_transform.translation += normal_3d * 0.45;
+            let dot = fwd.dot(normal_2d);
 
-            let incoming_speed = if let Some(ref phys) = maybe_physics {
-                phys.current_speed.abs().max(linear_velocity.0.length())
+            if dot < 0.0 {
+                let mut reflected = fwd - 2.0 * dot * normal_2d;
+                if reflected.length_squared() > 1e-4 {
+                    reflected = reflected.normalize();
+                } else {
+                    reflected = normal_2d;
+                }
+
+                cycle_transform.translation += normal_3d * 0.45;
+
+                let incoming_speed = if let Some(ref phys) = maybe_physics {
+                    phys.current_speed.abs().max(linear_velocity.0.length())
+                } else {
+                    linear_velocity.0.length()
+                };
+                let rebound_speed = (incoming_speed * 0.75).clamp(6.0, 16.0);
+                linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 4.0;
+
+                if let Some(ref mut phys) = maybe_physics {
+                    phys.heading = reflected.y.atan2(reflected.x);
+                    phys.current_speed = rebound_speed;
+                    phys.current_lean = -phys.current_lean * 0.4;
+                    phys.rebound_timer = 0.8;
+                }
+
+                let mut jolt = crate::lightcycle::CrashFx::new(0.22);
+                jolt.spawned = true;
+                state.crash_fx = Some(jolt);
+
+                effects.write(MusicSfx::Crash);
             } else {
-                linear_velocity.0.length()
-            };
-            let rebound_speed = (incoming_speed * 0.75).clamp(6.0, 16.0);
-            linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 4.0;
-
-            if let Some(ref mut phys) = maybe_physics {
-                phys.heading = reflected.y.atan2(reflected.x);
-                phys.current_speed = rebound_speed;
-                phys.current_lean = -phys.current_lean * 0.4;
+                cycle_transform.translation += normal_3d * 0.25;
+                if let Some(ref mut phys) = maybe_physics {
+                    phys.rebound_timer = 0.8;
+                }
             }
 
-            let mut jolt = crate::lightcycle::CrashFx::new(0.22);
-            jolt.spawned = true;
-            state.crash_fx = Some(jolt);
-
-            effects.write(MusicSfx::Crash);
             triggered = true;
             break;
         }
@@ -732,10 +753,14 @@ pub fn handle_lightcycle_collisions(
 
 /// Updates the 3D ribbon mesh using the continuous trail keyframes.
 pub fn update_continuous_trail_mesh(
+    state: Res<LightcycleState>,
     cycle_query: Query<(&Transform, &LightcyclePhysics, &ContinuousTrail), With<CycleEntity>>,
     mut meshes: ResMut<Assets<Mesh>>,
     trail_mesh_query: Query<&Mesh3d, With<TrailSceneRoot>>,
 ) {
+    if state.classic_mode {
+        return;
+    }
     let Ok((transform, physics, trail)) = cycle_query.single() else {
         return;
     };

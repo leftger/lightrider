@@ -160,6 +160,34 @@ pub(crate) fn step_lightcycle(
             let arena = &run.arena;
             let sim = &mut run.sim;
             match &run.environment {
+                RunEnvironment::Directory { nodes, cells } if state.classic_mode => sim.advance(
+                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                    |next, sim| {
+                        classify_next_content(
+                            next,
+                            arena,
+                            sim,
+                            cells,
+                            |index| nodes[index].is_dir,
+                            |index| nodes[index].is_markdown(),
+                            |index| nodes[index].is_source(),
+                        )
+                    },
+                ),
+                RunEnvironment::Document { .. } if state.classic_mode => sim.advance(
+                    step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
+                    |next, sim| {
+                        classify_next_content(
+                            next,
+                            arena,
+                            sim,
+                            &HashMap::new(),
+                            |_| false,
+                            |_| false,
+                            |_| false,
+                        )
+                    },
+                ),
                 RunEnvironment::Directory { .. } | RunEnvironment::Document { .. } => {
                     StepOutcome::Moved
                 }
@@ -221,33 +249,8 @@ pub(crate) fn step_lightcycle(
                     | SourceSim::Frogger(_)
                     | SourceSim::Qbert(_)
                     | SourceSim::Bomberman(_)
-                    | SourceSim::Plinko(_) => StepOutcome::Moved,
-                    SourceSim::DiscWars(disc) => {
-                        // The opponent's body and its live disc are lethal cells
-                        // in the same grid model the cycle already uses.
-                        let opponent = disc.opponent_cell();
-                        let opponent_disc = disc.opponent_disc_cell();
-                        sim.advance(
-                            step * config::lightcycle::LIGHTCYCLE_CELLS_PER_SEC,
-                            |next, state| {
-                                if Some(next) == opponent {
-                                    return CellContent::Opponent;
-                                }
-                                if Some(next) == opponent_disc {
-                                    return CellContent::OpponentDisc;
-                                }
-                                classify_next_content(
-                                    next,
-                                    arena,
-                                    state,
-                                    &HashMap::new(),
-                                    |_| false,
-                                    |_| false,
-                                    |_| false,
-                                )
-                            },
-                        )
-                    }
+                    | SourceSim::Plinko(_)
+                    | SourceSim::DiscWars(_) => StepOutcome::Moved,
                 },
             }
         };
@@ -350,8 +353,13 @@ pub(crate) fn step_lightcycle(
                 }
             }
             StepOutcome::CloseDocument => {
+                effects.write(MusicSfx::Portal);
                 state.restore_directory = true;
             }
+        }
+
+        if state.restore_directory {
+            break;
         }
 
         if source_run {
@@ -506,6 +514,15 @@ pub(crate) fn step_disc_fight(run: &mut ActiveRun, dt: f32, effects: &mut Messag
         cell: run.sim.cell,
         heading: run.sim.heading,
         running: run.sim.phase == RunPhase::Running,
+        world_pos: run.world_position,
+        world_dir: run.world_velocity.and_then(|v| {
+            let len = (v.0 * v.0 + v.1 * v.1).sqrt();
+            if len > 0.5 {
+                Some((v.0 / len, v.1 / len))
+            } else {
+                run.world_heading.map(|h| (h.cos(), h.sin()))
+            }
+        }),
     };
     let events = {
         let arena = &run.arena;

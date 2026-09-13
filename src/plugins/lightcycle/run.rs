@@ -106,6 +106,9 @@ pub(crate) fn build_active_run(path: &Path, nodes: Vec<FileNode>) -> ActiveRun {
         environment: RunEnvironment::Directory { nodes, cells },
         crash_label: None,
         entering_label: None,
+        world_position: None,
+        world_heading: None,
+        world_velocity: None,
     }
 }
 
@@ -128,6 +131,9 @@ pub(crate) fn build_document_run(path: &Path, bytes: &[u8]) -> ActiveRun {
         },
         crash_label: None,
         entering_label: None,
+        world_position: None,
+        world_heading: None,
+        world_velocity: None,
     }
 }
 
@@ -204,6 +210,9 @@ pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u
         },
         crash_label: None,
         entering_label: None,
+        world_position: None,
+        world_heading: None,
+        world_velocity: None,
     }
 }
 
@@ -351,8 +360,7 @@ pub(crate) fn spawn_run_entities(
     let pose = cycle_cell_pose(&run.sim);
     let is_bike_run = run.directory_nodes().is_some()
         || run.is_document()
-        || run.source_disc().is_some()
-        || run.source_snake().is_some();
+        || run.source_disc().is_some();
 
     let mut cycle_cmd = commands.spawn((
         LightcycleSceneRoot,

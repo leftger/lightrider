@@ -71,7 +71,7 @@ pub(crate) fn update_trail_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
     trail: Query<&Mesh3d, With<TrailSceneRoot>>,
 ) {
-    if !cycle_has_continuous_trail.is_empty() {
+    if !state.classic_mode && !cycle_has_continuous_trail.is_empty() {
         return;
     }
     let Some(run) = state.run.as_ref() else {

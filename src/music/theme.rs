@@ -18,14 +18,26 @@ pub enum Scale {
     Minor,
     Dorian,
     PentatonicMinor,
+    /// Ominous Dune 2 Harkonnen combat scale with flat 2nd.
+    Phrygian,
+    /// Dramatic classical-electro / Skrillex tension scale with raised 7th.
+    HarmonicMinor,
+    /// Exotic desert sands / spice planet scale from Frank Klepacki & Hans Zimmer Dune.
+    PhrygianDominant,
+    /// Gritty electro/cyberpunk scale with flat 5th blue-note tension.
+    Cyberpunk,
 }
 
 impl Scale {
-    pub const ALL: [Scale; 4] = [
-        Scale::Major,
-        Scale::Minor,
+    pub const ALL: [Scale; 8] = [
         Scale::Dorian,
+        Scale::Minor,
+        Scale::Phrygian,
+        Scale::HarmonicMinor,
+        Scale::PhrygianDominant,
         Scale::PentatonicMinor,
+        Scale::Cyberpunk,
+        Scale::Major,
     ];
 
     pub fn intervals(self) -> &'static [u8] {
@@ -34,6 +46,10 @@ impl Scale {
             Scale::Minor => &[0, 2, 3, 5, 7, 8, 10],
             Scale::Dorian => &[0, 2, 3, 5, 7, 9, 10],
             Scale::PentatonicMinor => &[0, 3, 5, 7, 10],
+            Scale::Phrygian => &[0, 1, 3, 5, 7, 8, 10],
+            Scale::HarmonicMinor => &[0, 2, 3, 5, 7, 8, 11],
+            Scale::PhrygianDominant => &[0, 1, 4, 5, 7, 8, 10],
+            Scale::Cyberpunk => &[0, 1, 3, 4, 7, 8, 10],
         }
     }
 
@@ -47,6 +63,10 @@ impl Scale {
             Scale::Minor => "minor",
             Scale::Dorian => "dorian",
             Scale::PentatonicMinor => "pent-minor",
+            Scale::Phrygian => "phrygian",
+            Scale::HarmonicMinor => "harmonic-min",
+            Scale::PhrygianDominant => "phrygian-dom",
+            Scale::Cyberpunk => "cyberpunk",
         }
     }
 }

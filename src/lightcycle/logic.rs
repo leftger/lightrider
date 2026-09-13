@@ -123,8 +123,10 @@ pub enum CellContent {
     ParentPortal,
     ClosePortal,
     /// The opponent's body.
+    #[allow(dead_code)]
     Opponent,
     /// A live opponent disc.
+    #[allow(dead_code)]
     OpponentDisc,
 }
 

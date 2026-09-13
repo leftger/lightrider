@@ -9,8 +9,21 @@
 use super::theme::{ModeProfile, MusicTheme};
 use crate::config;
 
-/// Scale-degree walk, rotated by the theme seed.
-const PATTERN: [u32; 8] = [0, 2, 4, 7, 4, 2, 5, 9];
+/// Iconic melodic motifs selected by the path seed:
+/// 0: deadmau5 progressive rolling arpeggio (16-step hypnotic rise and fall)
+/// 1: Daft Punk French Touch octave funk (octave bounce & 7ths, TRON / Derezzed style)
+/// 2: Skrillex syncopated electro hook (blues / minor pentatonic bite)
+/// 3: Dune 2 Desert Sands / Phrygian mystery (exotic intervals & scalar climbs)
+const PATTERNS: [&[u32]; 4] = [
+    // deadmau5 progressive rolling arp (16 steps)
+    &[0, 2, 4, 7, 9, 7, 4, 2, 0, 4, 7, 11, 9, 7, 4, 2],
+    // Daft Punk French Touch octave funk (16 steps)
+    &[0, 7, 12, 7, 0, 10, 12, 10, 0, 7, 12, 7, 2, 7, 10, 7],
+    // Skrillex electro-bass hook (16 steps)
+    &[0, 0, 3, 0, 7, 0, 5, 3, 0, 0, 3, 6, 7, 10, 7, 5],
+    // Dune 2 Desert Sands / Phrygian mystery (16 steps)
+    &[0, 1, 4, 5, 7, 8, 7, 5, 4, 1, 0, 1, 4, 7, 8, 11],
+];
 
 /// One frame of arpeggiator output.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -59,7 +72,7 @@ impl ArpState {
         while self.clock >= interval && caught_up < 2 {
             self.clock -= interval;
             self.step += 1;
-            self.level = velocity(self.step - 1);
+            self.level = velocity(theme.seed, self.step - 1);
             triggered = true;
             caught_up += 1;
         }
@@ -71,9 +84,17 @@ impl ArpState {
         let note = self.step.saturating_sub(1);
         let (degree, octave) = degree(theme.seed, note);
         let freq = theme.degree_hz(degree, octave);
-        let cutoff = (theme.node_cutoff(theme.seed ^ note) + degree as f32 * 90.0)
+        // Progressive deadmau5 filter sweep: breathes over a cyclical wave
+        let sweep = (self.step as f32 * 0.04).sin() * 0.5 + 0.5;
+        let cutoff = (theme.node_cutoff(theme.seed ^ note) + sweep * 3200.0 + degree as f32 * 110.0)
             .clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
-        let pan = if note.is_multiple_of(2) { -0.3 } else { 0.3 };
+        let pan = if note % 4 == 0 {
+            -0.28
+        } else if note % 4 == 2 {
+            0.28
+        } else {
+            0.0
+        };
         let gain = self.level * profile.arp_gain();
 
         ArpVoice {
@@ -87,26 +108,51 @@ impl ArpState {
 }
 
 /// Next (scale degree, octave offset) for a step.
+/// Generates progressive phrase development over bars while strictly adhering
+/// to the path seed and the directory's scale.
 fn degree(seed: u64, note: u64) -> (u32, i32) {
-    let rotation = (seed % PATTERN.len() as u64) as usize;
-    let index = (note as usize + rotation) % PATTERN.len();
-    let octave = if (note / PATTERN.len() as u64) % 4 == 3 {
-        1
-    } else {
-        0
+    let pattern_idx = ((seed >> 8) % PATTERNS.len() as u64) as usize;
+    let pattern = PATTERNS[pattern_idx];
+    let rotation = (seed % pattern.len() as u64) as usize;
+    let index = (note as usize + rotation) % pattern.len();
+    let bar = (note / pattern.len() as u64) % 4;
+
+    // Procedural progression over a 4-bar cycle:
+    // Bar 0: Canonical motif
+    // Bar 1: Octave bounce or passing tone
+    // Bar 2: Melodic shift within scale
+    // Bar 3: Climactic octave lift
+    let base_degree = pattern[index];
+    let (deg, oct) = match bar {
+        1 => {
+            let mod_deg = if (seed >> 14).is_multiple_of(2) {
+                base_degree
+            } else {
+                pattern[(index + 1) % pattern.len()]
+            };
+            (mod_deg, 0)
+        }
+        2 => {
+            let shift = if (seed >> 16).is_multiple_of(2) { 2 } else { 4 };
+            (base_degree + shift, 0)
+        }
+        3 => (base_degree, 1),
+        _ => (base_degree, 0),
     };
-    (PATTERN[index], octave)
+    (deg, oct)
 }
 
-/// Downbeat-accented velocity.
-fn velocity(note: u64) -> f32 {
-    if note.is_multiple_of(4) {
+/// Downbeat-accented velocity with subtle deterministic seed micro-groove.
+fn velocity(seed: u64, note: u64) -> f32 {
+    let base = if note.is_multiple_of(4) {
         1.0
     } else if note.is_multiple_of(2) {
-        0.72
+        0.78
     } else {
-        0.55
-    }
+        0.62
+    };
+    let micro = (((seed.wrapping_add(note) >> 3) % 5) as f32 - 2.0) * 0.015;
+    (base + micro).clamp(0.4, 1.0)
 }
 
 #[cfg(test)]

@@ -16,7 +16,9 @@ use crate::lightcycle::scene::PooledShown;
 use crate::lightcycle::scene::pose::cycle_cell_pose;
 use crate::lightcycle::scene::pose::pose_world_position;
 use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
+use crate::plugins::lightcycle::physics::{GameLayer, ParentPortalSensor};
 use crate::state::LightcycleSceneRoot;
+use avian3d::prelude::*;
 use bevy::prelude::*;
 
 /// The player's thrown disc.
@@ -309,6 +311,20 @@ pub(crate) fn spawn_disc_gate(
         Transform::from_translation(base + Vec3::Y * 2.25).with_scale(lintel_scale),
         Pickable::IGNORE,
     ));
+
+    commands.spawn((
+        LightcycleSceneRoot,
+        Transform::from_translation(base + Vec3::Y * 1.5),
+        Sensor,
+        Collider::cuboid(
+            if opening_axis == Vec3::X { 2.5 } else { 2.0 },
+            3.0,
+            if opening_axis == Vec3::X { 2.0 } else { 2.5 },
+        ),
+        CollisionLayers::new([GameLayer::SensorZone], [GameLayer::Cycle]),
+        CollisionEventsEnabled,
+        ParentPortalSensor,
+    ));
 }
 
 pub(crate) fn spawn_disc_focus_marker(
@@ -380,7 +396,12 @@ pub(crate) fn sync_disc_entities(
     if let Ok((mut transform, mut visibility)) = player_disc.single_mut() {
         match disc.player_disc.as_ref() {
             Some(flying) => {
-                transform.translation = disc_entity_position(flying.cell);
+                if let Some(pos) = flying.world_pos {
+                    transform.translation = Vec3::new(pos.0, 0.45, pos.1);
+                } else {
+                    transform.translation = disc_entity_position(flying.cell);
+                }
+                transform.rotate_y(0.25);
                 *visibility = Visibility::Visible;
             }
             None => *visibility = Visibility::Hidden,

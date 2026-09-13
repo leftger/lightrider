@@ -131,6 +131,46 @@ pub(crate) fn read_lightcycle_input(
     let go_up = keys.just_pressed(KeyCode::KeyU) || keys.just_pressed(KeyCode::Minus);
     let throw = keys.just_pressed(KeyCode::Space) || mouse.just_pressed(MouseButton::Left);
     let recall = keys.just_pressed(KeyCode::KeyQ);
+
+    // Hotkey to toggle classic grid-based lightcycle behavior (90° turns, cell-by-cell stepping)
+    // vs continuous motorcycle vehicle physics. Supported on C, O, and F8.
+    if keys.just_pressed(KeyCode::KeyC)
+        || keys.just_pressed(KeyCode::KeyO)
+        || keys.just_pressed(KeyCode::F8)
+    {
+        state.classic_mode = !state.classic_mode;
+        if state.classic_mode {
+            history.notice = "LIGHTCYCLE: CLASSIC GRID (90° TURNS)".to_string();
+            if let Some(run_ref) = state.run.as_ref() {
+                let pose = cycle_cell_pose(&run_ref.sim);
+                if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
+                    transform.translation = pose_world_position(&pose);
+                    transform.rotation = pose_rotation(&pose);
+                    linear_velocity.0 = Vec3::ZERO;
+                    phys.current_speed = 0.0;
+                    phys.current_lean = 0.0;
+                    phys.target_lean = 0.0;
+                    trail.clear();
+                }
+            }
+        } else {
+            history.notice = "LIGHTCYCLE: CONTINUOUS MOTORCYCLE PHYSICS".to_string();
+            if let Some(run_ref) = state.run.as_ref() {
+                if let Ok((transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
+                    phys.heading = run_ref.sim.heading.angle();
+                    phys.current_speed = 14.0;
+                    phys.current_lean = 0.0;
+                    phys.target_lean = 0.0;
+                    linear_velocity.0 = Vec3::new(phys.heading.cos(), 0.0, phys.heading.sin()) * phys.current_speed;
+                    trail.clear();
+                    let tail_pos = Vec2::new(transform.translation.x, transform.translation.z);
+                    trail.append(tail_pos, phys.heading);
+                }
+            }
+        }
+        history.notice_timer = config::history::HISTORY_NOTICE_SECONDS;
+        effects.write(MusicSfx::Turn);
+    }
     // Stealth walks on WASD: `steer` is the held east/west axis, so only the
     // other pair is needed here.
     let move_z = i32::from(keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown))
@@ -198,11 +238,25 @@ pub(crate) fn read_lightcycle_input(
         } else if let Some(game) = run.source_game_mut() {
             game.input(&frame);
         } else if run.source_game() == Some(SourceGame::DiscWars) {
-            // Disc wars: throw and recall. The cycle's movement is unchanged.
+            // Disc wars: throw and recall. The disc shoots directly in the direction of travel with physics.
+            let (world_pos, world_dir) = if let Ok((transform, velocity, phys, _)) = cycle_physics.single() {
+                let pos = (transform.translation.x, transform.translation.z);
+                let dir = if velocity.0.length_squared() > 0.25 {
+                    let v = Vec2::new(velocity.0.x, velocity.0.z).normalize();
+                    (v.x, v.y)
+                } else {
+                    (phys.heading.cos(), phys.heading.sin())
+                };
+                (Some(pos), Some(dir))
+            } else {
+                (None, None)
+            };
             let snapshot = PlayerSnapshot {
                 cell: run.sim.cell,
                 heading: run.sim.heading,
                 running: true,
+                world_pos,
+                world_dir,
             };
             if throw {
                 let mut events = DiscEvents::default();
@@ -287,7 +341,7 @@ pub(crate) fn update_cycle_transform(
     }
     *visibility = Visibility::Visible;
 
-    if physics.is_some() {
+    if !state.classic_mode && physics.is_some() {
         return;
     }
 

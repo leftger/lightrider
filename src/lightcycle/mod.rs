@@ -36,6 +36,9 @@ pub struct ActiveRun {
     pub crash_label: Option<String>,
     /// Human-readable label shown while waiting for a folder/parent/document load.
     pub entering_label: Option<String>,
+    pub world_position: Option<(f32, f32)>,
+    pub world_heading: Option<f32>,
+    pub world_velocity: Option<(f32, f32)>,
 }
 
 /// The sim a source ring is actually playing. Carrying exactly one keeps the
@@ -329,6 +332,9 @@ pub struct LightcycleState {
     /// True while the current room is that grace period, which the HUD says out
     /// loud so the missing hazards do not read as a bug.
     pub grace_room: bool,
+    /// When true, restores the original discrete grid-based lightcycle movement
+    /// (90-degree turns, cell-by-cell stepping) instead of continuous motorcycle physics.
+    pub classic_mode: bool,
 }
 
 /// Timeline for the crash animation.

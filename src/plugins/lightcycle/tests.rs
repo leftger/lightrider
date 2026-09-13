@@ -1637,9 +1637,9 @@ fn non_openable_file_collision_causes_death_with_game_over() {
 }
 
 #[test]
-fn gc_sweep_collision_causes_death_with_game_over() {
+fn gc_sweep_does_not_cause_death() {
     use crate::config;
-    use crate::lightcycle::logic::{CrashReason, RunPhase};
+    use crate::lightcycle::logic::RunPhase;
     use crate::lightcycle::scene::CycleEntity;
     use crate::music::sfx::MusicSfx;
     use crate::plugins::lightcycle::physics::{
@@ -1654,6 +1654,7 @@ fn gc_sweep_collision_causes_death_with_game_over() {
     app.init_resource::<Time>();
     app.init_resource::<crate::state::PauseState>();
     app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::state::FloodState>();
     app.init_resource::<crate::lightcycle::LightcycleState>();
     app.init_resource::<SfxLog>();
     app.add_message::<MusicSfx>();
@@ -1698,15 +1699,86 @@ fn gc_sweep_collision_causes_death_with_game_over() {
     let run = state.run.as_ref().expect("run must still exist");
     assert_eq!(
         run.sim.phase,
+        RunPhase::Running,
+        "passing through the green GC sweep must not be fatal"
+    );
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        !sfx_log.0.contains(&MusicSfx::GameOver),
+        "GC sweep must not play GameOver sound effect"
+    );
+}
+
+#[test]
+fn flood_sweep_collision_causes_death_with_game_over() {
+    use crate::lightcycle::logic::{CrashReason, RunPhase};
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        ContinuousTrail, LightcyclePhysics, step_continuous_physics,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::state::FloodState>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.init_resource::<SfxLog>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, (step_continuous_physics, record_sfx).chain());
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    let flood_plane = 2.0_f32;
+    let flood_world_z = flood_plane * crate::config::GRID_SPACING;
+
+    {
+        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        state.run = Some(run);
+    }
+    {
+        let mut flood = app.world_mut().resource_mut::<crate::state::FloodState>();
+        flood.active = true;
+        flood.delay = 0.0;
+        flood.timer = 5.0;
+        flood.plane = flood_plane;
+    }
+
+    app.world_mut().spawn((
+        CycleEntity,
+        Transform::from_translation(Vec3::new(0.0, 0.0, flood_world_z)),
+        LinearVelocity(Vec3::new(5.0, 0.0, 0.0)),
+        LightcyclePhysics::new(0.0),
+        ContinuousTrail::default(),
+    ));
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(
+        run.sim.phase,
         RunPhase::Crashed,
-        "hitting the GC sweep must be fatal"
+        "hitting the red flood sweep must be fatal"
     );
     assert_eq!(run.sim.crash_reason, Some(CrashReason::Hazard));
 
     let sfx_log = app.world().resource::<SfxLog>();
     assert!(
         sfx_log.0.contains(&MusicSfx::GameOver),
-        "GC sweep death must play GameOver sound effect"
+        "red flood sweep death must play GameOver sound effect"
     );
 }
 
@@ -1727,6 +1799,7 @@ fn trail_collision_causes_death_with_game_over() {
     app.init_resource::<Time>();
     app.init_resource::<crate::state::PauseState>();
     app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::state::FloodState>();
     app.init_resource::<crate::lightcycle::LightcycleState>();
     app.init_resource::<SfxLog>();
     app.add_message::<MusicSfx>();
@@ -1774,4 +1847,395 @@ fn trail_collision_causes_death_with_game_over() {
         "trail death must play GameOver sound effect"
     );
 }
+
+#[test]
+fn oblique_obstacle_collision_rebounds_without_death() {
+    use crate::lightcycle::logic::RunPhase;
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::{
+        ContinuousTrail, LightcyclePhysics, SolidObstacle, handle_lightcycle_collisions,
+        step_continuous_physics,
+    };
+    use avian3d::prelude::*;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::state::FloodState>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.init_resource::<SfxLog>();
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(
+        Update,
+        (
+            handle_lightcycle_collisions,
+            step_continuous_physics,
+            record_sfx,
+        )
+            .chain(),
+    );
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    // Obstacle at X = 5.0, spanning Z
+    let wall_entity = app
+        .world_mut()
+        .spawn((
+            SolidObstacle,
+            Transform::from_translation(Vec3::new(5.0, 0.0, 0.0))
+                .with_scale(Vec3::new(0.5, 2.0, 20.0)),
+        ))
+        .id();
+
+    // Bike driving at an oblique angle (heading ~75 degrees, mostly in Z, approaching wall at X)
+    let heading = 75.0_f32.to_radians();
+    let mut trail = ContinuousTrail::default();
+    trail.append(Vec2::new(4.5, -15.0), heading);
+    trail.append(Vec2::new(4.6, -10.0), heading);
+    trail.append(Vec2::new(4.7, -5.0), heading);
+
+    let mut phys = LightcyclePhysics::new(heading);
+    phys.current_speed = 16.0;
+
+    let cycle_entity = app
+        .world_mut()
+        .spawn((
+            CycleEntity,
+            Transform::from_translation(Vec3::new(4.8, 0.0, 0.0)),
+            LinearVelocity(Vec3::new(heading.cos() * 16.0, 0.0, heading.sin() * 16.0)),
+            phys,
+            trail,
+        ))
+        .id();
+
+    app.world_mut().write_message(CollisionStart {
+        collider1: cycle_entity,
+        collider2: wall_entity,
+        body1: Some(cycle_entity),
+        body2: Some(wall_entity),
+    });
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().expect("run must still exist");
+    assert_eq!(
+        run.sim.phase,
+        RunPhase::Running,
+        "oblique obstacle collision must rebound without death"
+    );
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::Crash),
+        "rebound must play Crash sfx"
+    );
+    assert!(
+        !sfx_log.0.contains(&MusicSfx::GameOver),
+        "oblique rebound must not play GameOver sfx"
+    );
+}
+
+#[test]
+fn snake_exit_teleports_back_to_previous_folder() {
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::step::step_lightcycle;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.init_resource::<crate::state::FloodState>();
+    app.init_resource::<crate::state::HistoryState>();
+    app.init_resource::<crate::state::CacheState>();
+    app.init_resource::<SfxLog>();
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<crate::disc::load::WarpRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, (step_lightcycle, record_sfx).chain());
+
+    let mut run = super::run::build_source_run(
+        std::path::Path::new("/tmp/snake.py"),
+        crate::filesystem::language::SourceLanguage::Python,
+        b"print('hi')\n",
+    );
+
+    // Beat the game: open the exit
+    run.source_snake_mut().expect("snake state").exit_open = true;
+
+    // Place the bike right in front of the exit gate heading into it
+    let portal = run.arena.parent_portal.as_ref().expect("a close gate");
+    let gate_cell = portal.to;
+    let approach_cell = match portal.wall {
+        crate::lightcycle::logic::Wall::NegZ => (gate_cell.0, gate_cell.1 + 1),
+        crate::lightcycle::logic::Wall::PosZ => (gate_cell.0, gate_cell.1 - 1),
+        crate::lightcycle::logic::Wall::NegX => (gate_cell.0 + 1, gate_cell.1),
+        crate::lightcycle::logic::Wall::PosX => (gate_cell.0 - 1, gate_cell.1),
+    };
+    let heading = match portal.wall {
+        crate::lightcycle::logic::Wall::NegZ => crate::lightcycle::logic::Heading::NegZ,
+        crate::lightcycle::logic::Wall::PosZ => crate::lightcycle::logic::Heading::PosZ,
+        crate::lightcycle::logic::Wall::NegX => crate::lightcycle::logic::Heading::NegX,
+        crate::lightcycle::logic::Wall::PosX => crate::lightcycle::logic::Heading::PosX,
+    };
+
+    run.sim.cell = approach_cell;
+    run.sim.heading = heading;
+    run.sim.cell_t = 0.99;
+
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    // Advance clock enough to cross into the gate
+    {
+        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        state.clock = 0.1;
+    }
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    assert!(
+        state.restore_directory,
+        "driving through the unlocked exit gate must trigger restore_directory to teleport back"
+    );
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::Portal),
+        "exiting through the gate must play Portal sfx"
+    );
+}
+
+#[test]
+fn disc_wars_exit_teleports_back_to_previous_folder() {
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::physics::handle_lightcycle_collisions;
+    use avian3d::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.init_resource::<crate::state::FloodState>();
+    app.init_resource::<crate::state::HistoryState>();
+    app.init_resource::<crate::state::CacheState>();
+    app.init_resource::<SfxLog>();
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<crate::disc::load::WarpRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_message::<CollisionStart>();
+    app.add_systems(Update, (handle_lightcycle_collisions, record_sfx).chain());
+
+    let run = super::run::build_source_run(
+        std::path::Path::new("/tmp/game.rs"),
+        crate::filesystem::language::SourceLanguage::Rust,
+        b"fn main() {}\n",
+    );
+
+    let portal = run.arena.parent_portal.as_ref().expect("a close gate");
+    let outer = portal.to;
+    let gate_pos = config::ground_position(outer.0, outer.1);
+
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let cycle_entity = app.world_mut().spawn((
+        crate::lightcycle::scene::CycleEntity,
+        Transform::from_translation(gate_pos),
+        LinearVelocity(Vec3::new(0.0, 0.0, 5.0)),
+    )).id();
+
+    let sensor_entity = app.world_mut().spawn((
+        Transform::from_translation(gate_pos),
+        crate::plugins::lightcycle::physics::ParentPortalSensor,
+    )).id();
+
+    app.world_mut().write_message(CollisionStart {
+        collider1: cycle_entity,
+        collider2: sensor_entity,
+        body1: Some(cycle_entity),
+        body2: None,
+    });
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    assert!(
+        state.restore_directory,
+        "colliding with disc gate must trigger restore_directory to teleport back"
+    );
+
+    let sfx_log = app.world().resource::<SfxLog>();
+    assert!(
+        sfx_log.0.contains(&MusicSfx::Portal),
+        "exiting through the disc gate must play Portal sfx"
+    );
+}
+
+#[test]
+fn classic_mode_hotkey_toggles_and_resets_motion() {
+    use crate::lightcycle::scene::CycleEntity;
+    use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::input::read_lightcycle_input;
+    use crate::plugins::lightcycle::physics::{ContinuousTrail, LightcyclePhysics};
+    use avian3d::prelude::LinearVelocity;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.init_resource::<crate::state::HistoryState>();
+    app.init_resource::<crate::state::PauseState>();
+    app.init_resource::<crate::state::FloodState>();
+    app.init_resource::<ButtonInput<KeyCode>>();
+    app.init_resource::<ButtonInput<MouseButton>>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::disc::load::WarpRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, read_lightcycle_input);
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    app.world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>()
+        .run = Some(run);
+
+    let mut phys = LightcyclePhysics::new(0.0);
+    phys.current_speed = 14.0;
+    app.world_mut().spawn((
+        CycleEntity,
+        Transform::from_translation(Vec3::ZERO),
+        LinearVelocity(Vec3::new(14.0, 0.0, 0.0)),
+        phys,
+        ContinuousTrail::default(),
+    ));
+
+    // Initially in continuous motorcycle mode
+    assert!(!app.world().resource::<crate::lightcycle::LightcycleState>().classic_mode);
+
+    // Press C to toggle classic mode
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .press(KeyCode::KeyC);
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    assert!(state.classic_mode, "pressing C must toggle classic_mode to true");
+
+    let history = app.world().resource::<crate::state::HistoryState>();
+    assert!(
+        history.notice.contains("CLASSIC GRID"),
+        "HUD notice must indicate classic grid mode"
+    );
+
+    // Release and press C again to return to continuous physics
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .release(KeyCode::KeyC);
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .press(KeyCode::KeyC);
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    assert!(!state.classic_mode, "pressing C again must toggle classic_mode back to false");
+
+    let history = app.world().resource::<crate::state::HistoryState>();
+    assert!(
+        history.notice.contains("CONTINUOUS MOTORCYCLE"),
+        "HUD notice must indicate continuous motorcycle mode"
+    );
+}
+
+#[test]
+fn classic_mode_advances_simulation_on_grid() {
+    use crate::lightcycle::logic::RunPhase;
+    use crate::plugins::lightcycle::step::step_lightcycle;
+    use crate::music::sfx::MusicSfx;
+    use bevy::prelude::*;
+
+    let path = std::path::PathBuf::from("/tmp");
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.init_resource::<Time>();
+    app.init_resource::<crate::plugins::transition::ModeTransition>();
+    app.init_resource::<crate::lightcycle::LightcycleState>();
+    app.init_resource::<crate::state::PauseState>();
+    app.insert_resource(crate::state::NavigatorResource::new(path.clone(), false));
+    app.add_message::<crate::load::DirectoryRequested>();
+    app.add_message::<crate::document::load::DocumentRequested>();
+    app.add_message::<crate::disc::load::SourceRequested>();
+    app.add_message::<MusicSfx>();
+    app.add_systems(Update, step_lightcycle);
+
+    let nodes = vec![crate::filesystem::node::FileNode::new(
+        "subfolder".into(),
+        path.join("subfolder"),
+        true,
+        0,
+        0,
+    )];
+    let run = super::run::build_active_run(&path, nodes);
+    let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+    state.run = Some(run);
+    state.classic_mode = true;
+    state.clock = 0.2; // Enough time for at least one fixed substep
+
+    app.update();
+
+    let state = app.world().resource::<crate::lightcycle::LightcycleState>();
+    let run = state.run.as_ref().unwrap();
+    assert_eq!(run.sim.phase, RunPhase::Running);
+    assert!(
+        run.sim.cell_t > 0.0,
+        "classic mode must advance cell_t along the grid cells"
+    );
+}
+
+
 

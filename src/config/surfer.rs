@@ -32,6 +32,14 @@ pub const SURFER_ACCEL: f32 = 3.0;
 /// Steering authority, in radians per second at full stick.
 pub const SURFER_TURN_RATE: f32 = 2.3;
 
+/// Bike collision half-length along the direction of travel.
+/// Matches the visible scaled lightcycle model (length ~2.3).
+pub const SURFER_BOAT_HALF_LENGTH: f32 = 1.1;
+
+/// Bike collision half-width across the beam.
+/// Matches the visible scaled lightcycle model (width ~0.9).
+pub const SURFER_BOAT_HALF_WIDTH: f32 = 0.42;
+
 /// Bike collision radius against rocks and banks. Kept small, so a rock only
 /// bites when the visible bike actually touches it.
 pub const SURFER_BOAT_RADIUS: f32 = 0.6;

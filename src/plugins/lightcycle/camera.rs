@@ -249,8 +249,12 @@ pub(crate) fn update_chase_camera(
     let look_target = cycle_pos + view_forward * lookahead;
 
     let speed_multiplier = if let Some(phys) = physics {
-        let ratio = (phys.current_speed / phys.max_speed).clamp(0.0, 1.6);
-        1.0 + ratio * 0.12
+        if state.classic_mode {
+            1.0
+        } else {
+            let ratio = (phys.current_speed / phys.max_speed).clamp(0.0, 1.6);
+            1.0 + ratio * 0.12
+        }
     } else {
         1.0
     };
@@ -267,8 +271,12 @@ pub(crate) fn update_chase_camera(
     camera.translation = camera_position;
 
     let up = if let Some(phys) = physics {
-        let bank = phys.current_lean * 0.22;
-        Quat::from_axis_angle(view_forward.normalize_or_zero(), -bank) * Vec3::Y
+        if state.classic_mode {
+            Vec3::Y
+        } else {
+            let bank = phys.current_lean * 0.22;
+            Quat::from_axis_angle(view_forward.normalize_or_zero(), -bank) * Vec3::Y
+        }
     } else {
         Vec3::Y
     };

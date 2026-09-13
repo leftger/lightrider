@@ -21,6 +21,8 @@ pub struct PlayerSnapshot {
     pub heading: Heading,
     /// False while the player's run is crashed or paused.
     pub running: bool,
+    pub world_pos: Option<(f32, f32)>,
+    pub world_dir: Option<(f32, f32)>,
 }
 
 /// Which side of the match is currently being decided.
@@ -58,6 +60,8 @@ pub struct Disc {
     /// Lethal on the return path as well as the way out (Spike).
     pub spike: bool,
     pub speed: f32,
+    pub world_pos: Option<(f32, f32)>,
+    pub world_vel: Option<(f32, f32)>,
 }
 
 impl Disc {
@@ -255,20 +259,49 @@ impl DiscSim {
         let range = config::disc::DISC_RANGE
             + self.effects.widens * config::disc::DISC_RANGE_BONUS
             + if self.effects.heavy { 1 } else { 0 };
+        let speed = if self.effects.heavy {
+            config::disc::DISC_SPEED * config::disc::DISC_HEAVY_SPEED_SCALE
+        } else {
+            config::disc::DISC_SPEED
+        };
+
+        let (heading, world_pos, world_vel) = if let Some(dir) = player.world_dir {
+            let len = (dir.0 * dir.0 + dir.1 * dir.1).sqrt();
+            let norm_dir = if len > 1e-4 {
+                (dir.0 / len, dir.1 / len)
+            } else {
+                let delta = player.heading.delta();
+                (delta.0 as f32, delta.1 as f32)
+            };
+            let start_pos = player.world_pos.unwrap_or_else(|| {
+                (
+                    player.cell.0 as f32 * config::GRID_SPACING,
+                    player.cell.1 as f32 * config::GRID_SPACING,
+                )
+            });
+            let launch_pos = (
+                start_pos.0 + norm_dir.0 * 1.2,
+                start_pos.1 + norm_dir.1 * 1.2,
+            );
+            let speed_world = speed * config::GRID_SPACING;
+            let vel = (norm_dir.0 * speed_world, norm_dir.1 * speed_world);
+            (player.heading, Some(launch_pos), Some(vel))
+        } else {
+            (self.aim_heading(player.cell, player.heading, arena), None, None)
+        };
+
         self.player_disc = Some(Disc {
             cell: player.cell,
-            heading: self.aim_heading(player.cell, player.heading, arena),
+            heading,
             progress: 0.0,
             budget: range,
             returning: false,
             glitch_left: glitch,
             fork_left: fork,
             spike: self.effects.spike,
-            speed: if self.effects.heavy {
-                config::disc::DISC_SPEED * config::disc::DISC_HEAVY_SPEED_SCALE
-            } else {
-                config::disc::DISC_SPEED
-            },
+            speed,
+            world_pos,
+            world_vel,
         });
         // The one-shot throw blessings are spent.
         self.effects.glitch = false;
@@ -288,6 +321,10 @@ impl DiscSim {
         disc.returning = true;
         disc.heading = disc.heading.opposite();
         disc.budget = config::disc::DISC_RANGE;
+        if let (Some(_), Some(vel)) = (disc.world_pos, &mut disc.world_vel) {
+            vel.0 = -vel.0;
+            vel.1 = -vel.1;
+        }
         events.player_recalled = true;
         true
     }
@@ -298,6 +335,7 @@ impl DiscSim {
     }
 
     /// The opponent's live disc is lethal to the player.
+    #[allow(dead_code)]
     pub fn opponent_disc_cell(&self) -> Option<(i32, i32)> {
         self.opponent.disc.as_ref().map(|disc| disc.cell)
     }
@@ -402,14 +440,26 @@ impl DiscSim {
         let Some(mut disc) = self.player_disc.take() else {
             return;
         };
-        let outcome = advance_disc(
-            &mut disc,
-            dt,
-            arena,
-            player.cell,
-            DiscTarget::Opponent,
-            self.opponent_cell().unwrap_or((i32::MAX, i32::MAX)),
-        );
+        let opponent_pos = if let Some(opp_cell) = self.opponent_cell() {
+            (
+                opp_cell.0 as f32 * config::GRID_SPACING,
+                opp_cell.1 as f32 * config::GRID_SPACING,
+            )
+        } else {
+            (f32::MAX, f32::MAX)
+        };
+        let outcome = if disc.world_pos.is_some() {
+            advance_disc_physics(&mut disc, dt, arena, player, opponent_pos)
+        } else {
+            advance_disc(
+                &mut disc,
+                dt,
+                arena,
+                player.cell,
+                DiscTarget::Opponent,
+                self.opponent_cell().unwrap_or((i32::MAX, i32::MAX)),
+            )
+        };
         match outcome {
             DiscFlight::Flying => self.player_disc = Some(disc),
             DiscFlight::Caught | DiscFlight::Expired => {}
@@ -507,6 +557,8 @@ impl DiscSim {
                     fork_left: 0,
                     spike: false,
                     speed: config::disc::DISC_SPEED * 0.9,
+                    world_pos: None,
+                    world_vel: None,
                 });
                 self.opponent.throw_clock =
                     config::disc::DISC_OPPONENT_THROW_COOLDOWN * (1.0 - 0.3 * self.aggression);
@@ -709,6 +761,113 @@ fn advance_disc(
     DiscFlight::Flying
 }
 
+/// Advances a disc using continuous 2D physics: velocity, wall reflections,
+/// Recognizer cylinder hit detection, and homing back to the player on return.
+fn advance_disc_physics(
+    disc: &mut Disc,
+    dt: f32,
+    arena: &Arena,
+    player: PlayerSnapshot,
+    opponent_pos: (f32, f32),
+) -> DiscFlight {
+    let mut pos = disc.world_pos.unwrap_or((
+        disc.cell.0 as f32 * config::GRID_SPACING,
+        disc.cell.1 as f32 * config::GRID_SPACING,
+    ));
+    let mut vel = disc.world_vel.unwrap_or_else(|| {
+        let delta = disc.heading.delta();
+        let speed_world = disc.speed * config::GRID_SPACING;
+        (delta.0 as f32 * speed_world, delta.1 as f32 * speed_world)
+    });
+    let speed = (vel.0 * vel.0 + vel.1 * vel.1).sqrt().max(disc.speed * config::GRID_SPACING);
+
+    let p_pos = player.world_pos.unwrap_or((
+        player.cell.0 as f32 * config::GRID_SPACING,
+        player.cell.1 as f32 * config::GRID_SPACING,
+    ));
+
+    if disc.returning {
+        let dx = p_pos.0 - pos.0;
+        let dz = p_pos.1 - pos.1;
+        let dist = dx.hypot(dz);
+        if dist < 1.4 {
+            return DiscFlight::Caught;
+        }
+        if dist > 1e-4 {
+            vel = (dx / dist * speed, dz / dist * speed);
+        }
+    }
+
+    pos.0 += vel.0 * dt;
+    pos.1 += vel.1 * dt;
+    disc.progress += dt;
+    disc.cell = (
+        (pos.0 / config::GRID_SPACING).round() as i32,
+        (pos.1 / config::GRID_SPACING).round() as i32,
+    );
+
+    // Opponent cylinder collision (RECOGNIZER_RADIUS + DISC_MESH_RADIUS)
+    let opp_dx = pos.0 - opponent_pos.0;
+    let opp_dz = pos.1 - opponent_pos.1;
+    let hit_dist = config::disc::RECOGNIZER_RADIUS + config::disc::DISC_MESH_RADIUS + 0.35;
+    if opp_dx.hypot(opp_dz) <= hit_dist {
+        return DiscFlight::HitOpponent;
+    }
+
+    // Circular ring wall reflection
+    let (cx, cz) = arena.center();
+    let center = (cx as f32 * config::GRID_SPACING, cz as f32 * config::GRID_SPACING);
+    let half = (arena.max.0 - cx).max(arena.max.1 - cz);
+    let radius = ((half - config::disc::DISC_GATE_DEPTH - 1).max(config::disc::DISC_RADIUS_MIN) as f32)
+        * config::GRID_SPACING;
+
+    let rel_x = pos.0 - center.0;
+    let rel_z = pos.1 - center.1;
+    let dist_from_center = rel_x.hypot(rel_z);
+    let wall_bound = radius - 0.4;
+
+    if dist_from_center >= wall_bound {
+        if disc.glitch_left > 0 {
+            disc.glitch_left -= 1;
+        } else if disc.fork_left > 0 && !disc.returning {
+            disc.fork_left -= 1;
+            vel = (-vel.1, vel.0);
+        } else if !disc.returning {
+            let norm_x = -rel_x / dist_from_center;
+            let norm_z = -rel_z / dist_from_center;
+            let dot = vel.0 * norm_x + vel.1 * norm_z;
+            if dot < 0.0 {
+                vel.0 -= 2.0 * dot * norm_x;
+                vel.1 -= 2.0 * dot * norm_z;
+            }
+            pos.0 = center.0 - norm_x * (wall_bound - 0.1);
+            pos.1 = center.1 - norm_z * (wall_bound - 0.1);
+            disc.budget -= 1;
+            if disc.budget <= 0 {
+                disc.returning = true;
+            }
+        } else {
+            return DiscFlight::Expired;
+        }
+    } else if !disc.returning && arena.street_walls.contains(&disc.cell) {
+        if disc.glitch_left > 0 {
+            disc.glitch_left -= 1;
+        } else {
+            vel.0 = -vel.0;
+            vel.1 = -vel.1;
+            disc.returning = true;
+        }
+    }
+
+    if disc.progress > 6.0 {
+        return DiscFlight::Expired;
+    }
+
+    disc.world_pos = Some(pos);
+    disc.world_vel = Some(vel);
+    DiscFlight::Flying
+}
+
 /// Picks a free 90-degree turn for a forking disc; falls back to reversing.
 fn fork_heading(heading: Heading, arena: &Arena, cell: (i32, i32)) -> Heading {
     let left = heading.turn(Turn::Left);
@@ -780,6 +939,8 @@ mod tests {
             cell: sim.cell,
             heading: sim.heading,
             running: sim.running,
+            world_pos: None,
+            world_dir: None,
         }
     }
 
@@ -907,6 +1068,8 @@ mod tests {
             cell: spawn,
             heading: Heading::PosX,
             running: true,
+            world_pos: None,
+            world_dir: None,
         };
         let step = sim
             .choose_opponent_step(target, &arena)
@@ -1048,6 +1211,8 @@ mod tests {
             fork_left: 0,
             spike: false,
             speed: config::disc::DISC_SPEED,
+            world_pos: None,
+            world_vel: None,
         });
 
         let mut events = super::DiscEvents::default();
@@ -1079,6 +1244,8 @@ mod tests {
             fork_left: 0,
             spike: false,
             speed: config::disc::DISC_SPEED,
+            world_pos: None,
+            world_vel: None,
         });
         let mut events = super::DiscEvents::default();
         for _ in 0..30 {
@@ -1150,6 +1317,8 @@ mod tests {
             fork_left: 0,
             spike,
             speed: config::disc::DISC_SPEED,
+            world_pos: None,
+            world_vel: None,
         }
     }
 
@@ -1231,6 +1400,8 @@ mod tests {
             cell: layout.player_spawn,
             heading: Heading::PosX,
             running: false,
+            world_pos: None,
+            world_dir: None,
         };
         sim.update(1.0 / 60.0, crashed, &arena, &layout);
         assert_eq!(sim.opponent_score, 1);
@@ -1241,5 +1412,95 @@ mod tests {
     fn turn_is_available_for_opponent_steering() {
         // Guards the `Turn` import and the heading maths the AI relies on.
         assert_eq!(Heading::PosX.turn(Turn::Left), Heading::NegZ);
+    }
+
+    #[test]
+    fn disc_wars_shoots_in_direction_of_travel_with_physics() {
+        let (arena, layout) = ring();
+        let mut sim = DiscSim::new(&layout);
+        let mut events = super::DiscEvents::default();
+        let angle = std::f32::consts::FRAC_PI_4; // 45 degrees
+        let p = PlayerSnapshot {
+            cell: layout.player_spawn,
+            heading: Heading::PosX,
+            running: true,
+            world_pos: Some((0.0, 0.0)),
+            world_dir: Some((angle.cos(), angle.sin())),
+        };
+        assert!(sim.throw_player(p, &arena, &mut events));
+        let disc = sim.player_disc.as_ref().expect("disc thrown");
+        let (vx, vz) = disc.world_vel.expect("physics velocity");
+        let dir_angle = vz.atan2(vx);
+        assert!((dir_angle - angle).abs() < 1e-4, "disc must shoot directly in direction of travel");
+
+        // Advance with physics
+        for _ in 0..10 {
+            sim.update(1.0 / 60.0, p, &arena, &layout);
+        }
+        let flying = sim.player_disc.as_ref().expect("disc still flying");
+        let (px, pz) = flying.world_pos.expect("physics pos");
+        assert!(px > 0.0 && pz > 0.0, "disc must travel continuously along 45 degree angle");
+    }
+
+    #[test]
+    fn disc_wars_physics_disc_derezzes_recognizer() {
+        let (arena, layout) = ring();
+        let mut sim = DiscSim::new(&layout);
+        let mut events = super::DiscEvents::default();
+        sim.opponent.cell = (layout.player_spawn.0 + 4, layout.player_spawn.1);
+        sim.opponent.alive = true;
+
+        let p = PlayerSnapshot {
+            cell: layout.player_spawn,
+            heading: Heading::PosX,
+            running: true,
+            world_pos: Some((layout.player_spawn.0 as f32 * config::GRID_SPACING, layout.player_spawn.1 as f32 * config::GRID_SPACING)),
+            world_dir: Some((1.0, 0.0)), // shoot straight toward opponent
+        };
+        assert!(sim.throw_player(p, &arena, &mut events));
+
+        for _ in 0..60 {
+            events = sim.update(1.0 / 60.0, p, &arena, &layout);
+            if events.opponent_hit {
+                break;
+            }
+        }
+        assert!(events.opponent_hit, "physics disc must hit the Recognizer cylinder");
+        assert!(!sim.opponent.alive, "opponent must be derezzed");
+    }
+
+    #[test]
+    fn disc_wars_physics_disc_rebounds_off_ring_wall() {
+        let (arena, layout) = ring();
+        let mut sim = DiscSim::new(&layout);
+        let mut events = super::DiscEvents::default();
+
+        let p = PlayerSnapshot {
+            cell: layout.player_spawn,
+            heading: Heading::PosX,
+            running: true,
+            world_pos: Some((0.0, 0.0)),
+            world_dir: Some((1.0, 0.0)), // shoot toward right wall
+        };
+        assert!(sim.throw_player(p, &arena, &mut events));
+
+        let initial_vx = sim.player_disc.as_ref().unwrap().world_vel.unwrap().0;
+        assert!(initial_vx > 0.0);
+
+        // Step enough to reach the wall and bounce
+        for _ in 0..120 {
+            sim.update(1.0 / 60.0, p, &arena, &layout);
+            if let Some(ref d) = sim.player_disc {
+                if let Some(vel) = d.world_vel {
+                    if vel.0 < -1.0 {
+                        // Velocity reflected inwards!
+                        break;
+                    }
+                }
+            }
+        }
+        let disc = sim.player_disc.as_ref().expect("disc should still be active");
+        let vel = disc.world_vel.expect("world vel");
+        assert!(vel.0 < 0.0, "disc must reflect inward off ring wall");
     }
 }

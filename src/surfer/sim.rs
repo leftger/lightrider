@@ -18,6 +18,61 @@ pub struct Rock {
     pub radius: f32,
 }
 
+impl Rock {
+    /// Axis-aligned half-extents of the obstacle's bounding box.
+    #[allow(dead_code)]
+    pub fn half_extents(&self) -> (f32, f32) {
+        (self.radius, self.radius)
+    }
+
+    /// World-space bounding box `(min_x, max_x, min_z, max_z)`.
+    #[allow(dead_code)]
+    pub fn bounds(&self) -> (f32, f32, f32, f32) {
+        (
+            self.x - self.radius,
+            self.x + self.radius,
+            self.z - self.radius,
+            self.z + self.radius,
+        )
+    }
+
+    /// Tests whether the bike's oriented bounding box (OBB) intersects the rock's
+    /// axis-aligned bounding box (AABB) using the Separating Axis Theorem (SAT).
+    pub fn intersects_bike(&self, bike_x: f32, bike_z: f32, heading: f32) -> bool {
+        let c = heading.cos();
+        let s = heading.sin();
+        let dx = bike_x - self.x;
+        let dz = bike_z - self.z;
+
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+        let er = config::surfer::SURFER_BOAT_HALF_WIDTH;
+        let rx = self.radius;
+        let rz = self.radius;
+
+        // Axis 1: Rock X axis (1, 0)
+        if dx.abs() > rx + ef * c.abs() + er * s.abs() {
+            return false;
+        }
+
+        // Axis 2: Rock Z axis (0, 1)
+        if dz.abs() > rz + ef * s.abs() + er * c.abs() {
+            return false;
+        }
+
+        // Axis 3: Bike Forward axis (c, s)
+        if (dx * c + dz * s).abs() > ef + rx * c.abs() + rz * s.abs() {
+            return false;
+        }
+
+        // Axis 4: Bike Lateral axis (-s, c)
+        if (-dx * s + dz * c).abs() > er + rx * s.abs() + rz * c.abs() {
+            return false;
+        }
+
+        true
+    }
+}
+
 /// A floating gate. Riding through it gives a burst of speed, once.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoostGate {
@@ -202,22 +257,20 @@ impl SurferSim {
                     + self.x * config::surfer::SURFER_WAVE_SPACE)
                     .sin();
 
-        // The bank is the river's edge. The bike beaches the moment its body
-        // reaches the edge, not when its centre crosses it.
-        if (self.x - self.centerline(self.z)).abs()
-            > self.width - config::surfer::SURFER_BOAT_RADIUS
-        {
+        // The bank is the river's edge. Sized against the bike's oriented bounding
+        // box so the nose beaches the moment it touches when steering into the bank.
+        let bike_reach_x = config::surfer::SURFER_BOAT_HALF_LENGTH * dx.abs()
+            + config::surfer::SURFER_BOAT_HALF_WIDTH * dz.abs();
+        if (self.x - self.centerline(self.z)).abs() > self.width - bike_reach_x {
             self.phase = SurferPhase::Crashed;
             events.banked = true;
             return events;
         }
 
-        // Rocks end the run on contact, measured from the visible bike body.
+        // Obstacles end the run on contact, tested against the rock's bounding box
+        // and the bike's oriented bounding box using SAT.
         for rock in &self.rocks {
-            let dx = self.x - rock.x;
-            let dz = self.z - rock.z;
-            let reach = config::surfer::SURFER_BOAT_RADIUS + rock.radius;
-            if dx * dx + dz * dz <= reach * reach {
+            if rock.intersects_bike(self.x, self.z, self.heading) {
                 self.phase = SurferPhase::Crashed;
                 events.hit_rock = true;
                 return events;
@@ -496,5 +549,93 @@ mod tests {
         course.restart();
         assert_eq!(course.rocks, sim(200).rocks);
         assert_eq!(course.phase, SurferPhase::Riding);
+    }
+
+    #[test]
+    fn rock_bounding_box_methods_match_geometry() {
+        let rock = super::Rock {
+            x: 5.0,
+            z: 10.0,
+            radius: 1.5,
+        };
+        assert_eq!(rock.half_extents(), (1.5, 1.5));
+        assert_eq!(rock.bounds(), (3.5, 6.5, 8.5, 11.5));
+    }
+
+    #[test]
+    fn rock_bounding_box_collision_matches_visible_edges() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 10.0,
+            radius: 1.25,
+        };
+        let heading = std::f32::consts::FRAC_PI_2; // facing +Z down the river
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+
+        // Bike nose is at bike_z + ef.
+        // Rock front face is at rock.z - 1.25 = 8.75.
+        // When bike_z = 8.75 - ef - 0.1, nose is at 8.65, so no contact.
+        let bike_z_clear = 8.75 - ef - 0.1;
+        assert!(
+            !rock.intersects_bike(0.0, bike_z_clear, heading),
+            "bike in front of rock should not collide"
+        );
+
+        // When bike_z = 8.75 - ef, nose touches front edge at 8.75.
+        let bike_z_touch = 8.75 - ef;
+        assert!(
+            rock.intersects_bike(0.0, bike_z_touch, heading),
+            "bike touching rock front edge must collide"
+        );
+    }
+
+    #[test]
+    fn rock_bounding_box_side_clearance_avoids_ghost_collision() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 10.0,
+            radius: 1.25,
+        };
+        let heading = std::f32::consts::FRAC_PI_2; // facing +Z
+        let er = config::surfer::SURFER_BOAT_HALF_WIDTH;
+
+        // Rock right edge is at x = 1.25.
+        // Bike left edge is at bike_x - er.
+        // If bike_x = 1.25 + er + 0.05, left edge is 5cm clear of the rock.
+        let bike_x_clear = 1.25 + er + 0.05;
+        assert!(
+            !rock.intersects_bike(bike_x_clear, 10.0, heading),
+            "bike with lateral clearance should not suffer ghost collisions"
+        );
+
+        // If bike_x = 1.25 + er - 0.02, left edge penetrates rock by 2cm.
+        let bike_x_touch = 1.25 + er - 0.02;
+        assert!(
+            rock.intersects_bike(bike_x_touch, 10.0, heading),
+            "bike intersecting side of rock must collide"
+        );
+    }
+
+    #[test]
+    fn rock_bounding_box_corner_and_angle_detection() {
+        let rock = super::Rock {
+            x: 0.0,
+            z: 0.0,
+            radius: 1.25,
+        };
+        // 45-degree angle approaching corner
+        let heading = std::f32::consts::FRAC_PI_4;
+        let c = heading.cos();
+        let s = heading.sin();
+
+        // Far away along the diagonal
+        assert!(!rock.intersects_bike(-5.0, -5.0, heading));
+
+        // When the bike's oriented box reaches the corner
+        let ef = config::surfer::SURFER_BOAT_HALF_LENGTH;
+        let rx = rock.radius;
+        // The forward extent reaches the corner
+        let dist = (rx * (c + s) + ef) / 2.0_f32.sqrt();
+        assert!(rock.intersects_bike(-dist * 0.95, -dist * 0.95, heading));
     }
 }
