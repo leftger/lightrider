@@ -3782,6 +3782,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightrider"
+version = "0.1.0"
+dependencies = [
+ "avian3d",
+ "bevy",
+ "bytesize",
+ "cpal",
+ "crossbeam-channel",
+ "dirs",
+ "font8x8",
+ "glicol",
+]
+
+[[package]]
 name = "linebender_resource_handle"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4935,20 +4949,6 @@ name = "range-alloc"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca45419789ae5a7899559e9512e58ca889e41f04f1f2445e9f4b290ceccd1d08"
-
-[[package]]
-name = "raptor"
-version = "0.1.0"
-dependencies = [
- "avian3d",
- "bevy",
- "bytesize",
- "cpal",
- "crossbeam-channel",
- "dirs",
- "font8x8",
- "glicol",
-]
 
 [[package]]
 name = "raw-window-handle"

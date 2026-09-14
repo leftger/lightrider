@@ -6,12 +6,11 @@ use super::city::{
 };
 use super::decor::{decorate_directory_run, mix_linear};
 use super::despawn_lightcycle_entities;
+use super::physics::{ContinuousTrail, GameLayer, LightcyclePhysics};
 use super::space::{
     heading_facing, level_metres, ring_center_world, ring_food_cells, ring_radius_world,
 };
-use super::physics::{ContinuousTrail, GameLayer, LightcyclePhysics};
 use super::trail::spawn_trail_ribbon;
-use avian3d::prelude::*;
 use crate::asteroids::plugin::spawn_asteroid_field;
 use crate::asteroids::sim::AsteroidsSim;
 use crate::bomberman::plugin::spawn_bomber_room;
@@ -67,6 +66,7 @@ use crate::surfer::plugin::spawn_surfer_course;
 use crate::surfer::sim::SurferSim;
 use crate::tetris::plugin::spawn_tetris_board;
 use crate::tetris::sim::TetrisSim;
+use avian3d::prelude::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
 use std::path::Path;
@@ -281,6 +281,7 @@ pub(crate) fn toggle_mode(
             state.pending_run = Some(run);
             transition.start(InteractionMode::Lightcycle, from, apex, to, focus);
         }
+        InteractionMode::MainMenu => {}
     }
 }
 
@@ -358,9 +359,8 @@ pub(crate) fn spawn_run_entities(
     run: &ActiveRun,
 ) {
     let pose = cycle_cell_pose(&run.sim);
-    let is_bike_run = run.directory_nodes().is_some()
-        || run.is_document()
-        || run.source_disc().is_some();
+    let is_bike_run =
+        run.directory_nodes().is_some() || run.is_document() || run.source_disc().is_some();
 
     let mut cycle_cmd = commands.spawn((
         LightcycleSceneRoot,
@@ -395,7 +395,11 @@ pub(crate) fn spawn_run_entities(
             CollidingEntities::default(),
             CollisionLayers::new(
                 [GameLayer::Cycle],
-                [GameLayer::Environment, GameLayer::Hazard, GameLayer::SensorZone],
+                [
+                    GameLayer::Environment,
+                    GameLayer::Hazard,
+                    GameLayer::SensorZone,
+                ],
             ),
             LightcyclePhysics::new(run.sim.heading.angle()),
             ContinuousTrail::default(),

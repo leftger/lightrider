@@ -18,6 +18,8 @@ pub struct Options {
     pub render: RenderOptions,
     /// Start the window at this size instead of the default.
     pub window: Option<WindowSize>,
+    /// Automated capture of screenshots and GIF frames.
+    pub capture_assets: bool,
 }
 
 /// The render knobs, as parsed from the command line.
@@ -68,6 +70,7 @@ impl Default for Options {
             bench_ride: true,
             render: RenderOptions::default(),
             window: None,
+            capture_assets: false,
         }
     }
 }
@@ -101,6 +104,10 @@ impl Options {
         while let Some(arg) = args.next() {
             match arg.as_str() {
                 "--help" | "-h" => return Err(TryParseError::Help),
+                "--capture-assets" => {
+                    options.capture_assets = true;
+                    options.music = false;
+                }
                 "--hidden" => options.show_hidden = true,
                 "--no-labels" => options.show_labels = false,
                 "--no-fps" => options.show_fps = false,
@@ -190,8 +197,8 @@ impl Options {
 
     fn print_help() {
         println!(
-            "RAPTOR - Realtime Abstracted Path Tree Observer\n\n\
-             Usage: raptor [OPTIONS] [DIRECTORY]\n\n\
+            "LIGHTRIDER - 3D File Explorer & Lightcycle Grid\n\n\
+             Usage: lightrider [OPTIONS] [DIRECTORY]\n\n\
              Arguments:\n  \
              [DIRECTORY]        Start in this directory instead of your home directory\n\n\
              Options:\n  \

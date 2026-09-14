@@ -77,7 +77,9 @@ impl Flight {
     fn tint(&self) -> Color {
         match self.target {
             InteractionMode::Lightcycle => config::transition::MODE_TRANSITION_LIGHTCYCLE_TINT,
-            InteractionMode::Explorer => config::transition::MODE_TRANSITION_EXPLORER_TINT,
+            InteractionMode::Explorer | InteractionMode::MainMenu => {
+                config::transition::MODE_TRANSITION_EXPLORER_TINT
+            }
         }
     }
 
@@ -89,7 +91,7 @@ impl Flight {
         let arriving = rez_scale(self.progress());
         match self.target {
             InteractionMode::Lightcycle => (leaving, arriving),
-            InteractionMode::Explorer => (arriving, leaving),
+            InteractionMode::Explorer | InteractionMode::MainMenu => (arriving, leaving),
         }
     }
 }

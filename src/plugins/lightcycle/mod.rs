@@ -17,9 +17,9 @@ pub(crate) mod decor;
 pub(crate) mod entry;
 pub(crate) mod input;
 pub(crate) mod load;
+pub(crate) mod physics;
 pub(crate) mod run;
 pub(crate) mod space;
-pub(crate) mod physics;
 pub(crate) mod step;
 pub(crate) mod trail;
 

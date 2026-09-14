@@ -38,6 +38,8 @@ impl Plugin for UiPlugin {
                     update_radar,
                     sync_pause_menu,
                     update_machine_stats,
+                    sync_ui_chrome_visibility,
+                    handle_esc_to_menu,
                 ),
             );
     }
@@ -1055,6 +1057,35 @@ fn truncate_path_prefix(path: &str, max_length: usize) -> String {
         start += 1;
     }
     format!("...{}", &path[start..])
+}
+
+fn sync_ui_chrome_visibility(
+    mode: Res<InteractionMode>,
+    mut chromes: Query<&mut Node, With<UiChrome>>,
+) {
+    let wanted = if *mode == InteractionMode::MainMenu {
+        Display::None
+    } else {
+        Display::Flex
+    };
+    for mut node in &mut chromes {
+        if node.display != wanted {
+            node.display = wanted;
+        }
+    }
+}
+
+fn handle_esc_to_menu(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut mode: ResMut<InteractionMode>,
+    transition: Res<crate::plugins::transition::ModeTransition>,
+) {
+    if transition.is_active() {
+        return;
+    }
+    if *mode == InteractionMode::Explorer && keys.just_pressed(KeyCode::Escape) {
+        *mode = InteractionMode::MainMenu;
+    }
 }
 
 #[cfg(test)]

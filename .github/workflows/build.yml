@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/bevy-port]
+    branches: [main, master, feat/bevy-port, feat/wip]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
     inputs:
       create_release:
-        description: "Create new release draft and build"
+        description: "Create new release draft and publish packages"
         required: true
         type: boolean
         default: false
@@ -62,7 +62,7 @@ jobs:
       - run: cargo check --locked --all-targets
 
   create-release:
-    name: Prepare and Get Version
+    name: Prepare Release Version
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -80,7 +80,7 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            VERSION="0.0.0-manual-$(date +%s)"
+            VERSION="0.1.0-manual-$(date +%s)"
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -89,9 +89,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.get-version.outputs.version }}
-          name: Release v${{ steps.get-version.outputs.version }}
+          name: Lightrider v${{ steps.get-version.outputs.version }}
           body: |
-            Cross-platform RAPTOR packages.
+            Cross-platform Lightrider packages (3D File Explorer & Lightcycle Grid).
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           prerelease: false
         env:
@@ -99,14 +99,13 @@ jobs:
 
   build:
     name: Build and Package ${{ matrix.os_label }}
-    needs: create-release
-    if: (github.event_name == 'workflow_dispatch' && inputs.create_release) || startsWith(github.ref, 'refs/tags/v')
+    needs: [create-release]
+    if: always() && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             os_label: Linux
@@ -123,27 +122,56 @@ jobs:
         with:
           toolchain: 1.98.0
 
-      - name: Install cargo-bundle
-        run: cargo install cargo-bundle --version 0.11.0 --locked
-
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev libxcb-randr0-dev
 
-      - name: Install WiX Toolset (for MSI bundle)
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install wix-toolset -y
+      - uses: Swatinem/rust-cache@v2
 
-      - name: Bundle and Package
-        run: cargo bundle --profile dist
+      - name: Build Release Binary
+        run: cargo build --profile release --locked
+
+      - name: Package Windows Bundle
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          mkdir -p dist/lightrider
+          cp target/release/lightrider.exe dist/lightrider/
+          cp -r assets dist/lightrider/
+          cp README.md LICENSE dist/lightrider/ 2>/dev/null || true
+          cd dist && 7z a lightrider-windows-x86_64.zip lightrider
+
+      - name: Package Linux Bundle
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p dist/lightrider
+          cp target/release/lightrider dist/lightrider/
+          cp -r assets dist/lightrider/
+          cp README.md LICENSE dist/lightrider/ 2>/dev/null || true
+          cd dist && tar -czf lightrider-linux-x86_64.tar.gz lightrider
+
+      - name: Package macOS Bundle
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p dist/lightrider
+          cp target/release/lightrider dist/lightrider/
+          cp -r assets dist/lightrider/
+          cp README.md LICENSE dist/lightrider/ 2>/dev/null || true
+          cd dist && tar -czf lightrider-macos-x86_64.tar.gz lightrider
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lightrider-${{ matrix.os_label }}
+          path: dist/lightrider-*.*
 
       - name: Upload Packages to Release
+        if: needs.create-release.outputs.version != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.create-release.outputs.version }}
-          files: target/dist/bundle/**/*.*
+          files: dist/lightrider-*.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

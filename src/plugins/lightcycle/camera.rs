@@ -71,7 +71,14 @@ pub(crate) fn update_chase_camera(
     mouse_motion: Res<AccumulatedMouseMotion>,
     mut camera: Single<&mut Transform, (With<Camera3d>, Without<CycleEntity>)>,
     character: Query<&Transform, Only<CharacterEntity, Camera3d, ChaseCamera>>,
-    mut cycle: Query<(&Transform, &mut ChaseCamera, Option<&crate::plugins::lightcycle::physics::LightcyclePhysics>), Without<Camera3d>>,
+    mut cycle: Query<
+        (
+            &Transform,
+            &mut ChaseCamera,
+            Option<&crate::plugins::lightcycle::physics::LightcyclePhysics>,
+        ),
+        Without<Camera3d>,
+    >,
 ) {
     let Ok((cycle, mut chase, physics)) = cycle.single_mut() else {
         return;

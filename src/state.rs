@@ -322,9 +322,14 @@ pub struct DirectorySceneRoot;
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InteractionMode {
     #[default]
+    MainMenu,
     Explorer,
     Lightcycle,
 }
+
+/// Entities owned by the main menu 3D showcase diorama (bike, trail, diorama).
+#[derive(Component, Debug)]
+pub struct MainMenuSceneRoot;
 
 /// Non-directory entities owned by the lightcycle mode (cycle, walls, portal).
 ///

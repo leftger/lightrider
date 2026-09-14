@@ -1,5 +1,6 @@
 //! Lightcycle input handling and the cycle transform update.
 
+use super::physics::{ContinuousTrail, LightcyclePhysics};
 use super::step::restart_run;
 use crate::bomberman::sim::BomberSim;
 use crate::breaker::sim::BreakerSim;
@@ -29,7 +30,6 @@ use crate::stealth::sim::StealthSim;
 use crate::surfer::sim::SurferSim;
 use crate::tetris::sim::TetrisSim;
 use avian3d::prelude::LinearVelocity;
-use super::physics::{ContinuousTrail, LightcyclePhysics};
 use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -46,7 +46,15 @@ pub(crate) fn read_lightcycle_input(
     mut requests: MessageWriter<DirectoryRequested>,
     mut effects: MessageWriter<MusicSfx>,
     mut warps: MessageWriter<WarpRequested>,
-    mut cycle_physics: Query<(&mut Transform, &mut LinearVelocity, &mut LightcyclePhysics, &mut ContinuousTrail), With<CycleEntity>>,
+    mut cycle_physics: Query<
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut LightcyclePhysics,
+            &mut ContinuousTrail,
+        ),
+        With<CycleEntity>,
+    >,
 ) {
     if history.notice_timer > 0.0 {
         history.notice_timer = (history.notice_timer - time.delta_secs()).max(0.0);
@@ -143,7 +151,9 @@ pub(crate) fn read_lightcycle_input(
             history.notice = "LIGHTCYCLE: CLASSIC GRID (90° TURNS)".to_string();
             if let Some(run_ref) = state.run.as_ref() {
                 let pose = cycle_cell_pose(&run_ref.sim);
-                if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
+                if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) =
+                    cycle_physics.single_mut()
+                {
                     transform.translation = pose_world_position(&pose);
                     transform.rotation = pose_rotation(&pose);
                     linear_velocity.0 = Vec3::ZERO;
@@ -156,13 +166,15 @@ pub(crate) fn read_lightcycle_input(
         } else {
             history.notice = "LIGHTCYCLE: CONTINUOUS MOTORCYCLE PHYSICS".to_string();
             if let Some(run_ref) = state.run.as_ref()
-                && let Ok((transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut()
+                && let Ok((transform, mut linear_velocity, mut phys, mut trail)) =
+                    cycle_physics.single_mut()
             {
                 phys.heading = run_ref.sim.heading.angle();
                 phys.current_speed = 14.0;
                 phys.current_lean = 0.0;
                 phys.target_lean = 0.0;
-                linear_velocity.0 = Vec3::new(phys.heading.cos(), 0.0, phys.heading.sin()) * phys.current_speed;
+                linear_velocity.0 =
+                    Vec3::new(phys.heading.cos(), 0.0, phys.heading.sin()) * phys.current_speed;
                 trail.clear();
                 let tail_pos = Vec2::new(transform.translation.x, transform.translation.z);
                 trail.append(tail_pos, phys.heading);
@@ -239,18 +251,19 @@ pub(crate) fn read_lightcycle_input(
             game.input(&frame);
         } else if run.source_game() == Some(SourceGame::DiscWars) {
             // Disc wars: throw and recall. The disc shoots directly in the direction of travel with physics.
-            let (world_pos, world_dir) = if let Ok((transform, velocity, phys, _)) = cycle_physics.single() {
-                let pos = (transform.translation.x, transform.translation.z);
-                let dir = if velocity.0.length_squared() > 0.25 {
-                    let v = Vec2::new(velocity.0.x, velocity.0.z).normalize();
-                    (v.x, v.y)
+            let (world_pos, world_dir) =
+                if let Ok((transform, velocity, phys, _)) = cycle_physics.single() {
+                    let pos = (transform.translation.x, transform.translation.z);
+                    let dir = if velocity.0.length_squared() > 0.25 {
+                        let v = Vec2::new(velocity.0.x, velocity.0.z).normalize();
+                        (v.x, v.y)
+                    } else {
+                        (phys.heading.cos(), phys.heading.sin())
+                    };
+                    (Some(pos), Some(dir))
                 } else {
-                    (phys.heading.cos(), phys.heading.sin())
+                    (None, None)
                 };
-                (Some(pos), Some(dir))
-            } else {
-                (None, None)
-            };
             let snapshot = PlayerSnapshot {
                 cell: run.sim.cell,
                 heading: run.sim.heading,
@@ -284,7 +297,9 @@ pub(crate) fn read_lightcycle_input(
 
     if restart {
         restart_run(&mut run);
-        if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) = cycle_physics.single_mut() {
+        if let Ok((mut transform, mut linear_velocity, mut phys, mut trail)) =
+            cycle_physics.single_mut()
+        {
             let pose = cycle_cell_pose(&run.sim);
             transform.translation = pose_world_position(&pose);
             transform.rotation = pose_rotation(&pose);
@@ -325,7 +340,10 @@ pub(crate) fn read_lightcycle_input(
 
 pub(crate) fn update_cycle_transform(
     state: Res<LightcycleState>,
-    mut cycle: Query<(&mut Transform, &mut Visibility, Option<&LightcyclePhysics>), With<CycleEntity>>,
+    mut cycle: Query<
+        (&mut Transform, &mut Visibility, Option<&LightcyclePhysics>),
+        With<CycleEntity>,
+    >,
 ) {
     let Ok((mut transform, mut visibility, physics)) = cycle.single_mut() else {
         return;

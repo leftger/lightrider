@@ -39,8 +39,22 @@ pub fn voice_chain_name(slot: usize) -> String {
 /// Base chain names mixed into the output for a profile.
 pub fn base_refs(profile: ModeProfile) -> &'static [&'static str] {
     match profile {
+        ModeProfile::Menu => &[
+            "~menu_kick",
+            "~menu_snare",
+            "~menu_hat",
+            "~menu_sub",
+            "~menu_bass",
+            "~aero_pad0",
+            "~aero_pad1",
+            "~aero_bell",
+            "~aero_lead",
+            "~aero_shimmer",
+        ],
         ModeProfile::Calm => &["~pad0", "~pad1", "~dune", "~pulse"],
-        ModeProfile::Action => &["~kick", "~snare", "~hat", "~sub", "~bass", "~growl", "~lead"],
+        ModeProfile::Action => &[
+            "~kick", "~snare", "~hat", "~sub", "~bass", "~growl", "~lead",
+        ],
     }
 }
 
@@ -82,16 +96,103 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
 
     // Red wall approaching warning growl ("bwop bwop" resonant sweep).
     // Modulated in 3D space with distance-attenuated gain.
-    let _ = writeln!(
-        code,
-        "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;"
-    );
+    let _ = writeln!(code, "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;");
     let _ = writeln!(
         code,
         "~red_wall: saw 55.0 >> lpf ~wall_lfo 2.5 >> mul 0.0 >> pan 0.0;"
     );
 
     match profile {
+        ModeProfile::Menu => {
+            // Badass Title Menu Theme: Techno / Sci-Fi / Frutiger-Aero soundscape.
+            // 128 BPM, D Major / Lydian, punchy 4-on-the-floor electro kick,
+            // French Touch sidechain ducking pump, crisp backbeat snare, rolling 16th hats,
+            // deep sub-bass, resonant electro bassline, lush resonant aero pads,
+            // aquatic crystal bells, soaring cyber lead, and high-frequency shimmer.
+            let beat_hz = 128.0 / 60.0; // 2.133 Hz
+            let snare_hz = beat_hz * 0.5; // 1.067 Hz
+            let hat_hz = beat_hz * 4.0; // 8.533 Hz
+            let lead_vibrato_hz = beat_hz * 2.0; // 4.267 Hz
+            let shimmer_hz = snare_hz * 0.5; // 0.533 Hz
+
+            // French Touch / Daft Punk sidechain ducking pump envelope
+            let _ = writeln!(
+                code,
+                "~menu_pump: sin {beat_hz:.3} >> mul 0.35 >> add 0.65;"
+            );
+
+            // Driving 4-on-the-floor electro kick
+            let _ = writeln!(
+                code,
+                "~menu_kick: imp {beat_hz:.3} >> bd 0.075 >> mul 0.34 >> pan 0.0;"
+            );
+
+            // Crisp cyber backbeat electro snare on beats 2 & 4
+            let _ = writeln!(
+                code,
+                "~menu_snare: imp {snare_hz:.3} >> sn 0.048 >> mul 0.20 >> pan -0.04;"
+            );
+
+            // Rolling 16th-note electro hi-hats
+            let _ = writeln!(
+                code,
+                "~menu_hat: imp {hat_hz:.3} >> hh 0.015 >> mul 0.065 >> pan 0.18;"
+            );
+
+            // Deep clean sub-bass at D2 (73.42 Hz) ducked by sidechain
+            let _ = writeln!(
+                code,
+                "~menu_sub: sin 73.42 >> mul 0.26 >> mul ~menu_pump >> pan 0.0;"
+            );
+
+            // Resonant rolling electro sawtooth bassline ducked by sidechain
+            let _ = writeln!(
+                code,
+                "~menu_bass: saw 73.42 >> lpf 520.0 1.3 >> mul 0.15 >> mul ~menu_pump >> pan -0.16;"
+            );
+
+            // Frutiger Aero Pad 0: warm, glassy triangle chord pad at D4 (293.66 Hz)
+            let _ = writeln!(
+                code,
+                "~aero_pad0: tri 293.66 >> lpf 880.0 0.85 >> mul 0.12 >> mul ~menu_pump >> pan -0.28;"
+            );
+
+            // Frutiger Aero Pad 1: bright sawtooth fifth pad at A4 (440.00 Hz)
+            let _ = writeln!(
+                code,
+                "~aero_pad1: saw 440.00 >> lpf 920.0 0.75 >> mul 0.08 >> mul ~menu_pump >> pan 0.28;"
+            );
+
+            // Glassy aquatic chime / crystal bell pulses (D6, 1174.66 Hz)
+            let _ = writeln!(
+                code,
+                "~bell_lfo: sin {snare_hz:.3} >> mul 0.035 >> add 0.040;"
+            );
+            let _ = writeln!(
+                code,
+                "~aero_bell: sin 1174.66 >> lpf 3200.0 0.9 >> mul ~bell_lfo >> pan 0.24;"
+            );
+
+            // Soaring sci-fi square-wave cyber lead (D5, 587.33 Hz) with vibrato LFO
+            let _ = writeln!(
+                code,
+                "~lead_lfo: sin {lead_vibrato_hz:.3} >> mul 180.0 >> add 1200.0;"
+            );
+            let _ = writeln!(
+                code,
+                "~aero_lead: squ 587.33 >> lpf ~lead_lfo 0.95 >> mul 0.09 >> mul ~menu_pump >> pan 0.12;"
+            );
+
+            // Crystalline high-frequency particle shimmer (A6, 1760.00 Hz)
+            let _ = writeln!(
+                code,
+                "~shimmer_lfo: sin {shimmer_hz:.3} >> mul 0.020 >> add 0.025;"
+            );
+            let _ = writeln!(
+                code,
+                "~aero_shimmer: sin 1760.00 >> lpf 4200.0 0.6 >> mul ~shimmer_lfo >> pan -0.32;"
+            );
+        }
         ModeProfile::Calm => {
             let root = theme.root_hz();
             let fifth = theme.degree_hz(4, 0);
@@ -250,7 +351,11 @@ pub fn output_chain(profile: ModeProfile) -> String {
     for slot in 0..MAX_VOICES {
         let _ = write!(code, " {}", voice_chain_name(slot));
     }
-    let _ = writeln!(code, " >> plate {:.2};", config::music::MUSIC_REVERB_PLATE_MIX);
+    let reverb = match profile {
+        ModeProfile::Menu => 0.32,
+        _ => config::music::MUSIC_REVERB_PLATE_MIX,
+    };
+    let _ = writeln!(code, " >> plate {reverb:.2};");
     code
 }
 
@@ -275,8 +380,8 @@ pub fn voice_message(slot: usize, freq: f32, cutoff: f32, gain: f32, pan: f32) -
 /// layout produced by [`base_voices`]: 0 = oscillator, 1 = low-pass cutoff,
 /// 2 = gain, 3 = pan.
 ///
-/// The noise-based effects have no frequency to set, so their oscillator node is
-/// left alone (see [`MusicSfx::uses_pitch`]).
+/// If the effect uses noise (crash) rather than a pitched oscillator, the
+/// first node is left untouched.
 pub fn sfx_message(sfx: MusicSfx, voice: SfxVoice) -> String {
     let chain = sfx.chain();
     let mut message = String::new();
@@ -314,12 +419,14 @@ pub fn wall_message(gain: f32, pan: f32, rate: f32) -> String {
 pub fn base_filter_message(theme: &MusicTheme, profile: ModeProfile, sweep: f32) -> String {
     let open = 0.65 + sweep.clamp(0.0, 1.0);
     let (c0, c1) = match profile {
+        ModeProfile::Menu => (880.0, 920.0),
         ModeProfile::Calm => calm_pad_cutoffs(theme),
         ModeProfile::Action => action_base_cutoffs(theme),
     };
     let c0 = (c0 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
     let c1 = (c1 * open).clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
     match profile {
+        ModeProfile::Menu => format!("~aero_pad0,1,0,{c0:.1};~aero_pad1,1,0,{c1:.1};"),
         ModeProfile::Calm => format!("~pad0,1,0,{c0:.1};~pad1,1,0,{c1:.1};"),
         ModeProfile::Action => format!("~bass,1,0,{c0:.1};~lead,1,0,{c1:.1};"),
     }
@@ -363,12 +470,14 @@ mod tests {
     }
 
     #[test]
-    fn only_action_pumps_and_both_profiles_carry_the_shared_chains() {
+    fn pumps_and_profiles_carry_the_shared_chains() {
         let calm = full_code(&theme(), ModeProfile::Calm);
         let action = full_code(&theme(), ModeProfile::Action);
-        assert!(!calm.contains("~pump"));
+        let menu = full_code(&MusicTheme::title_menu(), ModeProfile::Menu);
+        assert!(!calm.contains("~pump") && !calm.contains("~menu_pump"));
         assert!(action.contains("~pump"));
-        for code in [&calm, &action] {
+        assert!(menu.contains("~menu_pump"));
+        for code in [&calm, &action, &menu] {
             for sfx in MusicSfx::ALL {
                 let chain = sfx.chain();
                 assert!(code.contains(&format!("{chain}:")), "missing {chain}");
@@ -398,6 +507,9 @@ mod tests {
 
     #[test]
     fn base_filter_sweep_targets_the_profile_base() {
+        let menu = base_filter_message(&MusicTheme::title_menu(), ModeProfile::Menu, 0.5);
+        assert!(menu.contains("~aero_pad0,1,0,"));
+        assert!(menu.contains("~aero_pad1,1,0,"));
         let calm = base_filter_message(&theme(), ModeProfile::Calm, 0.5);
         assert!(calm.contains("~pad0,1,0,"));
         assert!(calm.contains("~pad1,1,0,"));
@@ -520,5 +632,36 @@ mod tests {
         let rendered_calm = render_offline(&calm, 64).expect("calm must compile");
         let peak_calm = crate::music::engine::peak(&rendered_calm);
         assert!(peak_calm > 0.01 && peak_calm <= 1.0);
+    }
+
+    #[test]
+    fn title_menu_theme_song_compiled_and_audible() {
+        let menu_theme = MusicTheme::title_menu();
+        let menu_code = full_code(&menu_theme, ModeProfile::Menu);
+        // Driving 4-on-the-floor electro kick & sidechain pump
+        assert!(menu_code.contains("~menu_kick: imp"));
+        assert!(menu_code.contains("~menu_pump: sin"));
+        // Backbeat cyber snare & rolling 16th hats
+        assert!(menu_code.contains("~menu_snare: imp"));
+        assert!(menu_code.contains("~menu_hat: imp"));
+        // Deep sub & resonant electro bassline
+        assert!(menu_code.contains("~menu_sub: sin"));
+        assert!(menu_code.contains("~menu_bass: saw"));
+        // Frutiger Aero pads, crystal bells, and cyber lead
+        assert!(menu_code.contains("~aero_pad0: tri"));
+        assert!(menu_code.contains("~aero_pad1: saw"));
+        assert!(menu_code.contains("~aero_bell: sin"));
+        assert!(menu_code.contains("~aero_lead: squ"));
+        assert!(menu_code.contains("~aero_shimmer: sin"));
+
+        // Plate reverb mix
+        assert!(menu_code.contains("plate 0.32"));
+
+        let rendered = render_offline(&menu_code, 64).expect("title menu theme must compile");
+        let peak = crate::music::engine::peak(&rendered);
+        assert!(
+            peak > 0.01 && peak <= 1.0,
+            "title menu peak {peak} out of bounds"
+        );
     }
 }

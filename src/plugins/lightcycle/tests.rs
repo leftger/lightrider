@@ -1267,7 +1267,11 @@ fn continuous_trail_decimates_and_bounds_segments() {
     // Small increments below threshold should be skipped
     trail.append(Vec2::new(0.0, 0.0), 0.0);
     trail.append(Vec2::new(0.1, 0.0), 0.0); // dist 0.1 < min_sample_dist
-    assert_eq!(trail.points.len(), 1, "small movements below threshold should be decimated");
+    assert_eq!(
+        trail.points.len(),
+        1,
+        "small movements below threshold should be decimated"
+    );
 
     // Movement above threshold appends
     trail.append(Vec2::new(1.0, 0.0), 0.0);
@@ -1372,7 +1376,10 @@ fn colliding_with_directory_sensor_initiates_beaming_up() {
     let state = app.world().resource::<crate::lightcycle::LightcycleState>();
     let run = state.run.as_ref().expect("run must still exist");
     assert_eq!(run.sim.phase, RunPhase::EnteringDir);
-    assert!(state.entry_fx.is_some(), "entry transport effect must be created");
+    assert!(
+        state.entry_fx.is_some(),
+        "entry transport effect must be created"
+    );
 }
 
 #[test]
@@ -1408,9 +1415,7 @@ fn proximity_to_directory_tower_triggers_beaming_up() {
     )];
     let run = super::run::build_active_run(&path, nodes);
     let (tower_x, tower_z) = match &run.environment {
-        crate::lightcycle::RunEnvironment::Directory { cells, .. } => {
-            *cells.keys().next().unwrap()
-        }
+        crate::lightcycle::RunEnvironment::Directory { cells, .. } => *cells.keys().next().unwrap(),
         _ => unreachable!(),
     };
     let tower_pos = config::ground_position(tower_x, tower_z);
@@ -1446,7 +1451,6 @@ fn record_sfx(mut reader: MessageReader<MusicSfx>, mut log: ResMut<SfxLog>) {
         log.0.push(sfx);
     }
 }
-
 
 #[test]
 fn solid_obstacle_collision_rebounds_without_death() {
@@ -1534,7 +1538,9 @@ fn solid_obstacle_collision_rebounds_without_death() {
         "rebound must not play GameOver sound effect"
     );
 
-    let mut cycle_query = app.world_mut().query::<(&LinearVelocity, &LightcyclePhysics)>();
+    let mut cycle_query = app
+        .world_mut()
+        .query::<(&LinearVelocity, &LightcyclePhysics)>();
     let (vel, phys) = cycle_query.single(app.world()).expect("cycle must exist");
     assert!(
         vel.0.x < 0.0,
@@ -1680,7 +1686,9 @@ fn gc_sweep_does_not_cause_death() {
     let sweep_world_z = sweep_plane * config::GRID_SPACING;
 
     {
-        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        let mut state = app
+            .world_mut()
+            .resource_mut::<crate::lightcycle::LightcycleState>();
         state.run = Some(run);
         state.gc_sweep = gc_sweep_remaining;
     }
@@ -1745,7 +1753,9 @@ fn flood_sweep_collision_causes_death_with_game_over() {
     let flood_world_z = flood_plane * crate::config::GRID_SPACING;
 
     {
-        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        let mut state = app
+            .world_mut()
+            .resource_mut::<crate::lightcycle::LightcycleState>();
         state.run = Some(run);
     }
     {
@@ -2015,7 +2025,9 @@ fn snake_exit_teleports_back_to_previous_folder() {
 
     // Advance clock enough to cross into the gate
     {
-        let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+        let mut state = app
+            .world_mut()
+            .resource_mut::<crate::lightcycle::LightcycleState>();
         state.clock = 0.1;
     }
 
@@ -2074,16 +2086,22 @@ fn disc_wars_exit_teleports_back_to_previous_folder() {
         .resource_mut::<crate::lightcycle::LightcycleState>()
         .run = Some(run);
 
-    let cycle_entity = app.world_mut().spawn((
-        crate::lightcycle::scene::CycleEntity,
-        Transform::from_translation(gate_pos),
-        LinearVelocity(Vec3::new(0.0, 0.0, 5.0)),
-    )).id();
+    let cycle_entity = app
+        .world_mut()
+        .spawn((
+            crate::lightcycle::scene::CycleEntity,
+            Transform::from_translation(gate_pos),
+            LinearVelocity(Vec3::new(0.0, 0.0, 5.0)),
+        ))
+        .id();
 
-    let sensor_entity = app.world_mut().spawn((
-        Transform::from_translation(gate_pos),
-        crate::plugins::lightcycle::physics::ParentPortalSensor,
-    )).id();
+    let sensor_entity = app
+        .world_mut()
+        .spawn((
+            Transform::from_translation(gate_pos),
+            crate::plugins::lightcycle::physics::ParentPortalSensor,
+        ))
+        .id();
 
     app.world_mut().write_message(CollisionStart {
         collider1: cycle_entity,
@@ -2156,7 +2174,11 @@ fn classic_mode_hotkey_toggles_and_resets_motion() {
     ));
 
     // Initially in continuous motorcycle mode
-    assert!(!app.world().resource::<crate::lightcycle::LightcycleState>().classic_mode);
+    assert!(
+        !app.world()
+            .resource::<crate::lightcycle::LightcycleState>()
+            .classic_mode
+    );
 
     // Press C to toggle classic mode
     app.world_mut()
@@ -2165,7 +2187,10 @@ fn classic_mode_hotkey_toggles_and_resets_motion() {
     app.update();
 
     let state = app.world().resource::<crate::lightcycle::LightcycleState>();
-    assert!(state.classic_mode, "pressing C must toggle classic_mode to true");
+    assert!(
+        state.classic_mode,
+        "pressing C must toggle classic_mode to true"
+    );
 
     let history = app.world().resource::<crate::state::HistoryState>();
     assert!(
@@ -2183,7 +2208,10 @@ fn classic_mode_hotkey_toggles_and_resets_motion() {
     app.update();
 
     let state = app.world().resource::<crate::lightcycle::LightcycleState>();
-    assert!(!state.classic_mode, "pressing C again must toggle classic_mode back to false");
+    assert!(
+        !state.classic_mode,
+        "pressing C again must toggle classic_mode back to false"
+    );
 
     let history = app.world().resource::<crate::state::HistoryState>();
     assert!(
@@ -2195,8 +2223,8 @@ fn classic_mode_hotkey_toggles_and_resets_motion() {
 #[test]
 fn classic_mode_advances_simulation_on_grid() {
     use crate::lightcycle::logic::RunPhase;
-    use crate::plugins::lightcycle::step::step_lightcycle;
     use crate::music::sfx::MusicSfx;
+    use crate::plugins::lightcycle::step::step_lightcycle;
     use bevy::prelude::*;
 
     let path = std::path::PathBuf::from("/tmp");
@@ -2221,7 +2249,9 @@ fn classic_mode_advances_simulation_on_grid() {
         0,
     )];
     let run = super::run::build_active_run(&path, nodes);
-    let mut state = app.world_mut().resource_mut::<crate::lightcycle::LightcycleState>();
+    let mut state = app
+        .world_mut()
+        .resource_mut::<crate::lightcycle::LightcycleState>();
     state.run = Some(run);
     state.classic_mode = true;
     state.clock = 0.2; // Enough time for at least one fixed substep
@@ -2236,6 +2266,3 @@ fn classic_mode_advances_simulation_on_grid() {
         "classic mode must advance cell_t along the grid cells"
     );
 }
-
-
-

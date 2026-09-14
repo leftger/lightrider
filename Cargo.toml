@@ -1,10 +1,10 @@
 [package]
-name = "raptor"
+name = "lightrider"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.98"
-description = "Realtime Abstracted Path Tree Observer"
-authors = ["Erick Jesus <erick.jesus2060@gmail.com>"]
+description = "Lightrider - 3D File Explorer & Lightcycle Grid"
+authors = ["Erick Jesus <erick.jesus2060@gmail.com>", "leftger"]
 
 [dependencies]
 bevy = { version = "0.19", default-features = false, features = ["3d", "ui"] }
@@ -25,15 +25,15 @@ default = []
 dev = ["bevy/dynamic_linking"]
 
 [package.metadata.bundle]
-name = "raptor"
-identifier = "com.erickj3.raptor"
+name = "lightrider"
+identifier = "com.leftger.lightrider"
 category = "Utility"
 
 [package.metadata.bundle.osx]
 minimum_system_version = "10.11"
 
 [[bin]]
-name = "raptor"
+name = "lightrider"
 path = "src/main.rs"
 
 [profile.dev.package."*"]

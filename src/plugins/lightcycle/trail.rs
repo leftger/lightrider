@@ -67,7 +67,13 @@ pub(crate) fn rail_segments(min: f32, max: f32, gap: Option<(f32, f32)>) -> Vec<
 /// cycle's tail instead of snapping to the last cell center.
 pub(crate) fn update_trail_mesh(
     state: Res<LightcycleState>,
-    cycle_has_continuous_trail: Query<(), (With<crate::lightcycle::scene::CycleEntity>, With<crate::plugins::lightcycle::physics::ContinuousTrail>)>,
+    cycle_has_continuous_trail: Query<
+        (),
+        (
+            With<crate::lightcycle::scene::CycleEntity>,
+            With<crate::plugins::lightcycle::physics::ContinuousTrail>,
+        ),
+    >,
     mut meshes: ResMut<Assets<Mesh>>,
     trail: Query<&Mesh3d, With<TrailSceneRoot>>,
 ) {

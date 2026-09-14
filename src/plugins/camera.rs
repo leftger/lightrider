@@ -67,7 +67,8 @@ fn sync_lightcycle_bloom(
     mut commands: Commands,
 ) {
     let (entity, has_bloom, has_hdr) = *camera;
-    let enabled = settings.bloom && *mode == InteractionMode::Lightcycle;
+    let enabled = settings.bloom
+        && (*mode == InteractionMode::Lightcycle || *mode == InteractionMode::MainMenu);
     if enabled && (!has_bloom || !has_hdr) {
         commands.entity(entity).insert((
             Hdr,

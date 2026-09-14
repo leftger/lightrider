@@ -10,7 +10,7 @@
 //!   turned into per-entry voice parameters by the proximity mixer.
 
 use crate::config;
-use crate::lightcycle::logic::{stable_path_seed, RunPhase};
+use crate::lightcycle::logic::{RunPhase, stable_path_seed};
 use crate::lightcycle::{LightcycleState, RunEnvironment};
 use crate::load::DirectoryLoaded;
 use crate::music::arp::ArpState;
@@ -35,6 +35,8 @@ pub struct MusicState {
     pub enabled: bool,
     pub volume: f32,
     pub theme: Option<MusicTheme>,
+    /// Theme for the currently loaded directory, restored when switching from Menu to Explorer/Lightcycle.
+    pub dir_theme: Option<MusicTheme>,
     pub profile: ModeProfile,
     pub mixer: VoiceMixer,
     /// The evolving melody layer.
@@ -59,12 +61,16 @@ impl MusicState {
         );
         handle.set_volume(volume);
         handle.set_enabled(enabled);
+        let menu_theme = MusicTheme::title_menu();
+        let profile = ModeProfile::Menu;
+        handle.set_code(&full_code(&menu_theme, profile), menu_theme.bpm(profile));
         Self {
             handle,
             enabled,
             volume,
-            theme: None,
-            profile: ModeProfile::Calm,
+            theme: Some(menu_theme),
+            dir_theme: None,
+            profile,
             mixer: VoiceMixer::new(),
             arp: ArpState::new(),
             nodes: Vec::new(),
@@ -125,8 +131,8 @@ fn report_audio_status(mut reported: Local<bool>, music: Res<MusicState>) {
     }
 }
 
-/// Explorer is calm, Lightcycle is action. Recompiling the base graph is done
-/// by the audio thread behind a short fade.
+/// Syncs the audio profile with the active interaction mode (Menu, Explorer, Lightcycle).
+/// Recompiling the base graph is done by the audio thread behind a short fade.
 fn sync_profile_with_mode(mode: Res<InteractionMode>, mut music: ResMut<MusicState>) {
     let profile = ModeProfile::from_mode(*mode);
     if profile == music.profile {
@@ -135,11 +141,17 @@ fn sync_profile_with_mode(mode: Res<InteractionMode>, mut music: ResMut<MusicSta
     music.profile = profile;
     music.mixer.clear();
     music.arp.reset();
-    if let Some(theme) = &music.theme {
-        music
-            .handle
-            .set_code(&full_code(theme, profile), theme.bpm(profile));
-    }
+    let theme = match profile {
+        ModeProfile::Menu => MusicTheme::title_menu(),
+        ModeProfile::Calm | ModeProfile::Action => music
+            .dir_theme
+            .clone()
+            .unwrap_or_else(MusicTheme::title_menu),
+    };
+    music
+        .handle
+        .set_code(&full_code(&theme, profile), theme.bpm(profile));
+    music.theme = Some(theme);
 }
 
 /// A loaded directory becomes a theme plus an entry list. Because the theme is
@@ -150,7 +162,7 @@ fn rebuild_for_directory(
     mut music: ResMut<MusicState>,
 ) {
     for event in loaded.read() {
-        let theme = MusicTheme::from_path(&event.path);
+        let dir_theme = MusicTheme::from_path(&event.path);
         let profile = ModeProfile::from_mode(*mode);
 
         music.nodes = event
@@ -172,11 +184,25 @@ fn rebuild_for_directory(
 
         music.mixer.clear();
         music.arp.reset();
-        music
-            .handle
-            .set_code(&full_code(&theme, profile), theme.bpm(profile));
-        music.theme = Some(theme);
-        music.profile = profile;
+        music.dir_theme = Some(dir_theme.clone());
+
+        if profile == ModeProfile::Menu {
+            let menu_theme = MusicTheme::title_menu();
+            if music.theme.as_ref() != Some(&menu_theme) || music.profile != ModeProfile::Menu {
+                music.handle.set_code(
+                    &full_code(&menu_theme, ModeProfile::Menu),
+                    menu_theme.bpm(ModeProfile::Menu),
+                );
+                music.theme = Some(menu_theme);
+                music.profile = ModeProfile::Menu;
+            }
+        } else {
+            music
+                .handle
+                .set_code(&full_code(&dir_theme, profile), dir_theme.bpm(profile));
+            music.theme = Some(dir_theme);
+            music.profile = profile;
+        }
     }
 }
 
@@ -192,7 +218,7 @@ fn update_proximity(
     mut music: ResMut<MusicState>,
 ) {
     let listener = match *mode {
-        InteractionMode::Explorer => Listener {
+        InteractionMode::MainMenu | InteractionMode::Explorer => Listener {
             x: orbit.target.x,
             z: orbit.target.z,
         },
@@ -420,15 +446,8 @@ mod tests {
     #[test]
     fn wall_audio_is_silent_when_far_away() {
         // Wall at Z = -100.0 (grid -50.0), camera at Z = 0.0
-        let (gain, _, _) = compute_wall_audio_params(
-            Vec3::ZERO,
-            Vec3::X,
-            -50.0,
-            0.0,
-            20.0,
-            true,
-            true,
-        );
+        let (gain, _, _) =
+            compute_wall_audio_params(Vec3::ZERO, Vec3::X, -50.0, 0.0, 20.0, true, true);
         assert_eq!(gain, 0.0);
     }
 
@@ -458,7 +477,10 @@ mod tests {
 
         assert!(gain_far > 0.0, "far wall should be audible within 48 units");
         assert!(gain_close > gain_far, "closer wall must have higher gain");
-        assert!(rate_close > rate_far, "closer wall must have faster pulse rate");
+        assert!(
+            rate_close > rate_far,
+            "closer wall must have faster pulse rate"
+        );
     }
 
     #[test]
@@ -468,42 +490,29 @@ mod tests {
         let flood_plane = -5.0; // wall_z = -10.0
 
         // 1. Camera facing forward (+Z): cam_right is +X. Wall is directly behind.
-        let (_, pan_forward, _) = compute_wall_audio_params(
-            cam_pos,
-            Vec3::X,
-            flood_plane,
-            0.0,
-            20.0,
-            true,
-            true,
+        let (_, pan_forward, _) =
+            compute_wall_audio_params(cam_pos, Vec3::X, flood_plane, 0.0, 20.0, true, true);
+        assert!(
+            pan_forward.abs() < 1e-4,
+            "direct behind should be centered pan"
         );
-        assert!(pan_forward.abs() < 1e-4, "direct behind should be centered pan");
 
         // 2. Camera turned 90 deg right (facing +X): cam_right is +Z.
         // Wall is at -Z, so wall is to camera's left!
-        let (_, pan_turn_right, _) = compute_wall_audio_params(
-            cam_pos,
-            Vec3::Z,
-            flood_plane,
-            0.0,
-            20.0,
-            true,
-            true,
+        let (_, pan_turn_right, _) =
+            compute_wall_audio_params(cam_pos, Vec3::Z, flood_plane, 0.0, 20.0, true, true);
+        assert!(
+            pan_turn_right < -0.5,
+            "wall to camera's left must pan negative (left)"
         );
-        assert!(pan_turn_right < -0.5, "wall to camera's left must pan negative (left)");
 
         // 3. Camera turned 90 deg left (facing -X): cam_right is -Z.
         // Wall is at -Z, so wall is to camera's right!
-        let (_, pan_turn_left, _) = compute_wall_audio_params(
-            cam_pos,
-            -Vec3::Z,
-            flood_plane,
-            0.0,
-            20.0,
-            true,
-            true,
+        let (_, pan_turn_left, _) =
+            compute_wall_audio_params(cam_pos, -Vec3::Z, flood_plane, 0.0, 20.0, true, true);
+        assert!(
+            pan_turn_left > 0.5,
+            "wall to camera's right must pan positive (right)"
         );
-        assert!(pan_turn_left > 0.5, "wall to camera's right must pan positive (right)");
     }
 }
-

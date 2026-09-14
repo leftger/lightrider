@@ -1,6 +1,7 @@
 //! Ambient scenery: the call stack, the parent gate, the memory flood and the GC sweep.
 
 use super::city::{city_theme_index, wall_plane};
+use super::physics::{GameLayer, ParentPortalSensor};
 use crate::config;
 use crate::lightcycle::logic::{
     Arena, ArenaKind, ParentPortal, RunPhase, Wall, road_plates, stable_path_seed,
@@ -16,7 +17,6 @@ use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
 use crate::music::sfx::MusicSfx;
 use crate::state::{FloodState, LightcycleSceneRoot, PauseState, StackMotion};
 use avian3d::prelude::*;
-use super::physics::{GameLayer, ParentPortalSensor};
 use bevy::prelude::*;
 use std::path::Path;
 
