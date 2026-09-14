@@ -51,6 +51,7 @@ Detailed guides have been organized into dedicated documentation:
 | 🕹️ **[Arcade Minigames Guide](docs/games.md)** | Breakdown of all 15+ code-generated minigames and combat rules. |
 | 🎵 **[Audio & Procedural Music](docs/audio.md)** | Title menu track details, Glicol synthesizer architecture, and audio controls. |
 | ⚡ **[Performance & Benchmarking](docs/performance.md)** | Raster tuning, MSAA/Bloom options, `--bench` flags, and low-spec optimization. |
+| 📱 **[Mobile Port Plan (Android & iOS)](docs/mobile-port-plan.md)** | Architecture, touch UX, sandbox storage, and store deployment roadmap. |
 
 ---
 
