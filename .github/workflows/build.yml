@@ -159,7 +159,12 @@ jobs:
           cp target/release/lightrider dist/lightrider/
           cp -r assets dist/lightrider/
           cp README.md LICENSE dist/lightrider/ 2>/dev/null || true
-          cd dist && tar -czf lightrider-macos-x86_64.tar.gz lightrider
+          ARCH=$(uname -m)
+          cd dist
+          tar -czf lightrider-macos-${ARCH}.tar.gz lightrider
+          if [ "$ARCH" = "arm64" ]; then
+            cp lightrider-macos-arm64.tar.gz lightrider-macos-aarch64.tar.gz
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
