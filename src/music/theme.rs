@@ -118,6 +118,7 @@ impl TimbreFamily {
 /// Intensity of the generated music, selected by the interaction mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModeProfile {
+    Menu,
     Calm,
     Action,
 }
@@ -125,17 +126,19 @@ pub enum ModeProfile {
 impl ModeProfile {
     /// Iterated by tests that need every profile.
     #[cfg(test)]
-    pub const ALL: [ModeProfile; 2] = [ModeProfile::Calm, ModeProfile::Action];
+    pub const ALL: [ModeProfile; 3] = [ModeProfile::Menu, ModeProfile::Calm, ModeProfile::Action];
 
     pub fn from_mode(mode: InteractionMode) -> Self {
         match mode {
-            InteractionMode::MainMenu | InteractionMode::Explorer => Self::Calm,
+            InteractionMode::MainMenu => Self::Menu,
+            InteractionMode::Explorer => Self::Calm,
             InteractionMode::Lightcycle => Self::Action,
         }
     }
 
     pub fn label(self) -> &'static str {
         match self {
+            Self::Menu => "MENU",
             Self::Calm => "CALM",
             Self::Action => "ACTION",
         }
@@ -143,6 +146,7 @@ impl ModeProfile {
 
     pub fn tempo_multiplier(self) -> f32 {
         match self {
+            Self::Menu => 1.0,
             Self::Calm => 1.0,
             Self::Action => config::music::MUSIC_ACTION_TEMPO_MULTIPLIER,
         }
@@ -150,6 +154,7 @@ impl ModeProfile {
 
     pub fn voice_budget(self) -> usize {
         match self {
+            Self::Menu => 0,
             Self::Calm => config::music::MUSIC_CALM_VOICE_BUDGET,
             Self::Action => config::music::MUSIC_ACTION_VOICE_BUDGET,
         }
@@ -157,6 +162,7 @@ impl ModeProfile {
 
     pub fn proximity_radius(self) -> f32 {
         match self {
+            Self::Menu => 0.0,
             Self::Calm => config::music::MUSIC_CALM_PROXIMITY_RADIUS,
             Self::Action => config::music::MUSIC_ACTION_PROXIMITY_RADIUS,
         }
@@ -164,6 +170,7 @@ impl ModeProfile {
 
     pub fn gain_ceiling(self) -> f32 {
         match self {
+            Self::Menu => 0.70,
             Self::Calm => config::music::MUSIC_CALM_GAIN_CEILING,
             Self::Action => config::music::MUSIC_ACTION_GAIN_CEILING,
         }
@@ -171,6 +178,7 @@ impl ModeProfile {
 
     pub fn smoothing_tau(self) -> f32 {
         match self {
+            Self::Menu => 0.12,
             Self::Calm => config::music::MUSIC_CALM_SMOOTHING_TAU,
             Self::Action => config::music::MUSIC_ACTION_SMOOTHING_TAU,
         }
@@ -179,6 +187,7 @@ impl ModeProfile {
     /// Seconds between arpeggiator notes at `bpm`.
     pub fn arp_interval(self, bpm: f32) -> f32 {
         let beats = match self {
+            Self::Menu => 2.0,
             Self::Calm => config::music::MUSIC_CALM_ARP_BEATS,
             Self::Action => config::music::MUSIC_ACTION_ARP_BEATS,
         };
@@ -187,6 +196,7 @@ impl ModeProfile {
 
     pub fn arp_decay_tau(self) -> f32 {
         match self {
+            Self::Menu => 0.18,
             Self::Calm => config::music::MUSIC_CALM_ARP_TAU,
             Self::Action => config::music::MUSIC_ACTION_ARP_TAU,
         }
@@ -194,6 +204,7 @@ impl ModeProfile {
 
     pub fn arp_gain(self) -> f32 {
         match self {
+            Self::Menu => 0.0,
             Self::Calm => config::music::MUSIC_CALM_ARP_GAIN,
             Self::Action => config::music::MUSIC_ACTION_ARP_GAIN,
         }
@@ -202,6 +213,7 @@ impl ModeProfile {
     /// Cycles per second of the base-voice filter sweep.
     pub fn sweep_rate(self) -> f32 {
         match self {
+            Self::Menu => 0.06,
             Self::Calm => config::music::MUSIC_CALM_SWEEP_RATE,
             Self::Action => config::music::MUSIC_ACTION_SWEEP_RATE,
         }
@@ -221,6 +233,22 @@ pub struct MusicTheme {
 }
 
 impl MusicTheme {
+    /// Canonical, fixed theme for the Lightrider title menu.
+    ///
+    /// Tuned for a luminous, crystalline Frutiger-Aero / techno soundscape:
+    /// Root D3 (MIDI 50, 146.83 Hz), D Major, driving 128.0 BPM tempo,
+    /// Glass/sin timbre family, and lush plate reverb.
+    pub fn title_menu() -> Self {
+        Self {
+            seed: 0x7167_6874_7269_6465, // "lightride"
+            root_midi: 50,               // D3 (146.83 Hz)
+            scale: Scale::Major,
+            base_bpm: 128.0,
+            family: TimbreFamily::Glass,
+            reverb: 0.32,
+        }
+    }
+
     pub fn from_path(path: &Path) -> Self {
         Self::from_seed(stable_path_seed(path))
     }
@@ -340,5 +368,16 @@ mod tests {
                 "seed {seed} produced offset {offset}, hz {hz}"
             );
         }
+    }
+
+    #[test]
+    fn title_menu_theme_is_consistent() {
+        let theme = MusicTheme::title_menu();
+        assert_eq!(theme.base_bpm, 128.0);
+        assert_eq!(theme.bpm(ModeProfile::Menu), 128.0);
+        assert_eq!(
+            ModeProfile::from_mode(InteractionMode::MainMenu),
+            ModeProfile::Menu
+        );
     }
 }
