@@ -22,7 +22,7 @@ pub mod stealth;
 pub mod surfer;
 pub mod transition;
 
-pub const WINDOW_TITLE: &str = "Raptor";
+pub const WINDOW_TITLE: &str = "Lightrider";
 
 pub const WINDOW_WIDTH: u32 = 1280;
 

@@ -55,8 +55,7 @@ pub(crate) fn spawn_crash_effect(
         let Some(run) = state.run.as_ref() else {
             return;
         };
-        cycle_world_position(&run.sim)
-            + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5
+        cycle_world_position(&run.sim) + Vec3::Y * config::lightcycle::LIGHTCYCLE_CYCLE_HEIGHT * 0.5
     };
     let count = 18;
 
@@ -217,7 +216,10 @@ pub(crate) fn animate_entry_effect(
     mut requests: MessageWriter<DirectoryRequested>,
     mut beam: Query<&mut Transform, Only<EntryBeam, EntryHalo, CycleEntity>>,
     mut halos: Query<(&EntryHalo, &mut Transform), Apart<EntryBeam>>,
-    mut cycle: Query<(&mut Transform, Option<&mut Position>), Only<CycleEntity, EntryBeam, EntryHalo>>,
+    mut cycle: Query<
+        (&mut Transform, Option<&mut Position>),
+        Only<CycleEntity, EntryBeam, EntryHalo>,
+    >,
 ) {
     let Some(fx) = state.entry_fx.as_mut() else {
         return;

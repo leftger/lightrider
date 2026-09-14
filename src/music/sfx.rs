@@ -274,8 +274,18 @@ mod tests {
         let early = MusicSfx::GameOver.voice(0.1);
         let middle = MusicSfx::GameOver.voice(0.6);
         let late = MusicSfx::GameOver.voice(0.9);
-        assert!(early.freq > middle.freq, "the jingle should descend: {} vs {}", early.freq, middle.freq);
-        assert!(middle.freq > late.freq, "the jingle should continue descending: {} vs {}", middle.freq, late.freq);
+        assert!(
+            early.freq > middle.freq,
+            "the jingle should descend: {} vs {}",
+            early.freq,
+            middle.freq
+        );
+        assert!(
+            middle.freq > late.freq,
+            "the jingle should continue descending: {} vs {}",
+            middle.freq,
+            late.freq
+        );
         assert!(MusicSfx::GameOver.duration() > 1.0);
     }
 }

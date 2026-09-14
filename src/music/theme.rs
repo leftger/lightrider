@@ -129,7 +129,7 @@ impl ModeProfile {
 
     pub fn from_mode(mode: InteractionMode) -> Self {
         match mode {
-            InteractionMode::Explorer => Self::Calm,
+            InteractionMode::MainMenu | InteractionMode::Explorer => Self::Calm,
             InteractionMode::Lightcycle => Self::Action,
         }
     }

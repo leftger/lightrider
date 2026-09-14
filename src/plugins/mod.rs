@@ -4,6 +4,7 @@ pub mod effects;
 pub mod filesystem;
 pub mod labels;
 pub mod lightcycle;
+pub mod menu;
 pub mod music;
 pub mod scene;
 pub mod selection;
@@ -27,6 +28,7 @@ impl Plugin for RaptorPlugins {
             transition::ModeTransitionPlugin,
             lightcycle::LightcyclePlugin,
             music::MusicPlugin,
+            menu::MenuPlugin,
         ));
     }
 }

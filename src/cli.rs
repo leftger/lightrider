@@ -190,8 +190,8 @@ impl Options {
 
     fn print_help() {
         println!(
-            "RAPTOR - Realtime Abstracted Path Tree Observer\n\n\
-             Usage: raptor [OPTIONS] [DIRECTORY]\n\n\
+            "LIGHTRIDER - 3D File Explorer & Lightcycle Grid\n\n\
+             Usage: lightrider [OPTIONS] [DIRECTORY]\n\n\
              Arguments:\n  \
              [DIRECTORY]        Start in this directory instead of your home directory\n\n\
              Options:\n  \

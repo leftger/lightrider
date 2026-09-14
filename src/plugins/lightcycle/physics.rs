@@ -1,7 +1,5 @@
 //! Continuous motorcycle-style physics controller for the lightcycle using Avian 3D.
 
-use avian3d::prelude::*;
-use bevy::prelude::*;
 use crate::config;
 use crate::disc::load::SourceRequested;
 use crate::document::load::DocumentRequested;
@@ -12,11 +10,11 @@ use crate::load::DirectoryRequested;
 use crate::music::sfx::MusicSfx;
 use crate::plugins::lightcycle::run::in_lightcycle_mode;
 use crate::plugins::lightcycle::space::nearest_heading;
-use crate::plugins::lightcycle::trail::{
-    collapsed_trail_mesh, push_quad, trail_mesh_from,
-};
+use crate::plugins::lightcycle::trail::{collapsed_trail_mesh, push_quad, trail_mesh_from};
 use crate::plugins::transition::ModeTransition;
 use crate::state::{NavigatorResource, PauseState, TrailSceneRoot};
+use avian3d::prelude::*;
+use bevy::prelude::*;
 
 /// Collision layers for separating the cycle, static architecture, hazards, and sensor portals.
 #[derive(PhysicsLayer, Default)]
@@ -289,12 +287,15 @@ pub fn step_continuous_physics(
     flood: Res<crate::state::FloodState>,
     mut state: ResMut<LightcycleState>,
     mut effects: MessageWriter<MusicSfx>,
-    mut cycle_query: Query<(
-        &mut Transform,
-        &mut LinearVelocity,
-        &mut LightcyclePhysics,
-        &mut ContinuousTrail,
-    ), With<CycleEntity>>,
+    mut cycle_query: Query<
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut LightcyclePhysics,
+            &mut ContinuousTrail,
+        ),
+        With<CycleEntity>,
+    >,
 ) {
     if state.classic_mode || pause.paused || transition.is_active() {
         return;
@@ -304,7 +305,8 @@ pub fn step_continuous_physics(
         return;
     };
 
-    let Ok((mut transform, mut linear_velocity, mut physics, mut trail)) = cycle_query.single_mut() else {
+    let Ok((mut transform, mut linear_velocity, mut physics, mut trail)) = cycle_query.single_mut()
+    else {
         state.run = Some(run);
         return;
     };
@@ -375,7 +377,8 @@ pub fn step_continuous_physics(
 
     // 5. Dynamic Lean Angle (Centripetal Acceleration Roll)
     let centripetal_accel = physics.current_speed * yaw_rate;
-    physics.target_lean = (centripetal_accel / 9.81).clamp(-physics.max_lean_angle, physics.max_lean_angle);
+    physics.target_lean =
+        (centripetal_accel / 9.81).clamp(-physics.max_lean_angle, physics.max_lean_angle);
     let blend = (physics.lean_smoothing * dt).min(1.0);
     physics.current_lean += (physics.target_lean - physics.current_lean) * blend;
 
@@ -438,7 +441,11 @@ pub fn step_continuous_physics(
 
     if !state.restore_directory
         && (run.is_source() || run.is_document())
-        && run.arena.parent_portal.as_ref().is_some_and(|p| p.contains(run.sim.cell))
+        && run
+            .arena
+            .parent_portal
+            .as_ref()
+            .is_some_and(|p| p.contains(run.sim.cell))
     {
         effects.write(MusicSfx::Portal);
         state.restore_directory = true;
@@ -457,28 +464,41 @@ pub fn handle_lightcycle_collisions(
     mut documents: MessageWriter<DocumentRequested>,
     mut sources: MessageWriter<SourceRequested>,
     mut effects: MessageWriter<MusicSfx>,
-    mut cycle_query: Query<(
-        Entity,
-        &Transform,
-        &mut LinearVelocity,
-        Option<&mut LightcyclePhysics>,
-        Option<&CollidingEntities>,
-    ), With<CycleEntity>>,
-    sensors: Query<(
-        Option<&DirectorySensor>,
-        Option<&DocumentSensor>,
-        Option<&SourceSensor>,
-        Option<&ParentPortalSensor>,
-        Option<&NonOpenableFile>,
-        Option<&SolidObstacle>,
-        Option<&Transform>,
-        Option<&Restitution>,
-    ), Without<CycleEntity>>,
+    mut cycle_query: Query<
+        (
+            Entity,
+            &Transform,
+            &mut LinearVelocity,
+            Option<&mut LightcyclePhysics>,
+            Option<&CollidingEntities>,
+        ),
+        With<CycleEntity>,
+    >,
+    sensors: Query<
+        (
+            Option<&DirectorySensor>,
+            Option<&DocumentSensor>,
+            Option<&SourceSensor>,
+            Option<&ParentPortalSensor>,
+            Option<&NonOpenableFile>,
+            Option<&SolidObstacle>,
+            Option<&Transform>,
+            Option<&Restitution>,
+        ),
+        Without<CycleEntity>,
+    >,
 ) {
     if state.classic_mode {
         return;
     }
-    let Ok((cycle_entity, cycle_transform, mut linear_velocity, mut maybe_physics, maybe_colliding)) = cycle_query.single_mut() else {
+    let Ok((
+        cycle_entity,
+        cycle_transform,
+        mut linear_velocity,
+        mut maybe_physics,
+        maybe_colliding,
+    )) = cycle_query.single_mut()
+    else {
         return;
     };
     let Some(mut run) = state.run.take() else {
@@ -513,7 +533,17 @@ pub fn handle_lightcycle_collisions(
     let mut triggered = false;
 
     for other in colliding_targets {
-        let Ok((dir_sensor, doc_sensor, src_sensor, parent_sensor, non_openable, solid, maybe_obs_transform, maybe_restitution)) = sensors.get(other) else {
+        let Ok((
+            dir_sensor,
+            doc_sensor,
+            src_sensor,
+            parent_sensor,
+            non_openable,
+            solid,
+            maybe_obs_transform,
+            maybe_restitution,
+        )) = sensors.get(other)
+        else {
             continue;
         };
 
@@ -672,7 +702,8 @@ pub fn handle_lightcycle_collisions(
                     linear_velocity.0.length()
                 };
                 let rebound_speed = (incoming_speed * restitution).clamp(6.0, 16.0);
-                linear_velocity.0 = Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 2.0;
+                linear_velocity.0 =
+                    Vec3::new(reflected.x, 0.0, reflected.y) * rebound_speed + normal_3d * 2.0;
 
                 if let Some(ref mut phys) = maybe_physics {
                     phys.heading = reflected.y.atan2(reflected.x);
@@ -695,9 +726,7 @@ pub fn handle_lightcycle_collisions(
         }
     }
 
-    if !triggered
-        && let RunEnvironment::Directory { cells, nodes } = &run.environment
-    {
+    if !triggered && let RunEnvironment::Directory { cells, nodes } = &run.environment {
         let cx = (cycle_transform.translation.x / config::GRID_SPACING).round() as i32;
         let cz = (cycle_transform.translation.z / config::GRID_SPACING).round() as i32;
         if let Some(&index) = cells.get(&(cx, cz)) {
@@ -792,7 +821,10 @@ pub fn update_continuous_trail_mesh(
 pub fn build_continuous_ribbon_mesh(points: &[Vec2]) -> Mesh {
     if points.len() < 2 {
         let first = points.first().copied().unwrap_or(Vec2::ZERO);
-        return collapsed_trail_mesh((first.x / config::GRID_SPACING, first.y / config::GRID_SPACING));
+        return collapsed_trail_mesh((
+            first.x / config::GRID_SPACING,
+            first.y / config::GRID_SPACING,
+        ));
     }
 
     let heights = continuous_trail_heights(points);
@@ -826,23 +858,79 @@ pub fn build_continuous_ribbon_mesh(points: &[Vec2]) -> Mesh {
         let b_left_top = b_left + Vec3::Y * b_height;
         let b_right_top = b_right + Vec3::Y * b_height;
 
-        push_quad(&mut positions, &mut normals, &mut indices, a_left, b_left, b_left_top, a_left_top);
-        push_quad(&mut positions, &mut normals, &mut indices, a_right, a_right_top, b_right_top, b_right);
-        push_quad(&mut positions, &mut normals, &mut indices, a_left_top, b_left_top, b_right_top, a_right_top);
-        push_quad(&mut positions, &mut normals, &mut indices, a_left, a_right, b_right, b_left);
+        push_quad(
+            &mut positions,
+            &mut normals,
+            &mut indices,
+            a_left,
+            b_left,
+            b_left_top,
+            a_left_top,
+        );
+        push_quad(
+            &mut positions,
+            &mut normals,
+            &mut indices,
+            a_right,
+            a_right_top,
+            b_right_top,
+            b_right,
+        );
+        push_quad(
+            &mut positions,
+            &mut normals,
+            &mut indices,
+            a_left_top,
+            b_left_top,
+            b_right_top,
+            a_right_top,
+        );
+        push_quad(
+            &mut positions,
+            &mut normals,
+            &mut indices,
+            a_left,
+            a_right,
+            b_right,
+            b_left,
+        );
     }
 
     let (origin, side, height) = stations[0];
-    push_quad(&mut positions, &mut normals, &mut indices, origin - side, origin - side + Vec3::Y * height, origin + side + Vec3::Y * height, origin + side);
+    push_quad(
+        &mut positions,
+        &mut normals,
+        &mut indices,
+        origin - side,
+        origin - side + Vec3::Y * height,
+        origin + side + Vec3::Y * height,
+        origin + side,
+    );
     let (origin, side, height) = stations[stations.len() - 1];
-    push_quad(&mut positions, &mut normals, &mut indices, origin - side, origin + side, origin + side + Vec3::Y * height, origin - side + Vec3::Y * height);
+    push_quad(
+        &mut positions,
+        &mut normals,
+        &mut indices,
+        origin - side,
+        origin + side,
+        origin + side + Vec3::Y * height,
+        origin - side + Vec3::Y * height,
+    );
 
     trail_mesh_from(positions, normals, indices)
 }
 
 fn continuous_tangent(points: &[Vec2], index: usize) -> Vec3 {
-    let prev = if index == 0 { points[0] } else { points[index - 1] };
-    let next = if index + 1 == points.len() { points[index] } else { points[index + 1] };
+    let prev = if index == 0 {
+        points[0]
+    } else {
+        points[index - 1]
+    };
+    let next = if index + 1 == points.len() {
+        points[index]
+    } else {
+        points[index + 1]
+    };
     Vec3::new(next.x - prev.x, 0.0, next.y - prev.y).normalize_or_zero()
 }
 
@@ -890,6 +978,3 @@ impl Plugin for LightcyclePhysicsPlugin {
             );
     }
 }
-
-
-

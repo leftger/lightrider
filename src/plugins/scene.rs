@@ -17,7 +17,8 @@ impl Plugin for ScenePlugin {
                     // The shells wrap a block at its full height, so they have
                     // to go away while a mode transition folds the scene flat.
                     update_highlighting.run_if(in_explorer_mode.and_then(transition_inactive)),
-                    hide_highlighting.run_if(in_lightcycle_mode.or_else(transition_active)),
+                    hide_highlighting.run_if(not_in_explorer_mode.or_else(transition_active)),
+                    sync_directory_scene_visibility,
                 ),
             );
     }
@@ -27,8 +28,24 @@ fn in_explorer_mode(mode: Res<InteractionMode>) -> bool {
     *mode == InteractionMode::Explorer
 }
 
-fn in_lightcycle_mode(mode: Res<InteractionMode>) -> bool {
-    *mode == InteractionMode::Lightcycle
+fn not_in_explorer_mode(mode: Res<InteractionMode>) -> bool {
+    *mode != InteractionMode::Explorer
+}
+
+fn sync_directory_scene_visibility(
+    mode: Res<InteractionMode>,
+    mut roots: Query<&mut Visibility, With<DirectorySceneRoot>>,
+) {
+    let target = if *mode == InteractionMode::MainMenu {
+        Visibility::Hidden
+    } else {
+        Visibility::Inherited
+    };
+    for mut vis in &mut roots {
+        if *vis != target {
+            *vis = target;
+        }
+    }
 }
 
 fn hide_highlighting(

@@ -285,7 +285,11 @@ impl DiscSim {
             let vel = (norm_dir.0 * speed_world, norm_dir.1 * speed_world);
             (player.heading, Some(launch_pos), Some(vel))
         } else {
-            (self.aim_heading(player.cell, player.heading, arena), None, None)
+            (
+                self.aim_heading(player.cell, player.heading, arena),
+                None,
+                None,
+            )
         };
 
         self.player_disc = Some(Disc {
@@ -777,7 +781,9 @@ fn advance_disc_physics(
         let speed_world = disc.speed * config::GRID_SPACING;
         (delta.0 as f32 * speed_world, delta.1 as f32 * speed_world)
     });
-    let speed = (vel.0 * vel.0 + vel.1 * vel.1).sqrt().max(disc.speed * config::GRID_SPACING);
+    let speed = (vel.0 * vel.0 + vel.1 * vel.1)
+        .sqrt()
+        .max(disc.speed * config::GRID_SPACING);
 
     let p_pos = player.world_pos.unwrap_or((
         player.cell.0 as f32 * config::GRID_SPACING,
@@ -814,9 +820,13 @@ fn advance_disc_physics(
 
     // Circular ring wall reflection
     let (cx, cz) = arena.center();
-    let center = (cx as f32 * config::GRID_SPACING, cz as f32 * config::GRID_SPACING);
+    let center = (
+        cx as f32 * config::GRID_SPACING,
+        cz as f32 * config::GRID_SPACING,
+    );
     let half = (arena.max.0 - cx).max(arena.max.1 - cz);
-    let radius = ((half - config::disc::DISC_GATE_DEPTH - 1).max(config::disc::DISC_RADIUS_MIN) as f32)
+    let radius = ((half - config::disc::DISC_GATE_DEPTH - 1).max(config::disc::DISC_RADIUS_MIN)
+        as f32)
         * config::GRID_SPACING;
 
     let rel_x = pos.0 - center.0;
@@ -1429,7 +1439,10 @@ mod tests {
         let disc = sim.player_disc.as_ref().expect("disc thrown");
         let (vx, vz) = disc.world_vel.expect("physics velocity");
         let dir_angle = vz.atan2(vx);
-        assert!((dir_angle - angle).abs() < 1e-4, "disc must shoot directly in direction of travel");
+        assert!(
+            (dir_angle - angle).abs() < 1e-4,
+            "disc must shoot directly in direction of travel"
+        );
 
         // Advance with physics
         for _ in 0..10 {
@@ -1437,7 +1450,10 @@ mod tests {
         }
         let flying = sim.player_disc.as_ref().expect("disc still flying");
         let (px, pz) = flying.world_pos.expect("physics pos");
-        assert!(px > 0.0 && pz > 0.0, "disc must travel continuously along 45 degree angle");
+        assert!(
+            px > 0.0 && pz > 0.0,
+            "disc must travel continuously along 45 degree angle"
+        );
     }
 
     #[test]
@@ -1452,7 +1468,10 @@ mod tests {
             cell: layout.player_spawn,
             heading: Heading::PosX,
             running: true,
-            world_pos: Some((layout.player_spawn.0 as f32 * config::GRID_SPACING, layout.player_spawn.1 as f32 * config::GRID_SPACING)),
+            world_pos: Some((
+                layout.player_spawn.0 as f32 * config::GRID_SPACING,
+                layout.player_spawn.1 as f32 * config::GRID_SPACING,
+            )),
             world_dir: Some((1.0, 0.0)), // shoot straight toward opponent
         };
         assert!(sim.throw_player(p, &arena, &mut events));
@@ -1463,7 +1482,10 @@ mod tests {
                 break;
             }
         }
-        assert!(events.opponent_hit, "physics disc must hit the Recognizer cylinder");
+        assert!(
+            events.opponent_hit,
+            "physics disc must hit the Recognizer cylinder"
+        );
         assert!(!sim.opponent.alive, "opponent must be derezzed");
     }
 
@@ -1496,7 +1518,10 @@ mod tests {
                 break;
             }
         }
-        let disc = sim.player_disc.as_ref().expect("disc should still be active");
+        let disc = sim
+            .player_disc
+            .as_ref()
+            .expect("disc should still be active");
         let vel = disc.world_vel.expect("world vel");
         assert!(vel.0 < 0.0, "disc must reflect inward off ring wall");
     }

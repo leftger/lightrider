@@ -40,7 +40,9 @@ pub fn voice_chain_name(slot: usize) -> String {
 pub fn base_refs(profile: ModeProfile) -> &'static [&'static str] {
     match profile {
         ModeProfile::Calm => &["~pad0", "~pad1", "~dune", "~pulse"],
-        ModeProfile::Action => &["~kick", "~snare", "~hat", "~sub", "~bass", "~growl", "~lead"],
+        ModeProfile::Action => &[
+            "~kick", "~snare", "~hat", "~sub", "~bass", "~growl", "~lead",
+        ],
     }
 }
 
@@ -82,10 +84,7 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
 
     // Red wall approaching warning growl ("bwop bwop" resonant sweep).
     // Modulated in 3D space with distance-attenuated gain.
-    let _ = writeln!(
-        code,
-        "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;"
-    );
+    let _ = writeln!(code, "~wall_lfo: sin 2.2 >> mul 420.0 >> add 520.0;");
     let _ = writeln!(
         code,
         "~red_wall: saw 55.0 >> lpf ~wall_lfo 2.5 >> mul 0.0 >> pan 0.0;"
@@ -250,7 +249,11 @@ pub fn output_chain(profile: ModeProfile) -> String {
     for slot in 0..MAX_VOICES {
         let _ = write!(code, " {}", voice_chain_name(slot));
     }
-    let _ = writeln!(code, " >> plate {:.2};", config::music::MUSIC_REVERB_PLATE_MIX);
+    let _ = writeln!(
+        code,
+        " >> plate {:.2};",
+        config::music::MUSIC_REVERB_PLATE_MIX
+    );
     code
 }
 

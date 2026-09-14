@@ -86,8 +86,9 @@ impl ArpState {
         let freq = theme.degree_hz(degree, octave);
         // Progressive deadmau5 filter sweep: breathes over a cyclical wave
         let sweep = (self.step as f32 * 0.04).sin() * 0.5 + 0.5;
-        let cutoff = (theme.node_cutoff(theme.seed ^ note) + sweep * 3200.0 + degree as f32 * 110.0)
-            .clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
+        let cutoff =
+            (theme.node_cutoff(theme.seed ^ note) + sweep * 3200.0 + degree as f32 * 110.0)
+                .clamp(config::music::MUSIC_VOICE_CUTOFF_MIN, 12_000.0);
         let pan = if note.is_multiple_of(4) {
             -0.28
         } else if note % 4 == 2 {
