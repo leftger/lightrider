@@ -4,6 +4,9 @@
 
 *A dangerously cool 3D filesystem explorer and TRON cyber-arcade built with Rust + Bevy, inspired by Jurassic Park's iconic FNS scene.*
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-leftger%2Flightrider-00f0ff?style=flat&logo=github)](https://github.com/leftger/lightrider)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ![Demo](./assets/demo.gif)
 
 > *"It's a UNIX system... I know this!"* — Lex Murphy, *Jurassic Park (1993)*
@@ -12,14 +15,28 @@
 
 ## 🌟 What is LIGHTRIDER?
 
-**LIGHTRIDER** transforms your filesystem into an interactive, luminous neon-grid cyber-city. Seamlessly navigate directories in 3D, inspect and open files, ride a high-speed lightcycle through city streets, and battle inside source code files transformed into 15+ retro arcade minigames!
+**[LIGHTRIDER](https://github.com/leftger/lightrider)** transforms your filesystem into an interactive, luminous neon-grid cyber-city. Seamlessly navigate directories in 3D, inspect and open files, ride a high-speed lightcycle through city streets, and battle inside source code files transformed into 15+ retro arcade minigames!
 
 ### Key Highlights
-* 🏙️ **3D Filesystem City**: Every directory renders as an explorable 3D grid with raycast picking, smooth orbit camera, live stats, and breadcrumbs.
-* 🏍️ **Lightcycle Mode**: Press `M` to seamlessly zoom from 3D Explorer into a first/third-person lightcycle ride across procedural streets leaving liquid-glass light trails.
+* 🏙️ **3D Filesystem City**: Every directory renders as an explorable 3D grid with raycast picking, smooth orbit camera, live telemetry, and breadcrumbs.
+* 🏍️ **Lightcycle Mode**: Press `M` to seamlessly zoom from 3D Explorer into a high-speed lightcycle ride across procedural streets leaving liquid-glass light trails.
 * 🕹️ **15+ File-Based Arcade Games**: Ride into source code towers to launch arena battles generated from file bytes — **Disc Wars** (`.rs`), **Asteroid Field** (`.c`), **Snake** (`.py`), **Platformer** (`.slint`), **Brick Breaker** (`.lua`), **Stealth** (`.sh`), **River Surfer** (`.toml`), **Galaga** (`.json`), **Pac-Man** (`.go`), **Tetris** (`.yaml`), **Frogger** (`.js`), **Q*bert** (`.zig`), **Bomberman** (`.php`), and more!
-* 🎵 **Synthesized Soundtrack & Title Theme**: Features an energetic 128 BPM Techno / Frutiger-Aero title theme with Daft Punk sidechain ducking, plus a deterministic procedural synthesizer powered by [Glicol](https://glicol.org) that changes based on your directory.
+* 🎵 **Synthesized Soundtrack & Title Theme**: Features an energetic 128 BPM Techno / Frutiger-Aero title theme with Daft Punk sidechain ducking, plus a deterministic procedural synthesizer powered by [Glicol](https://glicol.org) that adapts dynamically to your directory.
 * 🚀 **High-Performance**: Engineered with Rust and Bevy 0.19 to render up to 30,000 files at high frame rates with zero allocations in the render loop.
+
+---
+
+## 📸 Gameplay & Minigames Showcase
+
+| **Lightcycle Grid Ride** | **Disc Wars (`.rs`, `.cpp`)** |
+| :---: | :---: |
+| ![Lightcycle Grid](./assets/screenshots/lightcycle.png) | ![Disc Wars](./assets/screenshots/disc_wars.png) |
+| *Stream glowing liquid-glass trails across downtown boulevards* | *Battle Recognizers with auto-aiming discs and bullet time* |
+
+| **Stealth Espionage (`.sh`)** | **Asteroid Field (`.c`, `.h`)** |
+| :---: | :---: |
+| ![Stealth](./assets/screenshots/stealth.png) | ![Asteroid Field](./assets/screenshots/asteroid_field.png) |
+| *Infiltrate security rooms and sneak past patrol vision cones* | *Pivot and blast splitting rock fields before they reach you* |
 
 ---
 
@@ -39,14 +56,20 @@ Detailed guides have been organized into dedicated documentation:
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 1. Clone the Repository
+```bash
+git clone https://github.com/leftger/lightrider.git
+cd lightrider
+```
+
+### 2. Prerequisites
 * **Rust**: Stable toolchain (`rustup update`)
 * **Linux Dependencies** (for audio synthesis and windowing):
   ```bash
   sudo apt install libasound2-dev pkg-config
   ```
 
-### Running
+### 3. Running
 
 ```bash
 # Run in release mode (recommended)
@@ -62,8 +85,8 @@ cargo run --release -- /path/to/folder
 cargo run --release -- --fast
 ```
 
-### Building for Windows
-* **GitHub Actions**: Automated Windows release binaries are built automatically on tags and PRs (`.github/workflows/build.yml`).
+### 4. Building for Windows
+* **GitHub Actions**: Automated Windows release binaries are built automatically on tags and PRs ([`.github/workflows/build.yml`](.github/workflows/build.yml)).
 * **Local Cross-Compilation (Linux to Windows)**:
   ```bash
   ./tools/build-windows.sh
@@ -114,6 +137,7 @@ Options:
 
 ## 📜 Credits
 
+* **Repository**: [https://github.com/leftger/lightrider](https://github.com/leftger/lightrider)
 * **Lightcycle 3D Model**: ["Light Cycle - Tron (1982)"](https://sketchfab.com/3d-models/light-cycle-tron-1982-54fedda920094ef09d87a17d42b282af) by [arabinowitz](https://sketchfab.com/arabinowitz) (Sketchfab Standard license).
 * **Runner 3D Model**: ["Tron Male Character"](https://sketchfab.com/3d-models/tron-male-character-b7b2dd24bf6e495e9a729d7d271c52db) by [dehariyalokesh1998](https://sketchfab.com/dehariyalokesh1998) (CC-BY-4.0). Rigged with 19 joints and custom walk cycle.
 * **Audio Engine**: Powered by [Glicol](https://glicol.org) and `cpal`.

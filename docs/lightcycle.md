@@ -16,6 +16,8 @@ Switching modes does not cut or pop the camera; it zooms smoothly through a sate
 
 ## Driving & Physics
 
+![Lightcycle Gameplay](../assets/screenshots/lightcycle.png)
+
 * **Continuous Grid Traversal**: The cycle moves continuously between cell centers; turns are queued with `A` / `D` (or arrow keys) and execute cleanly at boundaries.
 * **Liquid-Glass PCB Trail**: The cycle leaves a persistent, glowing wall streaming off its tail, thickening to full height shortly behind the bike. Crossing your own trail is fatal!
 * **Free Look Camera**: Hold **Right Mouse Button** and drag to swing the chase camera around the bike and look up/down. Releasing springs the camera back behind your shoulder.

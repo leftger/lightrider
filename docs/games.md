@@ -9,6 +9,7 @@ You can also press **`P`** or **`Esc`** at any time to open the Pause Menu and w
 ## Combat & Arena Minigames
 
 ### 1. Disc Wars (`.rs`, `.cpp`)
+![Disc Wars](../assets/screenshots/disc_wars.png)
 * **Aesthetic**: Classic TRON gladiatorial ring against an AI-controlled Recognizer opponent.
 * **Code-Generated Layout**: Functions raise gallery alcoves, tests become recharging safe zones, and keywords become tactical pickups (e.g. `TODO` grants a wall-phasing disc, `async` grants throw range, `match` splits discs upon impact, `panic!` equips a lethal spike).
 * **Controls**:
@@ -18,6 +19,7 @@ You can also press **`P`** or **`Esc`** at any time to open the Pause Menu and w
 * **Rules**: Best 2 out of 3 rounds. Win to unlock the exit portal.
 
 ### 2. Asteroid Field (`.c`, `.h`)
+![Asteroid Field](../assets/screenshots/asteroid_field.png)
 * **Aesthetic**: Classic vector arcade asteroid shooter.
 * **Controls**:
   * `A` / `D` or Arrow keys → Pivot parked cycle in place.
@@ -41,6 +43,7 @@ You can also press **`P`** or **`Esc`** at any time to open the Pause Menu and w
 * **Rules**: Rebound the energy sphere off your bike to shatter the brick matrix overhead.
 
 ### 6. Stealth Infiltration (`.sh`)
+![Stealth Espionage](../assets/screenshots/stealth.png)
 * **Aesthetic**: Third-person tactical stealth espionage.
 * **Controls**:
   * `WASD` or Arrow keys → Walk and sneak.

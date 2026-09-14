@@ -108,5 +108,8 @@ fn main() {
                 ride: options.bench_ride,
             },
         })
+        .add_plugins(plugins::capture::CapturePlugin {
+            enabled: options.capture_assets,
+        })
         .run();
 }

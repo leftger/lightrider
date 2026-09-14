@@ -1,5 +1,6 @@
 pub mod bench;
 pub mod camera;
+pub mod capture;
 pub mod effects;
 pub mod filesystem;
 pub mod labels;
