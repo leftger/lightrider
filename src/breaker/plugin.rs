@@ -4,12 +4,12 @@
 
 use crate::breaker::sim::BreakerSim;
 use crate::config;
-use crate::lightcycle::LightcycleState;
-use crate::lightcycle::scene::Apart;
-use crate::lightcycle::scene::CharacterEntity;
-use crate::lightcycle::scene::LightcycleAssets;
-use crate::lightcycle::scene::PooledShown;
-use crate::state::LightcycleSceneRoot;
+use crate::grid_rider::GridRiderState;
+use crate::grid_rider::scene::Apart;
+use crate::grid_rider::scene::CharacterEntity;
+use crate::grid_rider::scene::GridRiderAssets;
+use crate::grid_rider::scene::PooledShown;
+use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
 /// The breaker's ball.
@@ -27,7 +27,7 @@ pub(crate) struct BrickEntity {
 /// The bike itself is the paddle, so it is left to `update_cycle_transform`.
 pub(crate) fn spawn_breaker_court(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     level: &BreakerSim,
 ) {
     let (width, height) = level.court;
@@ -55,7 +55,7 @@ pub(crate) fn spawn_breaker_court(
         ),
     ] {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.court_material.clone()),
             Transform::from_translation(Vec3::new(x, y, -depth * 0.5))
@@ -67,7 +67,7 @@ pub(crate) fn spawn_breaker_court(
     for (index, brick) in level.bricks.iter().enumerate() {
         let (bx, by, bw, bh) = level.brick_box(brick);
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             BrickEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.brick_material.clone()),
@@ -83,7 +83,7 @@ pub(crate) fn spawn_breaker_court(
     }
 
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         BallEntity,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.ball_material.clone()),
@@ -95,7 +95,7 @@ pub(crate) fn spawn_breaker_court(
 
 /// Keeps the breaker's ball and bricks glued to its sim.
 pub(crate) fn sync_breaker_entities(
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     mut ball: Query<&mut Transform, (With<BallEntity>, Without<BrickEntity>)>,
     mut bricks: PooledShown<BrickEntity, Apart<BallEntity, CharacterEntity>>,
 ) {

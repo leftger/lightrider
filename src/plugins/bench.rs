@@ -1,7 +1,7 @@
 //! A frame-time benchmark harness.
 //!
 //! Enabled with `--bench`, it rides the game itself rather than poking at
-//! isolated systems: it enters lightcycle mode, steers, restarts after the
+//! isolated systems: it enters grid rider mode, steers, restarts after the
 //! inevitable crashes, and reports frame-time statistics to stdout once a
 //! second. That makes the expensive path the one being measured, and gives
 //! before/after numbers when tuning render settings.
@@ -21,7 +21,7 @@ use std::io::Write;
 pub struct BenchConfig {
     /// Seconds to run before exiting. Zero disables the harness entirely.
     pub seconds: f32,
-    /// Whether to synthesize input (enter lightcycle mode, steer, restart).
+    /// Whether to synthesize input (enter grid rider mode, steer, restart).
     pub ride: bool,
 }
 
@@ -104,7 +104,7 @@ fn drive(
     if !state.entered && now >= 1.0 {
         keys.press(KeyCode::KeyM);
         state.entered = true;
-        println!("[bench] entering lightcycle mode at t={now:.2}s");
+        println!("[bench] entering grid rider mode at t={now:.2}s");
     }
     if !config.ride {
         return;

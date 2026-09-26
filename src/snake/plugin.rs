@@ -3,11 +3,11 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::lightcycle::LightcycleState;
-use crate::lightcycle::logic::Arena;
-use crate::lightcycle::scene::LightcycleAssets;
+use crate::grid_rider::GridRiderState;
+use crate::grid_rider::logic::Arena;
+use crate::grid_rider::scene::GridRiderAssets;
 use crate::snake::sim::SnakeSim;
-use crate::state::LightcycleSceneRoot;
+use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
 /// One power-up on a snake ring, keyed into `SnakeSim::food`.
@@ -25,13 +25,13 @@ pub(crate) struct SnakeGateLock;
 /// The power-ups are a fixed pool keyed by index; the sim marks them eaten.
 pub(crate) fn spawn_snake_field(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     arena: &Arena,
     snake: &SnakeSim,
 ) {
     for (index, food) in snake.food.iter().enumerate() {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             SnakeFoodEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.snake_food_material.clone()),
@@ -56,14 +56,14 @@ pub(crate) fn spawn_snake_field(
     };
     let gate = portal.to;
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         SnakeGateLock,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.snake_lock_material.clone()),
         Transform::from_translation(config::ground_position(gate.0, gate.1) + Vec3::Y * 0.9)
             .with_scale(Vec3::new(
                 config::GRID_SPACING,
-                config::lightcycle::LIGHTCYCLE_WALL_HEIGHT * 0.9,
+                config::grid_rider::GRID_RIDER_WALL_HEIGHT * 0.9,
                 config::GRID_SPACING,
             )),
         if snake.exit_open {
@@ -77,7 +77,7 @@ pub(crate) fn spawn_snake_field(
 
 /// Hides a snake ring's power-ups once eaten, and its exit bar once unlocked.
 pub(crate) fn sync_snake_entities(
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     mut food: Query<(&SnakeFoodEntity, &mut Visibility), Without<SnakeGateLock>>,
     mut lock: Query<&mut Visibility, (With<SnakeGateLock>, Without<SnakeFoodEntity>)>,
 ) {

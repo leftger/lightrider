@@ -1,6 +1,6 @@
 //! Bevy-free river surfer: a hoverbike runs a procedural river to the finish.
 //!
-//! The course runs down the `Z` axis of the lightcycle world, on the `X`/`Z`
+//! The course runs down the `Z` axis of the grid rider world, on the `X`/`Z`
 //! plane every other game uses. The river is a ribbon whose centreline sways
 //! with a seeded sine, and the bike rides it with an always-on throttle: steer
 //! to stay between the banks, hold boost through the gates, and cross the
@@ -445,7 +445,7 @@ mod tests {
         course.update(1.0 / 60.0);
         assert!(
             course.heading > start,
-            "holding right should turn the nose the way the lightcycle's right turn does"
+            "holding right should turn the nose the way the grid rider's right turn does"
         );
         let after_right = course.heading;
         course.set_input(-1.0, false);

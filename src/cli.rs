@@ -197,7 +197,7 @@ impl Options {
 
     fn print_help() {
         println!(
-            "LIGHTRIDER - 3D File Explorer & Lightcycle Grid\n\n\
+            "LIGHTRIDER - 3D File Explorer & Grid Rider Grid\n\n\
              Usage: lightrider [OPTIONS] [DIRECTORY]\n\n\
              Arguments:\n  \
              [DIRECTORY]        Start in this directory instead of your home directory\n\n\

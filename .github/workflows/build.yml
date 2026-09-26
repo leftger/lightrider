@@ -94,7 +94,7 @@ jobs:
           tag_name: v${{ steps.get-version.outputs.version }}
           name: Lightrider v${{ steps.get-version.outputs.version }}
           body: |
-            Cross-platform Lightrider packages (3D File Explorer & Lightcycle Grid).
+            Cross-platform Lightrider packages (3D File Explorer & Grid Rider).
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           prerelease: false
         env:

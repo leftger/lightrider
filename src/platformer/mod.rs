@@ -1,4 +1,4 @@
-//! The side-scrolling platformer, with its Bevy wiring in `plugins::lightcycle`.
+//! The side-scrolling platformer, with its Bevy wiring in `plugins::grid_rider`.
 //!
 //! [`sim`] is the Bevy-free level and physics; the plugin owns the meshes, the
 //! side camera and the sound. Nothing here touches the cell grid the bike games

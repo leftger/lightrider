@@ -3,16 +3,16 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::lightcycle::LightcycleState;
-use crate::lightcycle::logic::step_cell;
-use crate::lightcycle::scene::Apart;
-use crate::lightcycle::scene::CharacterAnim;
-use crate::lightcycle::scene::CharacterEntity;
-use crate::lightcycle::scene::LightcycleAssets;
-use crate::lightcycle::scene::PooledPosed;
-use crate::lightcycle::scene::pose::HugShot;
-use crate::lightcycle::scene::pose::unit_of;
-use crate::state::LightcycleSceneRoot;
+use crate::grid_rider::GridRiderState;
+use crate::grid_rider::logic::step_cell;
+use crate::grid_rider::scene::Apart;
+use crate::grid_rider::scene::CharacterAnim;
+use crate::grid_rider::scene::CharacterEntity;
+use crate::grid_rider::scene::GridRiderAssets;
+use crate::grid_rider::scene::PooledPosed;
+use crate::grid_rider::scene::pose::HugShot;
+use crate::grid_rider::scene::pose::unit_of;
+use crate::state::GridRiderSceneRoot;
 use crate::stealth::sim::StealthSim;
 use bevy::prelude::*;
 
@@ -36,7 +36,7 @@ pub(crate) struct GuardConeEntity {
 /// with their vision cones.
 pub(crate) fn spawn_stealth_room(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     room: &StealthSim,
 ) {
@@ -50,7 +50,7 @@ pub(crate) fn spawn_stealth_room(
     let height = half_h * 2.0 * span;
 
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.stealth_floor_material.clone()),
         Transform::from_translation(Vec3::new(0.0, -0.1, 0.0)).with_scale(Vec3::new(
@@ -64,7 +64,7 @@ pub(crate) fn spawn_stealth_room(
     for cell in &room.cover {
         let position = config::ground_position(cell.0, cell.1);
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.stealth_wall_material.clone()),
             Transform::from_translation(
@@ -81,7 +81,7 @@ pub(crate) fn spawn_stealth_room(
 
     let exit = config::ground_position(room.exit.0, room.exit.1);
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.stealth_exit_material.clone()),
         Transform::from_translation(exit + Vec3::Y * 1.4).with_scale(Vec3::new(
@@ -93,17 +93,17 @@ pub(crate) fn spawn_stealth_room(
     ));
 
     let facing = |angle: f32| Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 - angle);
-    let body = |assets: &LightcycleAssets, scale: f32| {
+    let body = |assets: &GridRiderAssets, scale: f32| {
         children![(
-            WorldAssetRoot(assets.tron_scene.clone()),
-            Transform::from_rotation(Quat::from_rotation_y(config::character::TRON_MODEL_YAW))
+            WorldAssetRoot(assets.runner_scene.clone()),
+            Transform::from_rotation(Quat::from_rotation_y(config::character::RUNNER_MODEL_YAW))
                 .with_scale(Vec3::splat(scale)),
         )]
     };
 
     let start = config::ground_position(room.character.0, room.character.1);
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         CharacterEntity,
         CharacterAnim::at(start),
         Transform::from_translation(start).with_rotation(facing(room.heading.angle())),
@@ -116,7 +116,7 @@ pub(crate) fn spawn_stealth_room(
         let cell = guard.cell();
         let position = config::ground_position(cell.0, cell.1);
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             GuardEntity { index },
             Transform::from_translation(position)
                 .with_rotation(facing(guard.patrol.heading().angle())),
@@ -128,7 +128,7 @@ pub(crate) fn spawn_stealth_room(
             ),
         ));
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             GuardConeEntity { index, mesh: None },
             Mesh3d(assets.vision_cone.clone()),
             MeshMaterial3d(assets.stealth_cone_material.clone()),
@@ -142,7 +142,7 @@ pub(crate) fn spawn_stealth_room(
 
 /// Walks the patrols and swings their vision cones.
 pub(crate) fn sync_stealth_entities(
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     mut guards: PooledPosed<GuardEntity, Apart<GuardConeEntity, CharacterEntity>>,
     mut cones: PooledPosed<GuardConeEntity, Apart<GuardEntity, CharacterEntity>>,
 ) {

@@ -1,12 +1,12 @@
-//! Badass TRON-style main menu plugin with 3D lightcycle diorama, glowing trail,
+//! Badass cyber-style main menu plugin with 3D grid rider diorama, glowing trail,
 //! dynamic camera motion, and interactive cyber-terminal UI with live configuration.
 
 use crate::config;
-use crate::lightcycle::scene::LightcycleAssets;
+use crate::grid_rider::scene::GridRiderAssets;
 use crate::load::DirectoryRequested;
-use crate::plugins::lightcycle::decor::decorate_directory_run;
-use crate::plugins::lightcycle::run::build_active_run;
-use crate::plugins::lightcycle::run::spawn_run_entities;
+use crate::plugins::grid_rider::decor::decorate_directory_run;
+use crate::plugins::grid_rider::run::build_active_run;
+use crate::plugins::grid_rider::run::spawn_run_entities;
 use crate::plugins::music::MusicState;
 use crate::state::{
     CacheState, FloodState, HistoryState, InteractionMode, MainMenuSceneRoot, NavigatorResource,
@@ -27,7 +27,7 @@ impl Plugin for MenuPlugin {
                 Startup,
                 (
                     setup_main_menu_scene
-                        .after(crate::plugins::lightcycle::assets::setup_lightcycle_assets),
+                        .after(crate::plugins::grid_rider::assets::setup_grid_rider_assets),
                     setup_main_menu_ui,
                 ),
             )
@@ -60,7 +60,7 @@ pub struct MenuNavigationState {
     pub last_screen: MenuScreen,
 }
 
-/// Marker for the animated showcase lightcycle in the 3D diorama.
+/// Marker for the animated showcase grid rider in the 3D diorama.
 #[derive(Component)]
 struct MainMenuBike {
     base_y: f32,
@@ -118,18 +118,18 @@ const CYBER_BORDER_COLOR: Color = Color::srgba(0.0, 0.95, 1.0, 0.6);
 const CYBER_BUTTON_NORMAL: Color = Color::srgba(0.04, 0.08, 0.14, 0.75);
 const CYBER_BUTTON_SELECTED: Color = Color::srgba(0.0, 0.35, 0.45, 0.85);
 
-/// Spawns the 3D showcase diorama (the lightcycle, its curved luminous trail,
+/// Spawns the 3D showcase diorama (the grid_rider, its curved luminous trail,
 /// cyber-grid floor, data pillars, and colored stage lighting).
 fn setup_main_menu_scene(
     mut commands: Commands,
-    assets: Option<Res<LightcycleAssets>>,
+    assets: Option<Res<GridRiderAssets>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let Some(assets) = assets else {
         return;
     };
-    // 1. Showcase Lightcycle
+    // 1. Showcase Grid Rider
     commands.spawn((
         MainMenuSceneRoot,
         MainMenuBike { base_y: 0.3 },
@@ -139,10 +139,10 @@ fn setup_main_menu_scene(
         children![(
             WorldAssetRoot(assets.cycle_scene.clone()),
             Transform::from_rotation(Quat::from_rotation_y(
-                config::lightcycle::LIGHTCYCLE_MODEL_YAW,
+                config::grid_rider::GRID_RIDER_MODEL_YAW,
             ))
             .with_scale(Vec3::splat(
-                config::lightcycle::LIGHTCYCLE_MODEL_SCALE * 1.35
+                config::grid_rider::GRID_RIDER_MODEL_SCALE * 1.35
             )),
         )],
     ));
@@ -189,7 +189,7 @@ fn setup_main_menu_scene(
         Visibility::Inherited,
     ));
 
-    // 5. Dynamic S-curving neon glass lightcycle trail
+    // 5. Dynamic S-curving neon glass grid rider trail
     let trail_mesh = generate_curved_trail_mesh();
     commands.spawn((
         MainMenuSceneRoot,
@@ -301,7 +301,7 @@ fn setup_main_menu_scene(
     }
 }
 
-/// Generates a smooth sweeping S-curve ribbon mesh for the lightcycle's glowing trail.
+/// Generates a smooth sweeping S-curve ribbon mesh for the grid rider's glowing trail.
 fn generate_curved_trail_mesh() -> Mesh {
     let mut positions = Vec::new();
     let mut normals = Vec::new();
@@ -407,7 +407,7 @@ fn generate_curved_trail_core_mesh() -> Mesh {
     mesh
 }
 
-/// Animates the lightcycle's floating bob, roll tilt, slow rotation, and the cinematic camera.
+/// Animates the grid rider's floating bob, roll tilt, slow rotation, and the cinematic camera.
 fn animate_main_menu_scene(
     time: Res<Time>,
     mode: Res<InteractionMode>,
@@ -499,7 +499,7 @@ fn setup_main_menu_ui(mut commands: Commands, navigator: Res<NavigatorResource>)
                 ));
 
                 header.spawn((
-                    Text::new("3D RECONNAISSANCE FILE EXPLORER & HIGH-VELOCITY LIGHTCYCLE"),
+                    Text::new("3D RECONNAISSANCE FILE EXPLORER & HIGH-VELOCITY GRID RIDER"),
                     TextFont {
                         font_size: bevy::text::FontSize::Px(14.0),
                         ..default()
@@ -650,7 +650,7 @@ fn update_menu_display(
             && let Ok((mut text, mut color)) = texts.get_mut(text_child)
         {
             let label = match action.action {
-                MenuAction::RideTheGrid => "RIDE THE GRID (LIGHTCYCLE)".to_string(),
+                MenuAction::RideTheGrid => "RIDE THE GRID (GRID RIDER)".to_string(),
                 MenuAction::ExploreDirectory => "EXPLORE DIRECTORY (3D TREE)".to_string(),
                 MenuAction::OpenSettings => "SYSTEM CONFIGURATION".to_string(),
                 MenuAction::OpenControls => "FLIGHT MANUAL & CONTROLS".to_string(),
@@ -742,7 +742,7 @@ fn update_menu_display(
 
 fn spawn_main_screen_items(commands: &mut Commands, container: Entity) {
     let items = [
-        ("RIDE THE GRID (LIGHTCYCLE)", MenuAction::RideTheGrid),
+        ("RIDE THE GRID (GRID RIDER)", MenuAction::RideTheGrid),
         ("EXPLORE DIRECTORY (3D TREE)", MenuAction::ExploreDirectory),
         ("SYSTEM CONFIGURATION", MenuAction::OpenSettings),
         ("FLIGHT MANUAL & CONTROLS", MenuAction::OpenControls),
@@ -786,7 +786,7 @@ fn spawn_controls_screen_items(commands: &mut Commands, container: Entity) {
     commands.entity(container).with_children(|parent| {
         parent.spawn((
             Text::new(
-                "--- LIGHTCYCLE FLIGHT MANUAL ---\n\
+                "--- GRID RIDER MANUAL ---\n\
                  STEERING      : WASD / ARROW KEYS\n\
                  TURBO BOOST   : SPACEBAR\n\
                  DRIFT / LEAN  : Q / E\n\
@@ -801,9 +801,9 @@ fn spawn_controls_screen_items(commands: &mut Commands, container: Entity) {
                  MAIN MENU     : ESCAPE\n\n\
                  --- CYBER ARCADE MINIGAMES ---\n\
                  Source code files manifest interactive battlefields:\n\
-                 Disc Wars, Asteroids, Snake, Platformer, Breaker,\n\
-                 Stealth, Surfer, Galaga, Pacman, Columns, Tetris,\n\
-                 Frogger, Qbert, Bomberman, Plinko.",
+                 Disc Wars, Asteroid Field, Snake, Platformer, Breaker,\n\
+                 Stealth, Surfer, Swarm Shooter, Byte Muncher, Falling Gems, Block Fall,\n\
+                 Grid Hopper, Cube Hopper, Grid Bomber, Plinko.",
             ),
             TextFont {
                 font_size: bevy::text::FontSize::Px(13.0),
@@ -859,9 +859,9 @@ fn spawn_menu_button(
 #[derive(SystemParam)]
 struct MenuRunParams<'w, 's> {
     commands: Commands<'w, 's>,
-    assets: Res<'w, LightcycleAssets>,
+    assets: Res<'w, GridRiderAssets>,
     meshes: ResMut<'w, Assets<Mesh>>,
-    lightcycle_state: ResMut<'w, crate::lightcycle::LightcycleState>,
+    grid_rider_state: ResMut<'w, crate::grid_rider::GridRiderState>,
     flood_state: ResMut<'w, FloodState>,
     cache_state: ResMut<'w, CacheState>,
     history_state: ResMut<'w, HistoryState>,
@@ -995,8 +995,8 @@ fn handle_menu_input(
                         // Ride the grid!
                         let path = navigator.0.current_path.clone();
                         let run = build_active_run(&path, navigator.0.entries.clone());
-                        run_params.lightcycle_state.grace_room = true;
-                        run_params.lightcycle_state.rides_started = true;
+                        run_params.grid_rider_state.grace_room = true;
+                        run_params.grid_rider_state.rides_started = true;
                         spawn_run_entities(
                             &mut run_params.commands,
                             &run_params.assets,
@@ -1007,15 +1007,15 @@ fn handle_menu_input(
                             &mut run_params.commands,
                             &run_params.assets,
                             &mut run_params.meshes,
-                            &mut run_params.lightcycle_state,
+                            &mut run_params.grid_rider_state,
                             &mut run_params.flood_state,
                             &path,
                             &run,
                         );
                         run_params.history_state.commit(&path);
                         run_params.cache_state.visited.insert(path);
-                        run_params.lightcycle_state.run = Some(run);
-                        *mode = InteractionMode::Lightcycle;
+                        run_params.grid_rider_state.run = Some(run);
+                        *mode = InteractionMode::GridRider;
                     }
                     1 => {
                         // Explore directory!

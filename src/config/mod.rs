@@ -6,20 +6,20 @@
 use bevy::prelude::{Color, Vec3};
 
 pub mod arcade;
-pub mod asteroids;
+pub mod asteroid_field;
 pub mod breaker;
 pub mod character;
 pub mod disc;
 pub mod document;
-pub mod galaga;
+pub mod grid_rider;
 pub mod history;
-pub mod lightcycle;
 pub mod music;
 pub mod platformer;
 pub mod radar;
 pub mod snake;
 pub mod stealth;
 pub mod surfer;
+pub mod swarm_shooter;
 pub mod transition;
 
 pub const WINDOW_TITLE: &str = "Lightrider";
@@ -151,7 +151,7 @@ pub const SOURCE_MAX_BYTES: usize = 256 * 1024;
 /// fingerprint hash, so a huge generated source cannot stall a frame.
 pub const SOURCE_MAX_LINES: usize = 4_000;
 
-/// Explorer/lightcycle tower body for a rideable source file. Amber keeps it
+/// Explorer/grid rider tower body for a rideable source file. Amber keeps it
 /// distinct from the green directory and cyan plain-file towers.
 pub const SOURCE_TOWER_COLOR: Color = Color::srgb(1.0, 0.5, 0.05);
 

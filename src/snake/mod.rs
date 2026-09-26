@@ -1,7 +1,7 @@
-//! The snake mini-game, with its Bevy wiring in `plugins::lightcycle`.
+//! The snake mini-game, with its Bevy wiring in `plugins::grid_rider`.
 //!
 //! [`sim`] is the Bevy-free state machine; the plugin owns the entities, the
-//! camera and the sound. The rider's movement is the ordinary lightcycle grid,
+//! camera and the sound. The rider's movement is the ordinary grid rider grid,
 //! so this module only tracks the power-ups, the finite tail and the exit.
 
 pub mod sim;

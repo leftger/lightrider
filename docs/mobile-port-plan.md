@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Vision
 
-**LIGHTRIDER** is currently a desktop-first cyber-grid filesystem navigator and TRON arcade built with Rust and Bevy. Porting Lightrider to **iOS** and **Android** opens up an immersive tactile experience: exploring codebases with pinch-to-zoom, steering lightcycles with responsive thumb-swipes, and battling through arcade source-code arenas on tablets and smartphones.
+**LIGHTRIDER** is currently a desktop-first cyber-grid filesystem navigator and cyber arcade built with Rust and Bevy. Porting Lightrider to **iOS** and **Android** opens up an immersive tactile experience: exploring codebases with pinch-to-zoom, steering grid riders with responsive thumb-swipes, and battling through arcade source-code arenas on tablets and smartphones.
 
 Because the underlying engine stack (**Bevy 0.19**, **avian3d**, **wgpu**, **cpal**, and **glicol**) is pure Rust and cross-platform, the rendering, physics, and audio engines can run natively on mobile hardware without rewriting gameplay code. The primary architectural changes focus on **filesystem sandboxing**, **touch-first input abstraction**, **mobile GPU thermal management**, and **store-compliant platform packaging**.
 
@@ -81,7 +81,7 @@ flowchart LR
    - **Android**: Launch `Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)` via JNI, using `DocumentFile` to enumerate child files into Lightrider's `DirectoryTree`.
 3. **The "GitHub Explorer" Mode**:
    - Allow users to paste a public repository URL (e.g. `github.com/leftger/lightrider`).
-   - Shallow-clone or download the zip archive into the app's local sandbox and transform their personal repository into a living 3D TRON city.
+   - Shallow-clone or download the zip archive into the app's local sandbox and transform their personal repository into a living 3D cyber city.
 
 ---
 
@@ -106,13 +106,13 @@ pub enum PlayerAction {
 ```
 
 ### On-Screen Virtual Controls
-1. **Lightcycle Mode**:
+1. **Grid Rider Mode**:
    - **Left Thumb Zone**: Floating or fixed virtual thumb-slider for queued 90° boundary turns.
    - **Right Thumb Zone**: Transparent neon action button for Turbo Boost / Bullet Time.
 2. **Arcade Minigames**:
    - **Disc Wars**: Drag to aim target reticle, release to fling identity disc.
    - **Stealth**: Virtual floating analog joystick for smooth 360° walking and cover hugging.
-   - **Asteroids / Galaga**: Left/right tap zones and autofire toggle button.
+   - **Asteroid Field / Swarm Shooter**: Left/right tap zones and autofire toggle button.
 3. **Camera & Cube Selection**:
    - **One-finger swipe**: Smooth orbit rotation (`bevy::input::touch::Touch`).
    - **Two-finger pinch**: Zoom in / zoom out.
@@ -234,7 +234,7 @@ gantt
 ### Detailed Breakdown
 
 #### Phase 1: Input Abstraction & Touch Controls
-- [ ] Refactor `src/plugins/lightcycle/input.rs` and minigame input systems to consume abstract actions instead of direct `KeyCode` inputs.
+- [ ] Refactor `src/plugins/grid rider/input.rs` and minigame input systems to consume abstract actions instead of direct `KeyCode` inputs.
 - [ ] Implement a Bevy UI touch overlay plugin (`TouchControlsPlugin`) rendering on-screen virtual steering buttons and turbo triggers.
 - [ ] Implement two-finger pinch-to-zoom and drag-to-orbit camera navigation using `bevy::input::touch::Touches`.
 - [ ] Implement touch screen-space raycasting for 3D directory block picking.

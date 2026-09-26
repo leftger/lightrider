@@ -1,4 +1,4 @@
-"""Shared rig construction for the Tron mesh.
+"""Shared rig construction for the runner mesh.
 
 Bone positions come from trace_limbs.py (centroids per height band).
 Blender is Z-up; the glTF export converts back to Y-up.
@@ -12,10 +12,10 @@ import tempfile
 # `textures/...` URIs resolve without copying anything. Never point this at the
 # rigged asset: rigging our own export rigs the wrong mesh (see the README).
 SOURCE = os.environ.get(
-    "TRON_SOURCE",
+    "RUNNER_SOURCE",
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "assets/models/tron_character/unrigged.gltf",
+        "assets/models/cyber_runner/unrigged.gltf",
     ),
 )
 
@@ -61,8 +61,8 @@ def build_rig():
         bpy.data.objects.remove(empty, do_unlink=True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-    armature = bpy.data.armatures.new("TronArmature")
-    rig = bpy.data.objects.new("TronRig", armature)
+    armature = bpy.data.armatures.new("RunnerArmature")
+    rig = bpy.data.objects.new("RunnerRig", armature)
     bpy.context.scene.collection.objects.link(rig)
     bpy.context.view_layer.objects.active = rig
     bpy.ops.object.mode_set(mode="EDIT")

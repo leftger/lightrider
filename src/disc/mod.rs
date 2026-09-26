@@ -2,11 +2,11 @@
 //!
 //! See `docs/disc-wars-plan.md`. The module mirrors `document/` and `music/`:
 //! most of it is Bevy-free and unit-testable, and the Bevy wiring lives in
-//! `plugins/lightcycle.rs` and `plugins/ui.rs`.
+//! `plugins/grid_rider.rs` and `plugins/ui.rs`.
 //!
 //! - [`language`] owns the extension allowlist and per-language ring identity.
 //! - [`layout`] fingerprints a file's bytes into a circular [`layout::DiscLayout`].
-//! - [`combat`] runs the fight itself on the shared lightcycle fixed clock.
+//! - [`combat`] runs the fight itself on the shared grid rider fixed clock.
 //! - [`load`] is the background byte loader, capped like a document.
 
 pub mod combat;

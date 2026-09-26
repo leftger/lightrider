@@ -3,8 +3,8 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::lightcycle::scene::LightcycleAssets;
-use crate::state::LightcycleSceneRoot;
+use crate::grid_rider::scene::GridRiderAssets;
+use crate::state::GridRiderSceneRoot;
 use crate::surfer::sim::SurferSim;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
@@ -16,12 +16,12 @@ use bevy::prelude::*;
 /// is the shared cycle, posed from the sim every frame.
 pub(crate) fn spawn_surfer_course(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     surfer: &SurferSim,
 ) {
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(meshes.add(surfer_river_mesh(surfer))),
         MeshMaterial3d(assets.surfer_water_material.clone()),
         Pickable::IGNORE,
@@ -29,7 +29,7 @@ pub(crate) fn spawn_surfer_course(
 
     for rock in &surfer.rocks {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.surfer_rock_material.clone()),
             Transform::from_translation(Vec3::new(
@@ -73,7 +73,7 @@ pub(crate) fn spawn_surfer_course(
 /// Two posts and a lintel framing a gate opening across the river.
 pub(crate) fn spawn_surfer_gate(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     x: f32,
     z: f32,
     span: f32,
@@ -83,7 +83,7 @@ pub(crate) fn spawn_surfer_gate(
     let post = Vec3::new(0.18, height, 0.18);
     for side in [-1.0_f32, 1.0] {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(material.clone()),
             Transform::from_translation(Vec3::new(x + side * span, height * 0.5, z))
@@ -92,7 +92,7 @@ pub(crate) fn spawn_surfer_gate(
         ));
     }
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(material.clone()),
         Transform::from_translation(Vec3::new(x, height, z)).with_scale(Vec3::new(
@@ -146,8 +146,8 @@ pub(crate) fn surfer_camera_rig(forward: Vec3, look: Vec2) -> (Vec3, Vec3) {
         .atan2(config::surfer::SURFER_CAMERA_DISTANCE)
         + look.y)
         .clamp(
-            config::lightcycle::LIGHTCYCLE_CAMERA_MIN_PITCH,
-            config::lightcycle::LIGHTCYCLE_CAMERA_MAX_PITCH,
+            config::grid_rider::GRID_RIDER_CAMERA_MIN_PITCH,
+            config::grid_rider::GRID_RIDER_CAMERA_MAX_PITCH,
         );
     let radius = Vec2::new(
         config::surfer::SURFER_CAMERA_DISTANCE,

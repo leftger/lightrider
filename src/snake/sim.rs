@@ -1,14 +1,14 @@
-//! Bevy-free snake run over the shared lightcycle grid.
+//! Bevy-free snake run over the shared grid rider grid.
 //!
-//! Snake is the base lightcycle game with two twists: the trail has a finite
+//! Snake is the base grid rider game with two twists: the trail has a finite
 //! length, and eating scattered power-ups lengthens it. Once enough are eaten
 //! the ring's exit gate unlocks and the rider can leave. Movement, queued turns
-//! and collision stay in [`LightcycleSim`]; this module owns the power-ups, the
+//! and collision stay in [`GridRiderSim`]; this module owns the power-ups, the
 //! tail cap and the exit state, so it unit-tests without a window.
 
 use crate::config;
 use crate::grid::chebyshev;
-use crate::lightcycle::logic::LightcycleSim;
+use crate::grid_rider::logic::GridRiderSim;
 use crate::rng::Rng;
 
 /// One power-up waiting on the ring floor.
@@ -82,7 +82,7 @@ impl SnakeSim {
 
     /// Caps `sim`'s trail to the current tail length, dropping the oldest cells.
     /// Returns how many cells fell off the end.
-    pub fn trim_tail(&self, sim: &mut LightcycleSim) -> usize {
+    pub fn trim_tail(&self, sim: &mut GridRiderSim) -> usize {
         let excess = sim.trail.len().saturating_sub(self.max_tail);
         if excess > 0 {
             sim.trail.drain(0..excess);
@@ -142,7 +142,7 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
 mod tests {
     use super::{SnakeSim, chebyshev};
     use crate::config;
-    use crate::lightcycle::logic::{Heading, LightcycleSim};
+    use crate::grid_rider::logic::{GridRiderSim, Heading};
 
     /// A 21x21 block of cells, plenty for a scatter.
     fn cells() -> Vec<(i32, i32)> {
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn the_tail_is_trimmed_to_the_current_length() {
         let sim = SnakeSim::new(5, (0, 0), &cells(), 1);
-        let mut cycle = LightcycleSim::start((0, 0), Heading::PosX);
+        let mut cycle = GridRiderSim::start((0, 0), Heading::PosX);
         let body: Vec<(i32, i32)> = (0..12).map(|x| (x, 0)).collect();
         cycle.trail = body.clone();
         let dropped = sim.trim_tail(&mut cycle);

@@ -3,7 +3,7 @@
 Axes come from probe_rig.py; per-side signs are probed here rather than assumed,
 because Blender does not give mirrored bones mirrored local axes.
 
-Run: blender --background --factory-startup --python-use-system-env --python walk_tron.py
+Run: blender --background --factory-startup --python-use-system-env --python walk_runner.py
 """
 
 import math
@@ -234,12 +234,12 @@ for frame, label in ((1, "contact"), (7, "passing"), (13, "contact2")):
 bpy.ops.object.mode_set(mode="OBJECT")
 scene.frame_set(1)
 bpy.ops.export_scene.gltf(
-    filepath=f"{OUT}/tron_rigged.gltf",
+    filepath=f"{OUT}/runner_rigged.gltf",
     export_format="GLTF_SEPARATE",
     export_animations=True,
     export_skins=True,
     # The source mesh had tangents; without them the normal map loses fidelity.
     export_tangents=True,
 )
-print(f"EXPORTED {OUT}/tron_rigged.gltf")
+print(f"EXPORTED {OUT}/runner_rigged.gltf")
 print("DONE")

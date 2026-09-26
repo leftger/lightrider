@@ -1,4 +1,4 @@
-# Rigging and animating the Tron character
+# Rigging and animating the cyber runner
 
 The pipeline that turned the unrigged Sketchfab model into the rigged, skinned,
 animated character the game uses. It is Blender scripting, not art: every bone
@@ -23,9 +23,9 @@ re-deriving all of it from scratch.
 
 ## The source mesh
 
-`rig_lib.py` rigs `assets/models/tron_character/unrigged.gltf`: the original
+`rig_lib.py` rigs `assets/models/cyber_runner/unrigged.gltf`: the original
 unrigged mesh, checked in beside the textures so the glTF's own `textures/...`
-URIs resolve and nothing has to be copied. Point `TRON_SOURCE` elsewhere to rig a
+URIs resolve and nothing has to be copied. Point `RUNNER_SOURCE` elsewhere to rig a
 different unrigged humanoid in a T/A-pose.
 
 It must be an **unrigged** mesh. The rigged `scene.gltf` next to it is this
@@ -71,7 +71,7 @@ them to match that output rather than by eye.
 
 Each of these cost a debugging round, so they are written down.
 
-- **Never rig the rigged asset.** Point `TRON_SOURCE` at an unrigged mesh. Once
+- **Never rig the rigged asset.** Point `RUNNER_SOURCE` at an unrigged mesh. Once
   the export replaced the original, rigging it re-imported our own output, which
   appends stray objects, and the script rigged the wrong mesh. `rig_lib.py` now
   takes the densest mesh as a guard, but the source still has to be unrigged.

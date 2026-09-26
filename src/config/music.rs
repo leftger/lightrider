@@ -18,7 +18,7 @@ pub const MUSIC_CALM_BPM_MIN: f32 = 72.0;
 
 pub const MUSIC_CALM_BPM_MAX: f32 = 80.0;
 
-/// Action (Lightcycle) tempo is the folder theme scaled by this factor.
+/// Action (Grid Rider) tempo is the folder theme scaled by this factor.
 /// Base 75-80 BPM * 1.6 gives 120-128 BPM (quintessential French/electro house).
 pub const MUSIC_ACTION_TEMPO_MULTIPLIER: f32 = 1.6;
 
@@ -89,7 +89,7 @@ pub const MUSIC_ACTION_BASS_GAIN: f32 = 0.16;
 /// Skrillex modulated wobble growl bass gain.
 pub const MUSIC_ACTION_GROWL_GAIN: f32 = 0.14;
 
-/// Daft Punk / TRON: Legacy synth lead gain.
+/// Daft Punk / Cyber: Legacy synth lead gain.
 pub const MUSIC_ACTION_LEAD_GAIN: f32 = 0.12;
 
 /// Action French Touch sidechain pumping depth on synths (fraction of full gain).
@@ -110,7 +110,7 @@ pub const MUSIC_CROSSFADE_SECONDS: f32 = 0.7;
 pub const MUSIC_PARAMS_HZ: f32 = 60.0;
 
 /// Arpeggiator. `BEATS` is step length in beats, so tempo drives the rate:
-/// Explorer gets one soft note per beat, Lightcycle gets rapid sixteenth notes
+/// Explorer gets one soft note per beat, Grid Rider gets rapid sixteenth notes
 /// (4 per beat) for driving progressive electro (deadmau5 / Daft Punk "Derezzed").
 pub const MUSIC_CALM_ARP_BEATS: f32 = 1.0;
 

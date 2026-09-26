@@ -20,7 +20,7 @@ impl Plugin for CameraPlugin {
                     // orbit rig to know where to land; leave both alone until it
                     // hands the camera back.
                     update_camera.run_if(in_explorer_mode.and_then(transition_inactive)),
-                    sync_lightcycle_bloom,
+                    sync_grid_rider_bloom,
                 ),
             );
     }
@@ -60,7 +60,7 @@ fn setup_camera(mut commands: Commands, settings: Res<RenderSettings>) {
     ));
 }
 
-fn sync_lightcycle_bloom(
+fn sync_grid_rider_bloom(
     mode: Res<InteractionMode>,
     settings: Res<RenderSettings>,
     camera: Single<(Entity, Has<Bloom>, Has<Hdr>), With<Camera3d>>,
@@ -68,7 +68,7 @@ fn sync_lightcycle_bloom(
 ) {
     let (entity, has_bloom, has_hdr) = *camera;
     let enabled = settings.bloom
-        && (*mode == InteractionMode::Lightcycle || *mode == InteractionMode::MainMenu);
+        && (*mode == InteractionMode::GridRider || *mode == InteractionMode::MainMenu);
     if enabled && (!has_bloom || !has_hdr) {
         commands.entity(entity).insert((
             Hdr,

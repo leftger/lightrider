@@ -13,11 +13,11 @@ import shutil
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 src = pathlib.Path(os.environ.get("RIG_OUT", tempfile.gettempdir()))
-dst = REPO / "assets/models/tron_character"
+dst = REPO / "assets/models/cyber_runner"
 
-g = json.loads((src / "tron_rigged.gltf").read_text())
+g = json.loads((src / "runner_rigged.gltf").read_text())
 for buffer in g["buffers"]:
-    if buffer.get("uri") == "tron_rigged.bin":
+    if buffer.get("uri") == "runner_rigged.bin":
         buffer["uri"] = "scene.bin"
 for image in g.get("images", []):
     uri = image.get("uri", "")
@@ -25,7 +25,7 @@ for image in g.get("images", []):
         image["uri"] = f"textures/{uri}"
 
 (dst / "scene.gltf").write_text(json.dumps(g, indent=1) + "\n")
-shutil.copyfile(src / "tron_rigged.bin", dst / "scene.bin")
+shutil.copyfile(src / "runner_rigged.bin", dst / "scene.bin")
 
 prim = g["meshes"][0]["primitives"][0]
 pos = g["accessors"][prim["attributes"]["POSITION"]]

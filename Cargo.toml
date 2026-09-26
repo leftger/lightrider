@@ -3,7 +3,7 @@ name = "lightrider"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.98"
-description = "Lightrider - 3D File Explorer & Lightcycle Grid"
+description = "Lightrider - 3D File Explorer & Grid Rider Grid"
 authors = ["Erick Jesus <erick.jesus2060@gmail.com>", "leftger"]
 
 [dependencies]

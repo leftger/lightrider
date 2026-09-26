@@ -82,11 +82,11 @@ fn run_capture(
                     let path =
                         PathBuf::from(format!("target/frames/frame_{:04}.png", state.frame_index));
                     if state.frame_index == 10 {
-                        // Also save a dedicated high-res screenshot of lightcycle gameplay
+                        // Also save a dedicated high-res screenshot of grid rider gameplay
                         commands
                             .spawn(Screenshot::primary_window())
                             .observe(save_to_disk(PathBuf::from(
-                                "assets/screenshots/lightcycle.png",
+                                "assets/screenshots/grid_rider.png",
                             )));
                     }
                     state.frame_index += 1;
@@ -101,7 +101,7 @@ fn run_capture(
         2 => {
             // Warp to Disc Wars
             println!("[capture] warping to Disc Wars");
-            *mode = InteractionMode::Lightcycle;
+            *mode = InteractionMode::GridRider;
             warps.write(WarpRequested {
                 game: SourceGame::DiscWars,
             });
@@ -123,7 +123,7 @@ fn run_capture(
             // Warp to Stealth
             if t >= 9.6 {
                 println!("[capture] warping to Stealth");
-                *mode = InteractionMode::Lightcycle;
+                *mode = InteractionMode::GridRider;
                 warps.write(WarpRequested {
                     game: SourceGame::Stealth,
                 });
@@ -146,9 +146,9 @@ fn run_capture(
             // Warp to Asteroids
             if t >= 11.8 {
                 println!("[capture] warping to Asteroids");
-                *mode = InteractionMode::Lightcycle;
+                *mode = InteractionMode::GridRider;
                 warps.write(WarpRequested {
-                    game: SourceGame::Asteroids,
+                    game: SourceGame::AsteroidField,
                 });
                 state.phase = 7;
             }

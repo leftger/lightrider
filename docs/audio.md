@@ -8,7 +8,7 @@
 
 When LIGHTRIDER launches, the main menu immediately begins playing an iconic, dedicated synthesized title theme:
 
-* **Aesthetic**: Energetic Electro / Sci-Fi / Frutiger-Aero (inspired by Daft Punk TRON: Legacy, Wipeout HD, Mirror's Edge by Solar Fields, and futuristic mid-2000s cyber aesthetics).
+* **Aesthetic**: Energetic Electro / Sci-Fi / Frutiger-Aero (inspired by French electro, synthwave, futuristic anti-gravity racing themes, and radiant cyber aesthetics).
 * **Tempo**: Driving 128.0 BPM.
 * **Key & Harmony**: D Major / Lydian (bright, optimistic, crystalline, radiant).
 * **Synthesizer Layers**:
@@ -33,7 +33,7 @@ Once you enter the grid, your filesystem itself acts as the musical score:
 * **Mode Profiles**:
   * **Menu (`ModeProfile::Menu`)**: Plays the dedicated 128 BPM Frutiger-Aero title track.
   * **Calm (`ModeProfile::Calm`)**: In 3D Explorer mode, plays a meditative, spacious ambient arrangement with warm pads, war-horn drones, and gentle pulse.
-  * **Action (`ModeProfile::Action`)**: In Lightcycle mode, ramps up tempo and layers on driving 4-on-the-floor electro drums, rolling hats, sidechain pump, and aggressive basslines.
+  * **Action (`ModeProfile::Action`)**: In Grid Rider mode, ramps up tempo and layers on driving 4-on-the-floor electro drums, rolling hats, sidechain pump, and aggressive basslines.
 * **Spatial Proximity Voice Mixing**: Each file and folder in the active directory corresponds to a synthesizer voice on the ground plane. Moving the camera or riding the bike near blocks brings their unique harmonic tones into the mix.
 
 ---
@@ -59,7 +59,7 @@ Gameplay sound effects are dynamically synthesized on dedicated Glicol reference
 
 ---
 
-## 5. Linux Dependencies
+## 5. Linux Dependencies & WSL2 Setup
 
 On Linux distributions, Glicol relies on ALSA development libraries to interface with the audio device:
 
@@ -68,3 +68,13 @@ sudo apt install libasound2-dev pkg-config
 ```
 
 If no audio device is available, the audio engine reports status and runs silently without crashing.
+
+### Windows Subsystem for Linux (WSL2 / WSLg)
+In WSL2, the Linux kernel does not expose native ALSA soundcards. To route audio through WSLg's PulseAudio server, install `libasound2-plugins` and create a `~/.asoundrc` bridge:
+
+```bash
+sudo apt install -y libasound2-plugins
+```
+
+👉 *See [docs/wsl2.md](wsl2.md) for full WSL2 audio, window stability, and rendering setup instructions.*
+

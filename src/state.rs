@@ -38,7 +38,7 @@ pub struct UiNotice {
     pub message: Option<String>,
 }
 
-/// Pause-menu state for the lightcycle mode: whether the run is frozen and
+/// Pause-menu state for the grid rider mode: whether the run is frozen and
 /// which warp target the menu cursor points at.
 #[derive(Resource, Default)]
 pub struct PauseState {
@@ -61,7 +61,7 @@ pub struct CacheState {
 pub struct RenderSettings {
     /// Multisample count: 1, 2, 4, or 8.
     pub msaa: u32,
-    /// HDR bloom while riding (lightcycle mode). Measured at about 15ms a
+    /// HDR bloom while riding (grid rider mode). Measured at about 15ms a
     /// frame on integrated graphics, because it forces the HDR pipeline.
     pub bloom: bool,
     /// Full-screen scanline overlay.
@@ -100,7 +100,7 @@ pub struct StackMotion {
 impl Default for StackMotion {
     fn default() -> Self {
         Self {
-            timer: config::lightcycle::STACK_PLUNGE_INTERVAL,
+            timer: config::grid_rider::STACK_PLUNGE_INTERVAL,
             plunge: None,
         }
     }
@@ -111,10 +111,10 @@ impl StackMotion {
     pub fn advance(&mut self, dt: f32) -> Option<f32> {
         match self.plunge {
             Some(progress) => {
-                let next = progress + dt / config::lightcycle::STACK_PLUNGE_SECONDS;
+                let next = progress + dt / config::grid_rider::STACK_PLUNGE_SECONDS;
                 if next >= 1.0 {
                     self.plunge = None;
-                    self.timer = config::lightcycle::STACK_PLUNGE_INTERVAL;
+                    self.timer = config::grid_rider::STACK_PLUNGE_INTERVAL;
                     None
                 } else {
                     self.plunge = Some(next);
@@ -324,21 +324,21 @@ pub enum InteractionMode {
     #[default]
     MainMenu,
     Explorer,
-    Lightcycle,
+    GridRider,
 }
 
 /// Entities owned by the main menu 3D showcase diorama (bike, trail, diorama).
 #[derive(Component, Debug)]
 pub struct MainMenuSceneRoot;
 
-/// Non-directory entities owned by the lightcycle mode (cycle, walls, portal).
+/// Non-directory entities owned by the grid rider mode (cycle, walls, portal).
 ///
 /// Kept separate from [`DirectorySceneRoot`] so a directory change never
 /// despawns the player.
 #[derive(Component, Debug)]
-pub struct LightcycleSceneRoot;
+pub struct GridRiderSceneRoot;
 
-/// Trail mesh chunks owned by the lightcycle mode.
+/// Trail mesh chunks owned by the grid rider mode.
 #[derive(Component, Debug)]
 pub struct TrailSceneRoot;
 

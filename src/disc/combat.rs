@@ -1,18 +1,18 @@
-//! Bevy-free disc-wars combat, stepped on the shared lightcycle fixed clock.
+//! Bevy-free disc-wars combat, stepped on the shared grid rider fixed clock.
 //!
-//! Movement of the *player* stays in [`crate::lightcycle::logic::LightcycleSim`]
+//! Movement of the *player* stays in [`crate::grid_rider::logic::GridRiderSim`]
 //! so the cell grid, queued turns, trail, crash FX, chase camera and music
 //! profile are all reused unchanged. This module adds only what the fight needs:
 //! the thrown discs, the opponent's own movement and throwing, pickup effects,
 //! the hazard fuse, and best-of-three round bookkeeping.
 //!
 //! Everything here is a pure function of its inputs so it can be unit-tested on
-//! a plain thread, like `lightcycle::logic`.
+//! a plain thread, like `grid_rider::logic`.
 
 use crate::config;
 use crate::disc::layout::{DiscLayout, PickupKind};
 use crate::grid::chebyshev;
-use crate::lightcycle::logic::{Arena, CrashReason, Heading, Turn};
+use crate::grid_rider::logic::{Arena, CrashReason, Heading, Turn};
 
 /// Snapshot of the player's shared cycle state for one step.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -74,7 +74,7 @@ impl Disc {
     }
 }
 
-/// The Recognizer-style opponent: a disc-wielding NPC, not a second bike.
+/// The Sentinel-style opponent: a disc-wielding NPC, not a second bike.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Opponent {
     pub cell: (i32, i32),
@@ -737,7 +737,7 @@ fn advance_disc(
         disc.cell = next;
         disc.budget -= 1;
 
-        // The player's disc grazes the Recognizer's body: since the opponent
+        // The player's disc grazes the Sentinel's body: since the opponent
         // steps a whole cell at a time, an exact-cell rule makes a moving target
         // nearly unhittable. Its own disc keeps the exact rule.
         let slack = match target_kind {
@@ -764,7 +764,7 @@ fn advance_disc(
 }
 
 /// Advances a disc using continuous 2D physics: velocity, wall reflections,
-/// Recognizer cylinder hit detection, and homing back to the player on return.
+/// Sentinel cylinder hit detection, and homing back to the player on return.
 fn advance_disc_physics(
     disc: &mut Disc,
     dt: f32,
@@ -810,10 +810,10 @@ fn advance_disc_physics(
         (pos.1 / config::GRID_SPACING).round() as i32,
     );
 
-    // Opponent cylinder collision (RECOGNIZER_RADIUS + DISC_MESH_RADIUS)
+    // Opponent cylinder collision (SENTINEL_RADIUS + DISC_MESH_RADIUS)
     let opp_dx = pos.0 - opponent_pos.0;
     let opp_dz = pos.1 - opponent_pos.1;
-    let hit_dist = config::disc::RECOGNIZER_RADIUS + config::disc::DISC_MESH_RADIUS + 0.35;
+    let hit_dist = config::disc::SENTINEL_RADIUS + config::disc::DISC_MESH_RADIUS + 0.35;
     if opp_dx.hypot(opp_dz) <= hit_dist {
         return DiscFlight::HitOpponent;
     }
@@ -930,7 +930,7 @@ mod tests {
     use crate::config;
     use crate::disc::layout::{DiscLayout, build_disc_arena};
     use crate::filesystem::language::SourceLanguage;
-    use crate::lightcycle::logic::{Arena, Heading, Turn};
+    use crate::grid_rider::logic::{Arena, Heading, Turn};
     use std::path::Path;
 
     fn ring() -> (Arena, DiscLayout) {
@@ -942,7 +942,7 @@ mod tests {
         )
     }
 
-    fn snapshot(sim: &LightcycleSimLike) -> PlayerSnapshot {
+    fn snapshot(sim: &GridRiderSimLike) -> PlayerSnapshot {
         PlayerSnapshot {
             cell: sim.cell,
             heading: sim.heading,
@@ -952,16 +952,16 @@ mod tests {
         }
     }
 
-    /// Tiny stand-in mirroring the fields of `LightcycleSim` we care about, so
-    /// the tests do not need a full `LightcycleSim`.
-    struct LightcycleSimLike {
+    /// Tiny stand-in mirroring the fields of `GridRiderSim` we care about, so
+    /// the tests do not need a full `GridRiderSim`.
+    struct GridRiderSimLike {
         cell: (i32, i32),
         heading: Heading,
         running: bool,
     }
 
-    fn player(cell: (i32, i32), heading: Heading) -> LightcycleSimLike {
-        LightcycleSimLike {
+    fn player(cell: (i32, i32), heading: Heading) -> GridRiderSimLike {
+        GridRiderSimLike {
             cell,
             heading,
             running: true,
@@ -1232,7 +1232,7 @@ mod tests {
         }
         assert_eq!(
             events.player_derezz,
-            Some(crate::lightcycle::logic::CrashReason::Disc)
+            Some(crate::grid_rider::logic::CrashReason::Disc)
         );
     }
 
@@ -1288,7 +1288,7 @@ mod tests {
         }
         assert_eq!(
             events.player_derezz,
-            Some(crate::lightcycle::logic::CrashReason::Hazard)
+            Some(crate::grid_rider::logic::CrashReason::Hazard)
         );
     }
 
@@ -1457,7 +1457,7 @@ mod tests {
     }
 
     #[test]
-    fn disc_wars_physics_disc_derezzes_recognizer() {
+    fn disc_wars_physics_disc_derezzes_sentinel() {
         let (arena, layout) = ring();
         let mut sim = DiscSim::new(&layout);
         let mut events = super::DiscEvents::default();
@@ -1484,7 +1484,7 @@ mod tests {
         }
         assert!(
             events.opponent_hit,
-            "physics disc must hit the Recognizer cylinder"
+            "physics disc must hit the Sentinel cylinder"
         );
         assert!(!sim.opponent.alive, "opponent must be derezzed");
     }

@@ -5,18 +5,18 @@
 use crate::config;
 use crate::disc::plugin::disc_language_index;
 use crate::filesystem::language::SourceLanguage;
-use crate::lightcycle::scene::CharacterAnim;
-use crate::lightcycle::scene::CharacterEntity;
-use crate::lightcycle::scene::LightcycleAssets;
+use crate::grid_rider::scene::CharacterAnim;
+use crate::grid_rider::scene::CharacterEntity;
+use crate::grid_rider::scene::GridRiderAssets;
 use crate::platformer::sim::PlatformerSim;
-use crate::state::LightcycleSceneRoot;
+use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
 /// Spawns a platformer level: a backdrop, the platforms with neon lips, the
 /// exit door and the runner.
 pub(crate) fn spawn_platformer_level(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     language: SourceLanguage,
     level: &PlatformerSim,
@@ -28,7 +28,7 @@ pub(crate) fn spawn_platformer_level(
     // A dark slab behind the level so the platforms read against something.
     let span = level.length + 60.0;
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.platform_material.clone()),
         Transform::from_translation(Vec3::new(level.length * 0.5, 8.0, -depth))
@@ -38,7 +38,7 @@ pub(crate) fn spawn_platformer_level(
 
     for platform in &level.platforms {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.platform_material.clone()),
             Transform::from_translation(Vec3::new(
@@ -51,7 +51,7 @@ pub(crate) fn spawn_platformer_level(
         ));
         // The lip marks the surface the runner lands on.
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(lip.clone()),
             Transform::from_translation(Vec3::new(platform.x + platform.w * 0.5, platform.y, 0.0))
@@ -62,7 +62,7 @@ pub(crate) fn spawn_platformer_level(
 
     let door = level.exit_box();
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.exit_material.clone()),
         Transform::from_translation(Vec3::new(door.x + door.w * 0.5, door.y - door.h * 0.5, 0.0))
@@ -71,16 +71,16 @@ pub(crate) fn spawn_platformer_level(
     ));
 
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         CharacterEntity,
         CharacterAnim::at(Vec3::new(level.runner.x, level.runner.y, 0.0)),
         Transform::from_translation(Vec3::new(level.runner.x, level.runner.y, 0.0)),
         Visibility::default(),
         Pickable::IGNORE,
         children![(
-            WorldAssetRoot(assets.tron_scene.clone()),
-            Transform::from_rotation(Quat::from_rotation_y(config::character::TRON_MODEL_YAW))
-                .with_scale(Vec3::splat(config::character::TRON_MODEL_SCALE)),
+            WorldAssetRoot(assets.runner_scene.clone()),
+            Transform::from_rotation(Quat::from_rotation_y(config::character::RUNNER_MODEL_YAW))
+                .with_scale(Vec3::splat(config::character::RUNNER_MODEL_SCALE)),
         )],
     ));
 }

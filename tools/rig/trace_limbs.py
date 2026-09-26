@@ -1,4 +1,4 @@
-"""Trace the limb axes of the Tron mesh: centroid per height band, per region.
+"""Trace the limb axes of the runner mesh: centroid per height band, per region.
 
 This is what the rig's bones are placed from, so the numbers are printed for
 inspection before anything is built.
@@ -7,7 +7,7 @@ inspection before anything is built.
 import bpy
 import numpy as np
 
-GLTF = "/home/usuario/Projects/open-source-repos/raptor/assets/models/tron_character/scene.gltf"
+GLTF = "/home/usuario/Projects/open-source-repos/raptor/assets/models/cyber_runner/scene.gltf"
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=GLTF)

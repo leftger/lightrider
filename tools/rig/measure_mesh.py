@@ -1,4 +1,4 @@
-"""Measure the Tron mesh so the rig is built from data rather than guesswork.
+"""Measure the runner mesh so the rig is built from data rather than guesswork.
 
 Run with:
     blender --background --factory-startup --python-use-system-env --python measure_mesh.py
@@ -7,7 +7,7 @@ Run with:
 import bpy
 import numpy as np
 
-GLTF = "/home/usuario/Projects/open-source-repos/raptor/assets/models/tron_character/scene.gltf"
+GLTF = "/home/usuario/Projects/open-source-repos/raptor/assets/models/cyber_runner/scene.gltf"
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=GLTF)

@@ -10,13 +10,13 @@ Live, procedurally generated music driven by the filesystem, rendered in real
 time by [Glicol](../../music-stuff/glicol). Two layers:
 
 - **Base score (deterministic, per directory).** The current folder's path feeds
-  the existing `stable_path_seed` (`src/lightcycle/logic.rs`) to pick root note,
+  the existing `stable_path_seed` (`src/grid rider/logic.rs`) to pick root note,
   scale, tempo, timbre family, and reverb size. The same seed already drives the
   neon city, so a folder's sound and its district stay linked.
 - **Proximity voices (spatial, per entry).** Each file/directory gets a motif
   derived from its own path, size, and type. As the listener approaches that
   block, its voice fades up (gain, pan, filter cutoff). The listener is the
-  orbit-camera target in Explorer mode and `run.sim.cell` in Lightcycle mode.
+  orbit-camera target in Explorer mode and `run.sim.cell` in Grid Rider mode.
 
 The filesystem is therefore both the score's seed and the spatial arrangement of
 the instruments.
@@ -36,7 +36,7 @@ in both modes; it simply goes from ambient-drone to full chase-scene.
 
 ### ModeProfile
 
-| | Calm (Explorer) | Action (Lightcycle) |
+| | Calm (Explorer) | Action (Grid Rider) |
 | --- | --- | --- |
 | Tempo | theme base (60–80 BPM), often half-time | base × 1.6 (~110–160 BPM) |
 | Rhythm | none / soft pulse | kick `bd`, snare `sn`, hat `hh` pattern |
@@ -69,7 +69,7 @@ automatically.
 ## 4. Architecture
 
 New module `src/music/` is audio-free and unit-testable, mirroring how
-`filesystem/`, `config.rs`, and `lightcycle/logic.rs` are testable without a GPU.
+`filesystem/`, `config.rs`, and `grid rider/logic.rs` are testable without a GPU.
 A Bevy plugin wires it in, and the audio bridge is isolated in one file.
 
 ```text
@@ -155,7 +155,7 @@ Positions are chain slots (`saw`=0, `lpf`=1, `mul`=2, `pan`=3).
 
 - **Arpeggiator (`arp.rs`).** A shared `~arp` voice steps a seeded scale-degree
   pattern (rotated by the theme seed), so the base track evolves instead of
-  droning. Explorer steps once per beat and softly; Lightcycle steps twice per
+  droning. Explorer steps once per beat and softly; Grid Rider steps twice per
   beat with more gain (`MUSIC_*_ARP_*`). Each note retriggers a decaying
   envelope, and a fresh note briefly opens the filter, so notes read as plucks
   with a brighter attack. State resets with the room/profile.
@@ -167,7 +167,7 @@ Positions are chain slots (`saw`=0, `lpf`=1, `mul`=2, `pan`=3).
 ### Proximity kernel
 
 - Listener: Explorer -> `OrbitCameraResource.target` (already chases the selected
-  block, `selection.rs`); Lightcycle -> `config::ground_position(sim.cell)`.
+  block, `selection.rs`); Grid Rider -> `config::ground_position(sim.cell)`.
 - `d` = XZ distance from listener to `config::ground_position(node.grid_pos)`.
 - `w = R^2 / (R^2 + d^2)`, hard cutoff past `3R`.
 - **Slot hysteresis:** stable `node_index -> voice_slot` map; reassign only past a
@@ -191,7 +191,7 @@ Positions are chain slots (`saw`=0, `lpf`=1, `mul`=2, `pan`=3).
 
 ### Keys
 
-`M` is taken by Lightcycle (`lightcycle.rs`). Music uses:
+`M` is taken by Grid Rider (`grid rider.rs`). Music uses:
 
 - `N` — toggle music (handled by `MusicPlugin` in both modes)
 - `[` / `]` — volume down / up
@@ -247,7 +247,7 @@ Status: M0–M7 implemented.
    this headless machine allows; needs a listen on real hardware.)
 5. **M4 — Explorer proximity (Calm).** DONE. `orbit.target` drives voice gains,
    pan, and cutoff through the smoothed mixer.
-6. **M5 — Lightcycle proximity (Action).** DONE. The listener follows
+6. **M5 — Grid Rider proximity (Action).** DONE. The listener follows
    `run.sim.cell`, and `InteractionMode` changes rebuild the action profile.
 7. **M6 — UX.** DONE. Default-on, `N` toggle, `[`/`]` volume, status line, CLI
    flags, README.
@@ -258,7 +258,7 @@ Status: M0–M7 implemented.
      dipping to silence. The outgoing graph is promoted/dropped when the fade
      completes; rapid changes replace the incoming graph rather than stacking.
    - **Action flourish.** Action's bass and lead run through a tempo-synced
-     `~pump` tremolo (`MUSIC_ACTION_PUMP_DEPTH` / `RATE`), so Lightcycle drives.
+     `~pump` tremolo (`MUSIC_ACTION_PUMP_DEPTH` / `RATE`), so Grid Rider drives.
    - **One-shot sound effects.** Each effect owns a dedicated chain
      (`~sfx_crash` / `~sfx_turn` / `~sfx_beam` / `~sfx_portal`), silent until
      triggered by a [`MusicSfx`] message. The audio thread advances the

@@ -1,6 +1,6 @@
 use crate::config;
 use crate::document::parse::{DocBlock, DocBlockKind, ParseLimits, ParseOutcome};
-use crate::lightcycle::logic::{Arena, ArenaKind, GatePlacement};
+use crate::grid_rider::logic::{Arena, ArenaKind, GatePlacement};
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::Path;
 
@@ -67,7 +67,7 @@ pub fn build_document_arena_from_parse(
     parsed: ParseOutcome,
 ) -> (Arena, DocumentLayout) {
     let seed =
-        crate::lightcycle::logic::stable_path_seed(path) ^ content_fingerprint(&parsed.blocks);
+        crate::grid_rider::logic::stable_path_seed(path) ^ content_fingerprint(&parsed.blocks);
     let row_width = row_width_for_seed(seed);
     let mut cursor = SpineCursor::new(row_width);
     let mut blocks = Vec::new();
@@ -124,9 +124,9 @@ pub fn build_document_arena_from_parse(
         occupied.iter().copied(),
         Some(GatePlacement::for_path(
             &gate_path,
-            config::lightcycle::LIGHTCYCLE_PORTAL_WIDTH_CELLS,
+            config::grid_rider::GRID_RIDER_PORTAL_WIDTH_CELLS,
         )),
-        config::lightcycle::LIGHTCYCLE_ARENA_PADDING,
+        config::grid_rider::GRID_RIDER_ARENA_PADDING,
         config::document::DOCUMENT_MIN_ARENA_SPAN,
     );
     arena.kind = ArenaKind::Document;
@@ -284,7 +284,7 @@ fn serpentine_cell(index: usize, row_width: i32) -> (i32, i32) {
 mod tests {
     use super::{build_document_arena, serpentine_cell};
     use crate::document::parse::DocBlockKind;
-    use crate::lightcycle::logic::{ArenaKind, LightcycleSim};
+    use crate::grid_rider::logic::{ArenaKind, GridRiderSim};
     use std::collections::HashSet;
     use std::path::Path;
 
@@ -353,8 +353,8 @@ mod tests {
     fn close_portal_closes_the_document_instead_of_going_to_parent() {
         let (arena, _) = build_document_arena(Path::new("/docs/page.md"), "# Hi\n\nBody.\n");
         let portal = arena.parent_portal.unwrap();
-        let sim = LightcycleSim::start(arena.center(), crate::lightcycle::logic::Heading::PosX);
-        let content = crate::lightcycle::logic::classify_next_content(
+        let sim = GridRiderSim::start(arena.center(), crate::grid_rider::logic::Heading::PosX);
+        let content = crate::grid_rider::logic::classify_next_content(
             portal.from,
             &arena,
             &sim,
@@ -363,17 +363,17 @@ mod tests {
             |_| false,
             |_| false,
         );
-        assert_eq!(content, crate::lightcycle::logic::CellContent::ClosePortal);
+        assert_eq!(content, crate::grid_rider::logic::CellContent::ClosePortal);
         let approach = arena.parent_gate_approaches()[arena.parent_gate_approaches().len() / 2];
         let heading = match portal.wall {
-            crate::lightcycle::logic::Wall::NegZ => crate::lightcycle::logic::Heading::NegZ,
-            crate::lightcycle::logic::Wall::PosZ => crate::lightcycle::logic::Heading::PosZ,
-            crate::lightcycle::logic::Wall::NegX => crate::lightcycle::logic::Heading::NegX,
-            crate::lightcycle::logic::Wall::PosX => crate::lightcycle::logic::Heading::PosX,
+            crate::grid_rider::logic::Wall::NegZ => crate::grid_rider::logic::Heading::NegZ,
+            crate::grid_rider::logic::Wall::PosZ => crate::grid_rider::logic::Heading::PosZ,
+            crate::grid_rider::logic::Wall::NegX => crate::grid_rider::logic::Heading::NegX,
+            crate::grid_rider::logic::Wall::PosX => crate::grid_rider::logic::Heading::PosX,
         };
-        let mut sim = LightcycleSim::start(approach, heading);
+        let mut sim = GridRiderSim::start(approach, heading);
         let outcome = sim.advance(1.0, |cell, sim| {
-            crate::lightcycle::logic::classify_next_content(
+            crate::grid_rider::logic::classify_next_content(
                 cell,
                 &arena,
                 sim,
@@ -385,7 +385,7 @@ mod tests {
         });
         assert_eq!(
             outcome,
-            crate::lightcycle::logic::StepOutcome::CloseDocument
+            crate::grid_rider::logic::StepOutcome::CloseDocument
         );
     }
 
@@ -397,10 +397,10 @@ mod tests {
         let spawn = arena
             .nearest_empty_cell(
                 |cell| arena.street_walls.contains(&cell),
-                crate::config::lightcycle::LIGHTCYCLE_SPAWN_SEARCH_RADIUS,
+                crate::config::grid_rider::GRID_RIDER_SPAWN_SEARCH_RADIUS,
             )
             .unwrap();
-        let sim = LightcycleSim::start(spawn, crate::lightcycle::logic::Heading::PosX);
+        let sim = GridRiderSim::start(spawn, crate::grid_rider::logic::Heading::PosX);
         assert_eq!(sim.cell, spawn);
     }
 }
