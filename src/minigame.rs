@@ -1,9 +1,9 @@
-//! What a source-file mini-game tells the lightcycle about a step.
+//! What a source-file mini-game tells the grid rider about a step.
 //!
 //! Each game already owns its Bevy-free rules in its own `sim` module. This
 //! trait lets it own the noise and the wording too: a game answers a step with
 //! what it cleared, whether the run is over, what to call the crash, and which
-//! sound cues to play. The lightcycle just plays them, so the per-game policy
+//! sound cues to play. The grid rider just plays them, so the per-game policy
 //! lives next to the game rather than in one long match in the plugin.
 //!
 //! The types here stay free of Bevy so the sims remain unit-testable.
@@ -12,7 +12,7 @@ use std::any::Any;
 
 /// Recovers a mini-game's concrete type from behind its trait object.
 ///
-/// The lightcycle steps and feeds source games through `dyn SourceGameSim`, but
+/// The grid rider steps and feeds source games through `dyn SourceGameSim`, but
 /// each game's own sync and camera code still needs to read its sim's fields.
 /// This is the blanket-implemented hook that makes that possible without an
 /// accessor per game.
@@ -57,7 +57,7 @@ impl GameTick {
     }
 }
 
-/// One frame of player input, in the shared lightcycle vocabulary.
+/// One frame of player input, in the shared grid rider vocabulary.
 ///
 /// The plugin reads the keyboard and mouse once and hands every game the same
 /// frame; a game maps the parts it cares about onto its own controls.
@@ -97,7 +97,7 @@ pub trait SourceGameSim: AsAny {
     /// same level.
     fn restart(&mut self);
 
-    /// This game's segment of the lightcycle status line, wrapped around the
+    /// This game's segment of the grid rider status line, wrapped around the
     /// `inner` text the run has built so far. `ring` is the file's name and
     /// `language` the compiler or language it was recognised as.
     fn status_line(&self, ring: &str, language: &str, inner: &str) -> String;

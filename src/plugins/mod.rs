@@ -4,7 +4,7 @@ pub mod capture;
 pub mod effects;
 pub mod filesystem;
 pub mod labels;
-pub mod lightcycle;
+pub mod grid_rider;
 pub mod menu;
 pub mod music;
 pub mod scene;
@@ -27,7 +27,7 @@ impl Plugin for RaptorPlugins {
             ui::UiPlugin,
             effects::EffectsPlugin,
             transition::ModeTransitionPlugin,
-            lightcycle::LightcyclePlugin,
+            grid_rider::GridRiderPlugin,
             music::MusicPlugin,
             menu::MenuPlugin,
         ));

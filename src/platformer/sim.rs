@@ -497,8 +497,8 @@ mod tests {
 
     #[test]
     fn every_jump_press_lands_at_any_refresh_rate() {
-        // Replays the real frame loop: `read_lightcycle_input` latching once a
-        // frame, then `step_lightcycle` draining a 1/60 accumulator. Before the
+        // Replays the real frame loop: `read_grid_rider_input` latching once a
+        // frame, then `step_grid_rider` draining a 1/60 accumulator. Before the
         // edge was made sticky, everything above 60Hz silently ate presses.
         let fixed_step = 1.0 / 60.0;
         let max_substeps = 4;

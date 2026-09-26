@@ -1,8 +1,8 @@
-//! Mode-transition constants: the zoom between explorer and lightcycle.
+//! Mode-transition constants: the zoom between explorer and grid_rider.
 
 use bevy::prelude::Color;
 
-/// Length of the flight between the explorer's orbit rig and the lightcycle's
+/// Length of the flight between the explorer's orbit rig and the grid rider's
 /// chase rig, in seconds. It covers a climb to a satellite view of the city and
 /// a zoom back down into one road, so it is longer than a plain cut.
 pub const MODE_TRANSITION_DURATION: f32 = 1.6;
@@ -36,7 +36,7 @@ pub const MODE_TRANSITION_ALTITUDE_BIAS: f32 = 1.8;
 /// speed of the descent.
 pub const MODE_TRANSITION_FOV_KICK: f32 = 0.18;
 
-pub const MODE_TRANSITION_LIGHTCYCLE_TINT: Color = Color::srgb(0.55, 0.95, 1.0);
+pub const MODE_TRANSITION_GRID_RIDER_TINT: Color = Color::srgb(0.55, 0.95, 1.0);
 
 pub const MODE_TRANSITION_EXPLORER_TINT: Color = Color::srgb(0.25, 1.0, 0.45);
 

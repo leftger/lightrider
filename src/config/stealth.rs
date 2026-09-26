@@ -1,7 +1,7 @@
 //! Stealth constants: the room, patrols and detection.
 
 use super::GRID_SPACING;
-use super::character::TRON_MODEL_HEIGHT;
+use super::character::RUNNER_MODEL_HEIGHT;
 use bevy::prelude::Color;
 
 pub const STEALTH_WIDTH: i32 = 21;
@@ -116,7 +116,7 @@ pub const STEALTH_GUARD_SCALE: f32 = 0.85;
 /// still look like cover.
 pub const STEALTH_CHARACTER_HEIGHT: f32 = GRID_SPACING * 0.9;
 
-pub const STEALTH_CHARACTER_SCALE: f32 = STEALTH_CHARACTER_HEIGHT / TRON_MODEL_HEIGHT;
+pub const STEALTH_CHARACTER_SCALE: f32 = STEALTH_CHARACTER_HEIGHT / RUNNER_MODEL_HEIGHT;
 
 /// The vision cone's reach in world units. The sim measures sight in cells, so
 /// the drawn cone has to be converted the same way the guards' cells are.

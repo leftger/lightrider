@@ -32,7 +32,7 @@ Complete keybindings and input mappings for **LIGHTRIDER**.
 * `/` → Navigate to filesystem root
 * `Home` → Jump to user home directory
 * `Backspace` / `Esc` → Step back in navigation history
-* `M` → Transition into **Lightcycle Mode**
+* `M` → Transition into **Grid Rider Mode**
 
 ### Mouse Interaction
 * **Hover** → Highlight block
@@ -47,7 +47,7 @@ Complete keybindings and input mappings for **LIGHTRIDER**.
 
 ---
 
-## Lightcycle Mode
+## Grid Rider Mode
 
 * `A` / `Left` → Queue left turn (executes at the next cell boundary)
 * `D` / `Right` → Queue right turn
@@ -65,18 +65,18 @@ Complete keybindings and input mappings for **LIGHTRIDER**.
 | :--- | :--- | :--- |
 | **Disc Wars** | `.rs`, `.cpp` | `Space` / Click: Throw disc, `Q`: Recall disc, `Shift`: Bullet time |
 | **Asteroid Field** | `.c`, `.h` | `A`/`D` or Arrows: Pivot cycle, `Space`/Click: Fire, `Shift`: Bullet time |
-| **Snake** | `.py` | `A`/`D` or Arrows: Steer lightcycle trail |
+| **Snake** | `.py` | `A`/`D` or Arrows: Steer grid rider trail |
 | **Platformer** | `.slint` | `A`/`D` or Arrows: Run, `Space`: Jump |
 | **Brick Breaker** | `.lua` | `A`/`D` or Arrows: Slide paddle bike, `Space`: Serve |
 | **Stealth** | `.sh` | `W`/`A`/`S`/`D` or Arrows: Walk/Sneak, Hold wall: Corner peek |
 | **River Surfer** | `.toml` | `A`/`D`: Steer hoverbike, `Space`/`W`/`Up`: Boost |
-| **Galaga** | `.json` | `A`/`D` or Arrows: Slide cycle, `Space`/Click: Fire upward |
-| **Pac-Man** | `.go` | `W`/`A`/`S`/`D`: Move through corridors |
-| **Columns** | `.rb` | `A`/`D`: Slide gems, `W`: Cycle colors, `Space`: Hard drop |
-| **Tetris** | `.yaml`, `.yml` | `A`/`D`: Slide, `W`: Rotate, `S`: Soft drop, `Space`: Hard drop |
-| **Frogger** | `.js` | `W`/`S`/`A`/`D`: Hop one cell across lanes |
-| **Q*bert** | `.zig` | `A`/`D`/`W`/`S`: Hop diagonally across pyramid |
-| **Bomberman** | `.php` | `W`/`A`/`S`/`D`: Move, `Space`/Click: Place bomb |
+| **Swarm Shooter** | `.json` | `A`/`D` or Arrows: Slide cycle, `Space`/Click: Fire upward |
+| **Byte Muncher** | `.go` | `W`/`A`/`S`/`D`: Move through corridors |
+| **Falling Gems** | `.rb` | `A`/`D`: Slide gems, `W`: Cycle colors, `Space`: Hard drop |
+| **Block Fall** | `.yaml`, `.yml` | `A`/`D`: Slide, `W`: Rotate, `S`: Soft drop, `Space`: Hard drop |
+| **Grid Hopper** | `.js` | `W`/`S`/`A`/`D`: Hop one cell across lanes |
+| **Cube Hopper** | `.zig` | `A`/`D`/`W`/`S`: Hop diagonally across pyramid |
+| **Grid Bomber** | `.php` | `W`/`A`/`S`/`D`: Move, `Space`/Click: Place bomb |
 | **Plinko** | `.r` | `A`/`D`: Slide dropper, `Space`/Click: Drop ball |
 
 ---

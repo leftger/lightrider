@@ -7,24 +7,24 @@
 
 use bevy::prelude::Message;
 
-/// A gameplay sound effect. Emitted by the Lightcycle systems.
+/// A gameplay sound effect. Emitted by the Grid Rider systems.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Message)]
 pub enum MusicSfx {
     /// Dirty, descending noise impact.
     Crash,
     /// Short pitched blip when a turn is queued.
     Turn,
-    /// Rising sweep for the Recognizer-style directory transport.
+    /// Rising sweep for the Sentinel-style directory transport.
     Beam,
     /// Bright shimmer for the parent portal / leaving a document.
     Portal,
-    /// Rising fanfare when the Recognizer is beaten.
+    /// Rising fanfare when the Sentinel is beaten.
     Victory,
     /// Snappy falling zap for an asteroid-field beam.
     Zap,
     /// Mechanical disk-head seek: a short low thud for directory hops.
     Seek,
-    /// Arcade game-over descending melody on fatal lightcycle crashes.
+    /// Arcade game-over descending melody on fatal grid rider crashes.
     GameOver,
 }
 

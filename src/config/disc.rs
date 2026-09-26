@@ -1,4 +1,4 @@
-//! Disc-wars constants: ring sizing, combat and the Recognizer.
+//! Disc-wars constants: ring sizing, combat and the Sentinel.
 
 use bevy::prelude::Color;
 
@@ -35,7 +35,7 @@ pub const DISC_RANGE_BONUS: i32 = 2;
 pub const DISC_SPEED: f32 = 9.0;
 
 /// Opponent ground speed, in cells per second. Slower than the bike so the
-/// Recognizer can be lined up and hit, but still a moving target.
+/// Sentinel can be lined up and hit, but still a moving target.
 pub const DISC_OPPONENT_SPEED: f32 = 1.7;
 
 /// The opponent only bothers dodging a disc this close (Chebyshev cells). A
@@ -43,7 +43,7 @@ pub const DISC_OPPONENT_SPEED: f32 = 1.7;
 pub const DISC_OPPONENT_DODGE_RANGE: i32 = 4;
 
 /// Cells of slack around the opponent's body that still count as a hit for the
-/// player's disc. The Recognizer moves in grid steps, so an exact-cell rule
+/// player's disc. The Sentinel moves in grid steps, so an exact-cell rule
 /// makes a moving target nearly impossible to land on. Its own disc keeps an
 /// exact rule, so dodging its shots still matters.
 pub const DISC_PLAYER_HIT_SLACK: i32 = 1;
@@ -51,7 +51,7 @@ pub const DISC_PLAYER_HIT_SLACK: i32 = 1;
 /// Seconds between opponent throws while it has line of sight.
 pub const DISC_OPPONENT_THROW_COOLDOWN: f32 = 1.05;
 
-/// Seconds the Recognizer winds up after acquiring line of sight, before it
+/// Seconds the Sentinel winds up after acquiring line of sight, before it
 /// fires. Its dais swells while charging, so the shot is telegraphed.
 pub const DISC_OPPONENT_WINDUP: f32 = 0.45;
 
@@ -94,10 +94,10 @@ pub const DISC_MESH_RADIUS: f32 = 0.55;
 
 pub const DISC_MESH_THICKNESS: f32 = 0.14;
 
-/// Stubby cylinder body for the Recognizer opponent.
-pub const RECOGNIZER_RADIUS: f32 = 0.6;
+/// Stubby cylinder body for the Sentinel opponent.
+pub const SENTINEL_RADIUS: f32 = 0.6;
 
-pub const RECOGNIZER_HEIGHT: f32 = 1.5;
+pub const SENTINEL_HEIGHT: f32 = 1.5;
 
 /// One ring identity per source language, mirroring the plan's table.
 pub const DISC_RUST_ACCENT: Color = Color::srgb(0.0, 0.9, 1.0);

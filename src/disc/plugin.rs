@@ -7,17 +7,17 @@ use crate::config;
 use crate::disc::combat::DiscSim;
 use crate::disc::layout::DiscLayout;
 use crate::filesystem::language::SourceLanguage;
-use crate::lightcycle::logic::{Arena, CrashReason};
-use crate::lightcycle::scene::DocumentFocusMarker;
-use crate::lightcycle::scene::Fighter;
-use crate::lightcycle::scene::FreeOf;
-use crate::lightcycle::scene::LightcycleAssets;
-use crate::lightcycle::scene::PooledShown;
-use crate::lightcycle::scene::pose::cycle_cell_pose;
-use crate::lightcycle::scene::pose::pose_world_position;
-use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
-use crate::plugins::lightcycle::physics::{GameLayer, ParentPortalSensor};
-use crate::state::LightcycleSceneRoot;
+use crate::grid_rider::logic::{Arena, CrashReason};
+use crate::grid_rider::scene::DocumentFocusMarker;
+use crate::grid_rider::scene::Fighter;
+use crate::grid_rider::scene::FreeOf;
+use crate::grid_rider::scene::GridRiderAssets;
+use crate::grid_rider::scene::PooledShown;
+use crate::grid_rider::scene::pose::cycle_cell_pose;
+use crate::grid_rider::scene::pose::pose_world_position;
+use crate::grid_rider::{ActiveRun, GridRiderState, RunEnvironment};
+use crate::plugins::grid_rider::physics::{GameLayer, ParentPortalSensor};
+use crate::state::GridRiderSceneRoot;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
@@ -25,7 +25,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub(crate) struct PlayerDiscEntity;
 
-/// The Recognizer opponent's body.
+/// The Sentinel opponent's body.
 #[derive(Component)]
 pub(crate) struct OpponentEntity;
 
@@ -42,7 +42,7 @@ pub(crate) struct DiscPickupEntity {
 
 /// Tracks which alcove the rider is beside, for the ring's folio panel.
 pub(crate) fn update_disc_focus(
-    mut state: ResMut<LightcycleState>,
+    mut state: ResMut<GridRiderState>,
     mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
 ) {
     let Some(run) = state.run.as_mut() else {
@@ -66,7 +66,7 @@ pub(crate) fn update_disc_focus(
     }
 }
 
-/// Index into [`LightcycleAssets::disc_accent_materials`].
+/// Index into [`GridRiderAssets::disc_accent_materials`].
 pub(crate) fn disc_language_index(language: SourceLanguage) -> usize {
     SourceLanguage::ALL
         .iter()
@@ -81,7 +81,7 @@ pub(crate) fn disc_language_index(language: SourceLanguage) -> usize {
 pub(crate) fn spawn_ring_shell(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     arena: &Arena,
     layout: &DiscLayout,
     language: SourceLanguage,
@@ -125,7 +125,7 @@ pub(crate) fn spawn_ring_shell(
 
 pub(crate) fn spawn_disc_arena(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     arena: &Arena,
     layout: &DiscLayout,
@@ -158,7 +158,7 @@ pub(crate) fn spawn_disc_arena(
         let taken = disc.taken.contains(&index);
         let phase = index as f32 / layout.pickups.len().max(1) as f32;
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             DiscPickupEntity { index, phase },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.disc_pickup_material.clone()),
@@ -181,13 +181,13 @@ pub(crate) fn spawn_disc_arena(
         Visibility::Hidden
     };
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         OpponentEntity,
-        Mesh3d(assets.recognizer_mesh.clone()),
+        Mesh3d(assets.sentinel_mesh.clone()),
         MeshMaterial3d(assets.disc_opponent_material.clone()),
         Transform::from_translation(
             config::ground_position(disc.opponent.cell.0, disc.opponent.cell.1)
-                + Vec3::Y * (config::disc::RECOGNIZER_HEIGHT * 0.5),
+                + Vec3::Y * (config::disc::SENTINEL_HEIGHT * 0.5),
         ),
         opponent_visible,
         Pickable::IGNORE,
@@ -199,7 +199,7 @@ pub(crate) fn spawn_disc_arena(
         Visibility::Hidden
     };
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         PlayerDiscEntity,
         Mesh3d(assets.disc_mesh.clone()),
         MeshMaterial3d(assets.disc_player_disc_material.clone()),
@@ -214,7 +214,7 @@ pub(crate) fn spawn_disc_arena(
         Visibility::Hidden
     };
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         OpponentDiscEntity,
         Mesh3d(assets.disc_mesh.clone()),
         MeshMaterial3d(assets.disc_opponent_material.clone()),
@@ -244,7 +244,7 @@ pub(crate) fn spawn_disc_cube_layer(
                 .expect("disc cuboid meshes must be merge-compatible");
         }
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(material.clone()),
             Pickable::IGNORE,
@@ -265,7 +265,7 @@ pub(crate) fn disc_cube(cell: (i32, i32), height: f32, footprint: f32) -> Mesh {
 /// door in the ring wall.
 pub(crate) fn spawn_disc_gate(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     arena: &Arena,
     layout: &DiscLayout,
     accent: &Handle<StandardMaterial>,
@@ -291,7 +291,7 @@ pub(crate) fn spawn_disc_gate(
     let post = Vec3::new(0.24, 2.2, 0.24);
     for side in [-1.0_f32, 1.0] {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(accent.clone()),
             Transform::from_translation(base + opening_axis * (side * 1.05) + Vec3::Y * 1.1)
@@ -305,7 +305,7 @@ pub(crate) fn spawn_disc_gate(
         Vec3::new(0.24, 0.22, 2.5)
     };
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(accent.clone()),
         Transform::from_translation(base + Vec3::Y * 2.25).with_scale(lintel_scale),
@@ -313,7 +313,7 @@ pub(crate) fn spawn_disc_gate(
     ));
 
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Transform::from_translation(base + Vec3::Y * 1.5),
         Sensor,
         Collider::cuboid(
@@ -329,7 +329,7 @@ pub(crate) fn spawn_disc_gate(
 
 pub(crate) fn spawn_disc_focus_marker(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     run: &ActiveRun,
 ) {
     let RunEnvironment::Source { language, .. } = &run.environment else {
@@ -337,7 +337,7 @@ pub(crate) fn spawn_disc_focus_marker(
     };
     let pose = cycle_cell_pose(&run.sim);
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         DocumentFocusMarker,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.disc_accent_materials[disc_language_index(*language)].clone()),
@@ -368,7 +368,7 @@ pub(crate) fn disc_crash_label(reason: CrashReason) -> String {
     match reason {
         CrashReason::Hazard => "a hazard tile".to_string(),
         CrashReason::Disc => "a disc".to_string(),
-        CrashReason::Opponent => "the recognizer".to_string(),
+        CrashReason::Opponent => "the sentinel".to_string(),
         CrashReason::Wall => "ring wall".to_string(),
         CrashReason::Trail => "your trail".to_string(),
         CrashReason::File => "file".to_string(),
@@ -377,7 +377,7 @@ pub(crate) fn disc_crash_label(reason: CrashReason) -> String {
 
 /// Keeps the disc, opponent, opponent disc, and pickups glued to the sim.
 pub(crate) fn sync_disc_entities(
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     mut player_disc: Fighter<PlayerDiscEntity, OpponentEntity, OpponentDiscEntity>,
     mut opponent: Fighter<OpponentEntity, PlayerDiscEntity, OpponentDiscEntity>,
     mut opponent_disc: Fighter<OpponentDiscEntity, PlayerDiscEntity, OpponentEntity>,
@@ -421,7 +421,7 @@ pub(crate) fn sync_disc_entities(
             transform.translation =
                 config::ground_position(disc.opponent.cell.0, disc.opponent.cell.1)
                     + Vec3::new(dx as f32, 0.0, dz as f32) * (progress * config::GRID_SPACING)
-                    + Vec3::Y * (config::disc::RECOGNIZER_HEIGHT * 0.5);
+                    + Vec3::Y * (config::disc::SENTINEL_HEIGHT * 0.5);
             // Swell while winding up, so its shot is telegraphed.
             let charge =
                 (disc.opponent.windup / config::disc::DISC_OPPONENT_WINDUP).clamp(0.0, 1.0);

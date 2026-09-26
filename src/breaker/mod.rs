@@ -1,4 +1,4 @@
-//! The brick breaker, with its Bevy wiring in `plugins::lightcycle`.
+//! The brick breaker, with its Bevy wiring in `plugins::grid_rider`.
 //!
 //! [`sim`] is the Bevy-free ball, bricks and paddle; the plugin owns the meshes
 //! and drives the bike along the bottom of the court as the rebounding surface.

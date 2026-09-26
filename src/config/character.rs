@@ -2,8 +2,8 @@
 
 use super::platformer::PLATFORMER_RUNNER_HEIGHT;
 
-/// The Tron runner. CC-BY-4.0: see the credits in the README.
-pub const TRON_MODEL_ASSET: &str = "models/tron_character/scene.gltf";
+/// The cyber runner. CC-BY-4.0: see the credits in the README.
+pub const RUNNER_MODEL_ASSET: &str = "models/cyber_runner/scene.gltf";
 
 /// Height of the loaded character in world units, feet on the origin.
 ///
@@ -13,17 +13,17 @@ pub const TRON_MODEL_ASSET: &str = "models/tron_character/scene.gltf";
 /// bounds. Dividing by the raw authored mesh height instead is a 39x error,
 /// which once left the runner a twentieth of a unit tall: present, glowing, and
 /// invisible.
-pub const TRON_MODEL_HEIGHT: f32 = 23.607;
+pub const RUNNER_MODEL_HEIGHT: f32 = 23.607;
 
 /// Scaled so the runner stands exactly as tall as its collision box.
-pub const TRON_MODEL_SCALE: f32 = PLATFORMER_RUNNER_HEIGHT / TRON_MODEL_HEIGHT;
+pub const RUNNER_MODEL_SCALE: f32 = PLATFORMER_RUNNER_HEIGHT / RUNNER_MODEL_HEIGHT;
 
 /// Extra yaw applied to the character model on top of the entity's facing.
 ///
 /// The asset's own forward is `+Z`, which is what the facing yaws in the plugin
 /// already target, so this stays at zero. A half turn here points the runner
 /// exactly backwards, which is how it walked until it was noticed.
-pub const TRON_MODEL_YAW: f32 = 0.0;
+pub const RUNNER_MODEL_YAW: f32 = 0.0;
 
 /// Name of the walk clip the character asset carries.
 pub const WALK_CLIP: &str = "Walk";

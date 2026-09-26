@@ -1,11 +1,11 @@
 use crate::config;
-use crate::state::{DirectorySceneRoot, InteractionMode, LightcycleSceneRoot, TrailSceneRoot};
+use crate::state::{DirectorySceneRoot, InteractionMode, GridRiderSceneRoot, TrailSceneRoot};
 use bevy::camera::Projection;
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
-/// The flight that carries the app between the explorer and the lightcycle.
+/// The flight that carries the app between the explorer and the grid_rider.
 ///
 /// The two modes own different cameras and different scenes, so swapping both
 /// on one frame reads as a hard cut. Instead the camera pulls back into a
@@ -76,7 +76,7 @@ impl Flight {
 
     fn tint(&self) -> Color {
         match self.target {
-            InteractionMode::Lightcycle => config::transition::MODE_TRANSITION_LIGHTCYCLE_TINT,
+            InteractionMode::GridRider => config::transition::MODE_TRANSITION_GRID_RIDER_TINT,
             InteractionMode::Explorer | InteractionMode::MainMenu => {
                 config::transition::MODE_TRANSITION_EXPLORER_TINT
             }
@@ -90,7 +90,7 @@ impl Flight {
         let leaving = derez_scale(self.progress());
         let arriving = rez_scale(self.progress());
         match self.target {
-            InteractionMode::Lightcycle => (leaving, arriving),
+            InteractionMode::GridRider => (leaving, arriving),
             InteractionMode::Explorer | InteractionMode::MainMenu => (arriving, leaving),
         }
     }
@@ -187,7 +187,7 @@ fn setup_rez_wave(
         ))),
         MeshMaterial3d(
             materials.add(StandardMaterial {
-                base_color: config::transition::MODE_TRANSITION_LIGHTCYCLE_TINT
+                base_color: config::transition::MODE_TRANSITION_GRID_RIDER_TINT
                     .with_alpha(config::transition::MODE_TRANSITION_REZ_ALPHA),
                 unlit: true,
                 alpha_mode: AlphaMode::Blend,
@@ -274,14 +274,14 @@ fn update_world_rez(
         (Entity, &mut Transform, Option<&RezScale>),
         (
             With<DirectorySceneRoot>,
-            Without<LightcycleSceneRoot>,
+            Without<GridRiderSceneRoot>,
             Without<TrailSceneRoot>,
         ),
     >,
     mut arena: Query<
         (Entity, &mut Transform, Option<&RezScale>),
         (
-            Or<(With<LightcycleSceneRoot>, With<TrailSceneRoot>)>,
+            Or<(With<GridRiderSceneRoot>, With<TrailSceneRoot>)>,
             Without<DirectorySceneRoot>,
         ),
     >,
@@ -605,13 +605,13 @@ mod tests {
     fn the_swap_is_offered_once_and_only_at_the_top_of_the_climb() {
         let (from, apex, to, focus) = flight();
         let mut transition = ModeTransition::default();
-        transition.start(InteractionMode::Lightcycle, from, apex, to, focus);
+        transition.start(InteractionMode::GridRider, from, apex, to, focus);
 
         assert_eq!(transition.pending_swap(), None);
 
         let flight = transition.flight.as_mut().expect("flight is running");
         flight.elapsed = config::transition::MODE_TRANSITION_DURATION * SWAP;
-        assert_eq!(transition.pending_swap(), Some(InteractionMode::Lightcycle));
+        assert_eq!(transition.pending_swap(), Some(InteractionMode::GridRider));
 
         transition.mark_swapped();
         assert_eq!(transition.pending_swap(), None);
@@ -625,7 +625,7 @@ mod tests {
         let (from, apex, to, focus) = flight();
         let mut transition = ModeTransition::default();
 
-        transition.start(InteractionMode::Lightcycle, from, apex, to, focus);
+        transition.start(InteractionMode::GridRider, from, apex, to, focus);
         let flight = transition.flight.as_mut().expect("flight is running");
         flight.elapsed = config::transition::MODE_TRANSITION_DURATION * (SWAP - 0.05);
         let (directory, arena) = flight.world_scales();

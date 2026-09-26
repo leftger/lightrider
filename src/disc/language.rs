@@ -14,27 +14,27 @@ use bevy::prelude::{Color, Vec3};
 ///
 /// The ring geometry is shared; only the game inside it changes. Python files
 /// are a snake run, C files an asteroid field, Rust/C++ a disc-wars ring, TOML
-/// files a river-surfer course, JSON files a Galaga field, Go files a Pac-Man
-/// maze, Ruby files a Columns well, YAML files Tetris, JavaScript files
-/// Frogger, Zig files Q*bert, PHP files Bomberman, and R files a Plinko board.
+/// files a river-surfer course, JSON files a Swarm Shooter field, Go files a Byte Muncher
+/// maze, Ruby files a Falling Gems well, YAML files Block Fall, JavaScript files
+/// Grid Hopper, Zig files Cube Hopper, PHP files Grid Bomber, and R files a Plinko board.
 /// Moving a game to another extension is a one-line change in
 /// [`SourceLanguage::game`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceGame {
     DiscWars,
-    Asteroids,
+    AsteroidField,
     Snake,
     Platformer,
     Breaker,
     Stealth,
     RiverSurfer,
-    Galaga,
-    PacMan,
-    Columns,
-    Tetris,
-    Frogger,
-    Qbert,
-    Bomberman,
+    SwarmShooter,
+    ByteMuncher,
+    FallingGems,
+    BlockFall,
+    GridHopper,
+    CubeHopper,
+    GridBomber,
     Plinko,
 }
 
@@ -45,19 +45,19 @@ impl SourceGame {
     /// Every game, in menu order.
     pub const ALL: [SourceGame; Self::COUNT] = [
         SourceGame::DiscWars,
-        SourceGame::Asteroids,
+        SourceGame::AsteroidField,
         SourceGame::Snake,
         SourceGame::Platformer,
         SourceGame::Breaker,
         SourceGame::Stealth,
         SourceGame::RiverSurfer,
-        SourceGame::Galaga,
-        SourceGame::PacMan,
-        SourceGame::Columns,
-        SourceGame::Tetris,
-        SourceGame::Frogger,
-        SourceGame::Qbert,
-        SourceGame::Bomberman,
+        SourceGame::SwarmShooter,
+        SourceGame::ByteMuncher,
+        SourceGame::FallingGems,
+        SourceGame::BlockFall,
+        SourceGame::GridHopper,
+        SourceGame::CubeHopper,
+        SourceGame::GridBomber,
         SourceGame::Plinko,
     ];
 
@@ -65,19 +65,19 @@ impl SourceGame {
     pub fn label(self) -> &'static str {
         match self {
             Self::DiscWars => "Disc Wars",
-            Self::Asteroids => "Asteroids",
+            Self::AsteroidField => "Asteroid Field",
             Self::Snake => "Snake",
             Self::Platformer => "Platformer",
             Self::Breaker => "Brick Breaker",
             Self::Stealth => "Stealth",
             Self::RiverSurfer => "River Surfer",
-            Self::Galaga => "Galaga",
-            Self::PacMan => "Pac-Man",
-            Self::Columns => "Columns",
-            Self::Tetris => "Tetris",
-            Self::Frogger => "Frogger",
-            Self::Qbert => "Q*bert",
-            Self::Bomberman => "Bomberman",
+            Self::SwarmShooter => "Swarm Shooter",
+            Self::ByteMuncher => "Byte Muncher",
+            Self::FallingGems => "Falling Gems",
+            Self::BlockFall => "Block Fall",
+            Self::GridHopper => "Grid Hopper",
+            Self::CubeHopper => "Cube Hopper",
+            Self::GridBomber => "Grid Bomber",
             Self::Plinko => "Plinko",
         }
     }
@@ -86,7 +86,7 @@ impl SourceGame {
     /// and the asteroid field ride the grid; every off-grid game drives itself.
     /// The field only counts once its rocks are gone, which the caller checks.
     pub fn drives_grid(self) -> bool {
-        matches!(self, Self::DiscWars | Self::Snake | Self::Asteroids)
+        matches!(self, Self::DiscWars | Self::Snake | Self::AsteroidField)
     }
 
     /// The fixed camera an arcade-block board is watched from, if this game has
@@ -94,44 +94,44 @@ impl SourceGame {
     /// that keeps the chase camera.
     pub fn arcade_camera(self) -> Option<(Vec3, Vec3)> {
         let (translation, target) = match self {
-            Self::PacMan => (
+            Self::ByteMuncher => (
                 Vec3::new(
                     0.0,
-                    config::arcade::PAC_CAMERA_HEIGHT,
-                    config::arcade::PAC_CAMERA_HEIGHT * config::arcade::PAC_CAMERA_LEAN,
+                    config::arcade::MUNCHER_CAMERA_HEIGHT,
+                    config::arcade::MUNCHER_CAMERA_HEIGHT * config::arcade::MUNCHER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
-            Self::Frogger => (
+            Self::GridHopper => (
                 Vec3::new(
                     0.0,
-                    config::arcade::FROGGER_CAMERA_HEIGHT,
-                    config::arcade::FROGGER_CAMERA_HEIGHT * config::arcade::FROGGER_CAMERA_LEAN,
+                    config::arcade::GRID_HOPPER_CAMERA_HEIGHT,
+                    config::arcade::GRID_HOPPER_CAMERA_HEIGHT * config::arcade::GRID_HOPPER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
-            Self::Qbert => (
+            Self::CubeHopper => (
                 Vec3::new(
                     0.0,
-                    config::arcade::QBERT_CAMERA_HEIGHT,
-                    -config::arcade::QBERT_CAMERA_HEIGHT * config::arcade::QBERT_CAMERA_LEAN,
+                    config::arcade::CUBE_HOPPER_CAMERA_HEIGHT,
+                    -config::arcade::CUBE_HOPPER_CAMERA_HEIGHT * config::arcade::CUBE_HOPPER_CAMERA_LEAN,
                 ),
                 Vec3::new(0.0, 1.0, 0.0),
             ),
-            Self::Bomberman => (
+            Self::GridBomber => (
                 Vec3::new(
                     0.0,
-                    config::arcade::BOMBER_CAMERA_HEIGHT,
-                    config::arcade::BOMBER_CAMERA_HEIGHT * config::arcade::BOMBER_CAMERA_LEAN,
+                    config::arcade::GRID_BOMBER_CAMERA_HEIGHT,
+                    config::arcade::GRID_BOMBER_CAMERA_HEIGHT * config::arcade::GRID_BOMBER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
-            Self::Columns => (
-                Vec3::new(0.0, 10.4, config::arcade::COLUMNS_CAMERA_BACK),
+            Self::FallingGems => (
+                Vec3::new(0.0, 10.4, config::arcade::FALLING_GEMS_CAMERA_BACK),
                 Vec3::new(0.0, 10.4, 0.0),
             ),
-            Self::Tetris => (
-                Vec3::new(0.0, 12.0, config::arcade::TETRIS_CAMERA_BACK),
+            Self::BlockFall => (
+                Vec3::new(0.0, 12.0, config::arcade::BLOCK_FALL_CAMERA_BACK),
                 Vec3::new(0.0, 12.0, 0.0),
             ),
             Self::Plinko => (
@@ -194,19 +194,19 @@ impl SourceLanguage {
     pub fn game(self) -> SourceGame {
         match self {
             Self::Python => SourceGame::Snake,
-            Self::C => SourceGame::Asteroids,
+            Self::C => SourceGame::AsteroidField,
             Self::Rust | Self::Cpp => SourceGame::DiscWars,
             Self::Slint => SourceGame::Platformer,
             Self::Lua => SourceGame::Breaker,
             Self::Shell => SourceGame::Stealth,
             Self::Toml => SourceGame::RiverSurfer,
-            Self::Json => SourceGame::Galaga,
-            Self::Go => SourceGame::PacMan,
-            Self::Ruby => SourceGame::Columns,
-            Self::Yaml => SourceGame::Tetris,
-            Self::JavaScript => SourceGame::Frogger,
-            Self::Zig => SourceGame::Qbert,
-            Self::Php => SourceGame::Bomberman,
+            Self::Json => SourceGame::SwarmShooter,
+            Self::Go => SourceGame::ByteMuncher,
+            Self::Ruby => SourceGame::FallingGems,
+            Self::Yaml => SourceGame::BlockFall,
+            Self::JavaScript => SourceGame::GridHopper,
+            Self::Zig => SourceGame::CubeHopper,
+            Self::Php => SourceGame::GridBomber,
             Self::R => SourceGame::Plinko,
         }
     }
@@ -505,18 +505,18 @@ mod tests {
     fn each_language_hosts_its_own_game() {
         use super::SourceGame;
         assert_eq!(SourceLanguage::Python.game(), SourceGame::Snake);
-        assert_eq!(SourceLanguage::C.game(), SourceGame::Asteroids);
+        assert_eq!(SourceLanguage::C.game(), SourceGame::AsteroidField);
         for language in [SourceLanguage::Rust, SourceLanguage::Cpp] {
             assert_eq!(language.game(), SourceGame::DiscWars);
         }
         assert_eq!(SourceLanguage::Toml.game(), SourceGame::RiverSurfer);
-        assert_eq!(SourceLanguage::Json.game(), SourceGame::Galaga);
-        assert_eq!(SourceLanguage::Go.game(), SourceGame::PacMan);
-        assert_eq!(SourceLanguage::Ruby.game(), SourceGame::Columns);
-        assert_eq!(SourceLanguage::Yaml.game(), SourceGame::Tetris);
-        assert_eq!(SourceLanguage::JavaScript.game(), SourceGame::Frogger);
-        assert_eq!(SourceLanguage::Zig.game(), SourceGame::Qbert);
-        assert_eq!(SourceLanguage::Php.game(), SourceGame::Bomberman);
+        assert_eq!(SourceLanguage::Json.game(), SourceGame::SwarmShooter);
+        assert_eq!(SourceLanguage::Go.game(), SourceGame::ByteMuncher);
+        assert_eq!(SourceLanguage::Ruby.game(), SourceGame::FallingGems);
+        assert_eq!(SourceLanguage::Yaml.game(), SourceGame::BlockFall);
+        assert_eq!(SourceLanguage::JavaScript.game(), SourceGame::GridHopper);
+        assert_eq!(SourceLanguage::Zig.game(), SourceGame::CubeHopper);
+        assert_eq!(SourceLanguage::Php.game(), SourceGame::GridBomber);
         assert_eq!(SourceLanguage::R.game(), SourceGame::Plinko);
     }
 }

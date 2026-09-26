@@ -1,13 +1,13 @@
 //! Deterministic, filesystem-seeded musical themes and mode intensity profiles.
 //!
 //! A directory's path is hashed once (through the same `stable_path_seed` the
-//! Lightcycle cities use) into a [`MusicTheme`]. The theme is stable across
+//! Grid Rider cities use) into a [`MusicTheme`]. The theme is stable across
 //! visits and Rust releases, so a folder keeps its key, scale, tempo, and
 //! timbre family. The [`ModeProfile`] then decides how intense that identity is
-//! rendered: calm ambient in Explorer, driving in Lightcycle.
+//! rendered: calm ambient in Explorer, driving in Grid Rider.
 
 use crate::config;
-use crate::lightcycle::logic::{CityTheme, stable_path_seed};
+use crate::grid_rider::logic::{CityTheme, stable_path_seed};
 use crate::state::InteractionMode;
 use std::path::Path;
 
@@ -132,7 +132,7 @@ impl ModeProfile {
         match mode {
             InteractionMode::MainMenu => Self::Menu,
             InteractionMode::Explorer => Self::Calm,
-            InteractionMode::Lightcycle => Self::Action,
+            InteractionMode::GridRider => Self::Action,
         }
     }
 

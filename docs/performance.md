@@ -33,7 +33,7 @@ cargo run --release -- --bench
 # Run a static camera benchmark for fair A/B comparison of settings
 cargo run --release -- --bench --bench-static
 
-# Benchmark directly inside a Lightcycle ride
+# Benchmark directly inside a Grid Rider ride
 cargo run --release -- --bench --bench-ride
 ```
 

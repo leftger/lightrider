@@ -1,11 +1,11 @@
-use crate::asteroids::sim::AsteroidsPhase;
+use crate::asteroid_field::sim::AsteroidFieldPhase;
 use crate::config;
 use crate::disc::combat::DiscPhase;
 use crate::disc::language::SourceGame;
 use crate::document::load::DocumentLoadState;
 use crate::filesystem::loader::{breadcrumb_label, get_path_components, path_component_name};
-use crate::lightcycle::logic;
-use crate::lightcycle::{LightcycleState, RunEnvironment, SourceSim};
+use crate::grid_rider::logic;
+use crate::grid_rider::{GridRiderState, RunEnvironment, SourceSim};
 use crate::load::{DirectoryLoadState, DirectoryLoaded, DirectoryRequested};
 use crate::plugins::music::MusicState;
 use crate::state::{
@@ -86,7 +86,7 @@ struct FolioPanel;
 #[derive(Component)]
 struct FolioPanelText;
 
-/// The pause/warp menu overlay, present only while a lightcycle run is paused.
+/// The pause/warp menu overlay, present only while a grid rider run is paused.
 #[derive(Component)]
 struct PauseMenuPanel;
 
@@ -107,7 +107,7 @@ struct RadarCell {
 /// Builds the radar for a stealth run and tears it down when the run ends.
 fn sync_radar(
     mut commands: Commands,
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     panels: Query<Entity, With<RadarPanel>>,
 ) {
     if state
@@ -185,7 +185,7 @@ const SYSCALL_TRACE: [&str; 8] = [
 fn update_machine_stats(
     time: Res<Time>,
     mode: Res<InteractionMode>,
-    lightcycle: Res<LightcycleState>,
+    grid_rider: Res<GridRiderState>,
     navigator: Res<NavigatorResource>,
     mut last_step: Local<usize>,
     mut machine: ResMut<MachineState>,
@@ -195,7 +195,7 @@ fn update_machine_stats(
         return;
     };
 
-    if *mode != InteractionMode::Lightcycle {
+    if *mode != InteractionMode::GridRider {
         if **text != "CPU IDLE · BUS 0x00" {
             **text = "CPU IDLE · BUS 0x00".to_string();
         }
@@ -207,7 +207,7 @@ fn update_machine_stats(
     // counting the directory every frame would be pure waste.
     if steps == *last_step
         && !navigator.is_changed()
-        && !lightcycle.is_changed()
+        && !grid_rider.is_changed()
         && !mode.is_changed()
     {
         return;
@@ -216,7 +216,7 @@ fn update_machine_stats(
 
     let (dirs, files) = navigator.0.count_by_type();
     let load = files as f32 + dirs as f32 * 0.5;
-    let boost = if lightcycle.cache_boost > 0.0 {
+    let boost = if grid_rider.cache_boost > 0.0 {
         900.0
     } else {
         0.0
@@ -248,7 +248,7 @@ fn sync_pause_menu(
     panels: Query<Entity, With<PauseMenuPanel>>,
     mut labels: Query<&mut Text, With<PauseMenuPanel>>,
 ) {
-    if *mode != InteractionMode::Lightcycle || !pause.paused {
+    if *mode != InteractionMode::GridRider || !pause.paused {
         for panel in &panels {
             commands.entity(panel).despawn();
         }
@@ -303,7 +303,7 @@ fn sync_pause_menu(
 /// The sight test is the sim's own, so the radar cannot disagree with the guards
 /// about where is safe to stand — which is the one thing a stealth map must get
 /// right.
-fn update_radar(state: Res<LightcycleState>, mut cells: Query<(&RadarCell, &mut BackgroundColor)>) {
+fn update_radar(state: Res<GridRiderState>, mut cells: Query<(&RadarCell, &mut BackgroundColor)>) {
     let Some(room) = state
         .run
         .as_ref()
@@ -675,7 +675,7 @@ fn update_footer_text(
         )
     } else {
         (
-            "LIGHTCYCLE  |  A/D: Turn, Pivot, Walk or Slide  |  WASD: walk in stealth  |  R: Restart  |  M: Explorer  |  Folders: enter  |  .md: read  |  source: .rs/.cpp fight, .c rocks, .py snake, .slint platformer, .lua breaker, .sh stealth (Space: throw/fire/jump/serve)  |  Shift: bullet time  |  Q: recall  |  Gate: parent/close",
+            "GRID RIDER  |  A/D: Turn, Pivot, Walk or Slide  |  WASD: walk in stealth  |  R: Restart  |  M: Explorer  |  Folders: enter  |  .md: read  |  source: .rs/.cpp fight, .c rocks, .py snake, .slint platformer, .lua breaker, .sh stealth (Space: throw/fire/jump/serve)  |  Shift: bullet time  |  Q: recall  |  Gate: parent/close",
             "MOUSE: Hold right-drag to look around  |  u/-: Parent directory or close  |  Breadcrumb: jump to folder  |  Approach text for the folio panel",
         )
     };
@@ -700,7 +700,7 @@ fn update_status_text(
     navigator: Res<NavigatorResource>,
     load_state: Res<DirectoryLoadState>,
     ui_notice: Res<UiNotice>,
-    lightcycle: Res<LightcycleState>,
+    grid_rider: Res<GridRiderState>,
     flood: Res<FloodState>,
     history: Res<HistoryState>,
     document_load: Res<DocumentLoadState>,
@@ -713,11 +713,11 @@ fn update_status_text(
         return;
     };
 
-    let mut status = if *mode == InteractionMode::Lightcycle {
-        match &lightcycle.run {
+    let mut status = if *mode == InteractionMode::GridRider {
+        match &grid_rider.run {
             Some(run) => {
-                let mut status = format!("MODE: LIGHTCYCLE | BUS TRACE: {}", run.sim.trail.len());
-                if run.sim.phase == crate::lightcycle::logic::RunPhase::Ready {
+                let mut status = format!("MODE: GRID RIDER | BUS TRACE: {}", run.sim.trail.len());
+                if run.sim.phase == crate::grid_rider::logic::RunPhase::Ready {
                     status = format!("{status} | READY: no empty spawn cell");
                 }
                 if let Some(crash) = &run.crash_label {
@@ -747,14 +747,14 @@ fn update_status_text(
                 } = &run.environment
                 {
                     match sim {
-                        SourceSim::Asteroids(asteroids) => {
+                        SourceSim::AsteroidField(asteroids) => {
                             status = format!(
                                 "ASTEROIDS {} | LIVES {} | RING: {name} | {} | {status}",
                                 asteroids.score,
                                 asteroids.lives,
                                 language.name(),
                             );
-                            if asteroids.phase == AsteroidsPhase::Flying {
+                            if asteroids.phase == AsteroidFieldPhase::Flying {
                                 status = format!("{status} | rocks: {}", asteroids.rocks.len());
                             } else {
                                 status = format!(
@@ -803,7 +803,7 @@ fn update_status_text(
                             }
                         }
                     }
-                    if lightcycle.slow_motion {
+                    if grid_rider.slow_motion {
                         status = format!("{status} | BULLET TIME");
                     }
                     if layout.truncated {
@@ -815,7 +815,7 @@ fn update_status_text(
                 }
                 status
             }
-            None => "MODE: LIGHTCYCLE | STARTING...".to_string(),
+            None => "MODE: GRID RIDER | STARTING...".to_string(),
         }
     } else {
         format!(
@@ -853,19 +853,19 @@ fn update_status_text(
         );
     }
 
-    if *mode == InteractionMode::Lightcycle {
-        if lightcycle.grace_room {
+    if *mode == InteractionMode::GridRider {
+        if grid_rider.grace_room {
             status = format!("{status} | GRACE ROOM · NO HAZARDS");
         }
         // Name the ground layout, so the procedural variety is legible.
-        if lightcycle.run.is_some() {
+        if grid_rider.run.is_some() {
             let seed = logic::stable_path_seed(&navigator.0.current_path);
             status = format!(
                 "{status} | GROUND: {}",
                 logic::ViaPattern::from_seed(seed).label().to_uppercase()
             );
         }
-        if lightcycle.quarantined {
+        if grid_rider.quarantined {
             status = format!("{status} | QUARANTINE");
         }
         if flood.active && flood.timer > flood.delay {
@@ -881,14 +881,14 @@ fn update_status_text(
             };
             status = format!("{status} | HISTORY {}{redo}", history.depth());
         }
-        if lightcycle.cache_boost > 0.0 {
+        if grid_rider.cache_boost > 0.0 {
             status = format!("{status} | CACHE HIT");
         }
         // The stall itself is under a third of a second, so the label follows
         // the sweep instead: it is up for as long as the wave is on the arena.
-        if lightcycle.gc_pause > 0.0 {
+        if grid_rider.gc_pause > 0.0 {
             status = format!("{status} | **GC PAUSE**");
-        } else if lightcycle.gc_sweep > 0.0 {
+        } else if grid_rider.gc_sweep > 0.0 {
             status = format!("{status} | GC SWEEP");
         }
     }
@@ -943,7 +943,7 @@ fn update_selection_info(
         return;
     };
 
-    if *mode == InteractionMode::Lightcycle {
+    if *mode == InteractionMode::GridRider {
         **panel = Visibility::Hidden;
         *visibility = Visibility::Hidden;
         return;
@@ -987,7 +987,7 @@ fn update_selection_info(
 
 fn update_folio_panel(
     mode: Res<InteractionMode>,
-    lightcycle: Res<LightcycleState>,
+    grid_rider: Res<GridRiderState>,
     mut panel: Query<&mut Node, With<FolioPanel>>,
     mut text: Query<&mut Text, With<FolioPanelText>>,
 ) {
@@ -998,8 +998,8 @@ fn update_folio_panel(
         return;
     };
 
-    let content = (*mode == InteractionMode::Lightcycle)
-        .then(|| lightcycle.run.as_ref())
+    let content = (*mode == InteractionMode::GridRider)
+        .then(|| grid_rider.run.as_ref())
         .flatten()
         .and_then(|run| match &run.environment {
             RunEnvironment::Document {

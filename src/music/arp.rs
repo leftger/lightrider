@@ -4,14 +4,14 @@
 //! time. The pattern is derived from the directory theme's seed, so every folder
 //! has its own tune, and it is retriggered with a per-note envelope so the
 //! arpeggio reads as plucks instead of a continuous tone. Explorer steps once
-//! per beat and softly; Lightcycle steps twice per beat with more gain.
+//! per beat and softly; Grid Rider steps twice per beat with more gain.
 
 use super::theme::{ModeProfile, MusicTheme};
 use crate::config;
 
 /// Iconic melodic motifs selected by the path seed:
 /// 0: deadmau5 progressive rolling arpeggio (16-step hypnotic rise and fall)
-/// 1: Daft Punk French Touch octave funk (octave bounce & 7ths, TRON / Derezzed style)
+/// 1: Daft Punk French Touch octave funk (octave bounce & 7ths, Cyber / Derezzed style)
 /// 2: Skrillex syncopated electro hook (blues / minor pentatonic bite)
 /// 3: Dune 2 Desert Sands / Phrygian mystery (exotic intervals & scalar climbs)
 const PATTERNS: [&[u32]; 4] = [

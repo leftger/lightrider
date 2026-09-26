@@ -1,5 +1,5 @@
 use crate::config;
-use crate::lightcycle::LightcycleState;
+use crate::grid_rider::GridRiderState;
 use crate::state::{InteractionMode, LabelsRoot, NavigatorResource, SelectionState, UiSettings};
 use bevy::prelude::*;
 use bevy::text::FontSize;
@@ -91,7 +91,7 @@ fn update_labels(
     navigator: Res<NavigatorResource>,
     ui_settings: Res<UiSettings>,
     selection: Res<SelectionState>,
-    lightcycle: Res<LightcycleState>,
+    grid_rider: Res<GridRiderState>,
     mut pool: Local<BinaryHeap<PooledCandidate>>,
     mut flagged: Local<Vec<usize>>,
     mut candidates: Local<Vec<LabelCandidate>>,
@@ -125,10 +125,10 @@ fn update_labels(
     if !ui_settings.show_labels {
         return;
     }
-    if lightcycle
+    if grid_rider
         .run
         .as_ref()
-        .is_some_and(crate::lightcycle::ActiveRun::is_document)
+        .is_some_and(crate::grid_rider::ActiveRun::is_document)
     {
         return;
     }
@@ -137,7 +137,7 @@ fn update_labels(
     let window_height = window.height();
     let camera_pos = camera_transform.translation();
     let forward = camera_transform.forward();
-    let lightcycle_mode = *mode == InteractionMode::Lightcycle;
+    let grid_rider_mode = *mode == InteractionMode::GridRider;
 
     // Pass one: a cheap cull and a bounded pool, so only the closest blocks ever
     // reach the projection. Projecting every entry in a large directory *and*
@@ -151,10 +151,10 @@ fn update_labels(
     flagged.clear();
     for (index, entry) in navigator.0.entries.iter().enumerate() {
         let height = entry.calculate_height();
-        let (grid_x, grid_z) = if lightcycle_mode {
+        let (grid_x, grid_z) = if grid_rider_mode {
             (
-                entry.grid_pos.0 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
-                entry.grid_pos.1 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.0 * config::grid_rider::GRID_RIDER_TOWER_STRIDE,
+                entry.grid_pos.1 * config::grid_rider::GRID_RIDER_TOWER_STRIDE,
             )
         } else {
             entry.grid_pos
@@ -195,10 +195,10 @@ fn update_labels(
             continue;
         };
         let height = entry.calculate_height();
-        let (grid_x, grid_z) = if lightcycle_mode {
+        let (grid_x, grid_z) = if grid_rider_mode {
             (
-                entry.grid_pos.0 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
-                entry.grid_pos.1 * config::lightcycle::LIGHTCYCLE_TOWER_STRIDE,
+                entry.grid_pos.0 * config::grid_rider::GRID_RIDER_TOWER_STRIDE,
+                entry.grid_pos.1 * config::grid_rider::GRID_RIDER_TOWER_STRIDE,
             )
         } else {
             entry.grid_pos

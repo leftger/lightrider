@@ -5,17 +5,17 @@
 
 use crate::config;
 use crate::document::layout::DocumentLayout;
-use crate::lightcycle::logic::Arena;
-use crate::lightcycle::scene::DocumentFocusMarker;
-use crate::lightcycle::scene::LightcycleAssets;
-use crate::lightcycle::scene::pose::cycle_cell_pose;
-use crate::lightcycle::scene::pose::pose_world_position;
-use crate::lightcycle::{ActiveRun, LightcycleState, RunEnvironment};
-use crate::state::LightcycleSceneRoot;
+use crate::grid_rider::logic::Arena;
+use crate::grid_rider::scene::DocumentFocusMarker;
+use crate::grid_rider::scene::GridRiderAssets;
+use crate::grid_rider::scene::pose::cycle_cell_pose;
+use crate::grid_rider::scene::pose::pose_world_position;
+use crate::grid_rider::{ActiveRun, GridRiderState, RunEnvironment};
+use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
 pub(crate) fn update_document_focus(
-    mut state: ResMut<LightcycleState>,
+    mut state: ResMut<GridRiderState>,
     mut marker: Query<&mut Transform, With<DocumentFocusMarker>>,
 ) {
     let Some(run) = state.run.as_mut() else {
@@ -41,7 +41,7 @@ pub(crate) fn update_document_focus(
 
 pub(crate) fn spawn_document_page(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     arena: &Arena,
     layout: &DocumentLayout,
@@ -54,7 +54,7 @@ pub(crate) fn spawn_document_page(
 
 pub(crate) fn spawn_document_rules(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     arena: &Arena,
 ) {
@@ -62,13 +62,13 @@ pub(crate) fn spawn_document_rules(
         return;
     };
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(meshes.add(mesh)),
         MeshMaterial3d(assets.document_rule_material.clone()),
         Pickable::IGNORE,
     ));
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(meshes.add(document_margin_mesh(arena))),
         MeshMaterial3d(assets.document_margin_material.clone()),
         Pickable::IGNORE,
@@ -118,7 +118,7 @@ pub(crate) fn document_margin_mesh(arena: &Arena) -> Mesh {
 
 pub(crate) fn spawn_document_walls(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     arena: &Arena,
 ) {
@@ -134,7 +134,7 @@ pub(crate) fn spawn_document_walls(
                 .expect("document wall meshes must be merge-compatible");
         }
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(assets.document_ink_material.clone()),
             Pickable::IGNORE,
@@ -152,7 +152,7 @@ pub(crate) fn document_wall_mesh(cell: (i32, i32)) -> Mesh {
 
 pub(crate) fn spawn_document_arches(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     layout: &DocumentLayout,
 ) {
@@ -172,7 +172,7 @@ pub(crate) fn spawn_document_arches(
                 .expect("document arch meshes must be merge-compatible");
         }
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(assets.document_heading_material.clone()),
             Pickable::IGNORE,
@@ -213,7 +213,7 @@ pub(crate) fn document_arch_mesh(block: &crate::document::layout::PlacedBlock) -
 
 pub(crate) fn spawn_document_glyphs(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     meshes: &mut Assets<Mesh>,
     layout: &DocumentLayout,
 ) {
@@ -245,7 +245,7 @@ pub(crate) fn spawn_document_glyphs(
 
     if let Some(mesh) = heading_mesh {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(assets.document_heading_material.clone()),
             Pickable::IGNORE,
@@ -253,7 +253,7 @@ pub(crate) fn spawn_document_glyphs(
     }
     if let Some(mesh) = plaque_mesh {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(assets.document_ink_material.clone()),
             Pickable::IGNORE,
@@ -356,12 +356,12 @@ pub(crate) fn glyph_pixels(character: char) -> [u8; 8] {
 
 pub(crate) fn spawn_document_focus_marker(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     run: &ActiveRun,
 ) {
     let pose = cycle_cell_pose(&run.sim);
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         DocumentFocusMarker,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.document_focus_material.clone()),

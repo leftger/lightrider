@@ -266,7 +266,7 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
             // deadmau5 driving eighth-note or sixteenth-note offbeat hi-hat (procedural rate)
             let hat_mult = match (theme.seed >> 18) % 3 {
                 0 => 2.0, // standard eighth-note offbeats (deadmau5)
-                1 => 4.0, // driving sixteenth-note rolling electro hats (Daft Punk TRON)
+                1 => 4.0, // driving sixteenth-note rolling electro hats (Daft Punk Cyber)
                 _ => 2.0,
             };
             let hat_hz = beat_hz * hat_mult;
@@ -311,7 +311,7 @@ pub fn base_voices(theme: &MusicTheme, profile: ModeProfile) -> String {
                 config::music::MUSIC_ACTION_GROWL_GAIN
             );
 
-            // Daft Punk / TRON: Legacy synth lead
+            // Daft Punk / Cyber: Legacy synth lead
             let _ = writeln!(
                 code,
                 "~lead: squ {lead:.2} >> lpf {c1:.1} 0.8 >> mul {:.3} >> mul ~pump >> pan 0.15;",

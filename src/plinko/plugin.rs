@@ -3,11 +3,11 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::lightcycle::LightcycleState;
-use crate::lightcycle::scene::CycleEntity;
-use crate::lightcycle::scene::LightcycleAssets;
+use crate::grid_rider::GridRiderState;
+use crate::grid_rider::scene::CycleEntity;
+use crate::grid_rider::scene::GridRiderAssets;
 use crate::plinko::sim::PlinkoSim;
-use crate::state::LightcycleSceneRoot;
+use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
 /// One pooled ball on the Plinko board, keyed into `PlinkoSim::balls`.
@@ -19,15 +19,15 @@ pub(crate) struct PlinkoBallEntity {
 /// Spawns the Plinko board: static pins and buckets plus pooled balls.
 pub(crate) fn spawn_plinko_board(
     commands: &mut Commands,
-    assets: &LightcycleAssets,
+    assets: &GridRiderAssets,
     _meshes: &mut Assets<Mesh>,
     sim: &PlinkoSim,
 ) {
     // A dark backdrop behind the board makes the pins and balls read clearly.
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
-        MeshMaterial3d(assets.qbert_cube_dim.clone()),
+        MeshMaterial3d(assets.cube_dim.clone()),
         Transform::from_xyz(0.0, 0.0, -0.35).with_scale(Vec3::new(
             config::arcade::PLINKO_WIDTH + 1.5,
             config::arcade::PLINKO_HEIGHT + 1.5,
@@ -38,7 +38,7 @@ pub(crate) fn spawn_plinko_board(
     ));
     // The drop rail along the top, where the cycle slides to aim.
     commands.spawn((
-        LightcycleSceneRoot,
+        GridRiderSceneRoot,
         Mesh3d(assets.unit_cube.clone()),
         MeshMaterial3d(assets.stealth_wall_material.clone()),
         Transform::from_xyz(0.0, config::arcade::PLINKO_HEIGHT * 0.5 + 0.35, 0.0)
@@ -48,7 +48,7 @@ pub(crate) fn spawn_plinko_board(
     ));
     for pin in &sim.pins {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.plinko_pin_material.clone()),
             Transform::from_xyz(pin.x, pin.y, 0.0).with_scale(Vec3::splat(0.62)),
@@ -59,7 +59,7 @@ pub(crate) fn spawn_plinko_board(
     for slot in 0..8 {
         let x = (slot as f32 - 3.5) * 2.0;
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.disc_accent_materials[slot].clone()),
             Transform::from_xyz(x, -config::arcade::PLINKO_HEIGHT * 0.5 - 1.0, 0.0)
@@ -70,7 +70,7 @@ pub(crate) fn spawn_plinko_board(
     }
     for index in 0..config::arcade::PLINKO_BALLS {
         commands.spawn((
-            LightcycleSceneRoot,
+            GridRiderSceneRoot,
             PlinkoBallEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.plinko_ball_material.clone()),
@@ -84,7 +84,7 @@ pub(crate) fn spawn_plinko_board(
 
 /// Places the pooled balls of a Plinko board.
 pub(crate) fn sync_plinko_entities(
-    state: Res<LightcycleState>,
+    state: Res<GridRiderState>,
     mut balls: Query<(&PlinkoBallEntity, &mut Transform, &mut Visibility), Without<CycleEntity>>,
 ) {
     let Some(sim) = state

@@ -87,13 +87,13 @@ impl FileNode {
         }
     }
 
-    /// Regular markdown files are enterable in Lightcycle mode. Directories and
+    /// Regular markdown files are enterable in Grid Rider mode. Directories and
     /// other files keep their existing enter/crash rules.
     pub fn is_markdown(&self) -> bool {
         !self.is_dir && is_markdown_path(&self.path)
     }
 
-    /// Source files open a disc-wars ring in Lightcycle mode. This is the
+    /// Source files open a disc-wars ring in Grid Rider mode. This is the
     /// allowlist the plan describes: `.rs`, `.c` / `.h`, `.cpp` family, `.py`.
     pub fn is_source(&self) -> bool {
         !self.is_dir && self.source_language().is_some()

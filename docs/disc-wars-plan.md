@@ -5,7 +5,7 @@ Owner: —
 Last updated: 2026-09-10
 
 A fighting disc-wars arena entered from source files (`.c` / `.h` / `.cpp` /
-`.py` / `.rs`) during Lightcycle mode. Each file procedurally generates the ring,
+`.py` / `.rs`) during Grid Rider mode. Each file procedurally generates the ring,
 hazards, and pickups from its own bytes.
 
 ## 1. Concept
@@ -14,7 +14,7 @@ Code files are still crash towers today. Markdown already has a second arena
 that keeps the folder in memory and rebuilds the city on close — disc wars
 should be that same pattern, not a new mode stacked on `M`.
 
-Lightcycle is already Tron: trails, gates, identity. Markdown became a *page*
+Grid Rider is already Cyber: trails, gates, identity. Markdown became a *page*
 because reading is the point. Source is identity and conflict: you throw a
 disc, it comes back, and the arena is the program you just rode into.
 
@@ -43,13 +43,13 @@ Mirror markdown, do not invent a third interaction mode.
 4. Navigator **stays on the folder**. Close gate / `U` restores the city from
    already-loaded entries, same as folio close.
 5. Explorer still opens the file in the system editor. Disc wars is
-   lightcycle-only.
+   grid rider-only.
 
-That keeps `M` as explorer ↔ lightcycle, and file-type as *which inner arena*.
+That keeps `M` as explorer ↔ grid rider, and file-type as *which inner arena*.
 
 ## 3. The fight, in one sentence
 
-You and a **Recognizer-style opponent** (a disc-wielding NPC, not a second
+You and a **Sentinel-style opponent** (a disc-wielding NPC, not a second
 bike) occupy a circular ring generated from the file. You throw your disc; it
 rides a short trail, bounces, and either returns or locks as a wall. First to
 land a hit wins the round. Best of three, then the close gate opens.
@@ -60,7 +60,7 @@ Keep it a *mini* game:
 - One disc in flight at a time per fighter.
 - Hits are “you occupied the same cell as a live disc,” the same cell model
   the cycle already uses.
-- Trails are **temporary ring segments**, not infinite lightcycle walls —
+- Trails are **temporary ring segments**, not infinite grid rider walls —
   otherwise a 200-line file becomes an instant maze.
 
 **Win:** opponent derezzes, close gate lights up, status line shows `DISC: WIN`.
@@ -78,7 +78,7 @@ language. Same file always produces the same ring, same opponent, same pickups
 ### Ring geometry (the environment)
 
 - **File size / line count** → ring radius (clamped, like
-  `LIGHTCYCLE_MIN_ARENA_SPAN`).
+  `GRID_RIDER_MIN_ARENA_SPAN`).
 - **Functions / `fn` / `def` / methods** → concentric inner rings or raised
   galleries. A 4-function file is a small coliseum with 4 alcoves.
 - **Indent / braces** → terrace height. Python files literally step. C is
@@ -126,9 +126,9 @@ Seeded from the same fingerprint:
 
 ## 5. Combat vs the current sim
 
-Do **not** overload `LightcycleSim` with HP. Add a sibling `DiscSim` (or
+Do **not** overload `GridRiderSim` with HP. Add a sibling `DiscSim` (or
 `ArenaKind::Disc`) that still steps on the same fixed clock
-(`LIGHTCYCLE_FIXED_STEP`).
+(`GRID_RIDER_FIXED_STEP`).
 
 **Shared:** cell grid, heading, queued turns, crash FX, chase camera, music
 action profile.
@@ -159,7 +159,7 @@ Visibility: hide the directory scene the same way documents do. Close gate =
   Python slower pump. Still the folder theme, so leaving the ring returns to the
   city arrangement.
 
-HUD: `DISC 1–0 | RING: src/plugins/lightcycle.rs | rustc` in the existing status
+HUD: `DISC 1–0 | RING: src/plugins/grid rider.rs | rustc` in the existing status
 line. Folio panel can show the focused function’s signature when you ride near
 its alcove — reading still exists, fight is the foreground.
 
@@ -167,7 +167,7 @@ its alcove — reading still exists, fight is the foreground.
 
 - Not a real language server, compiler, or debugger.
 - Not a second global mode. If you press `M` inside a ring, you leave
-  lightcycle entirely (same as documents).
+  grid rider entirely (same as documents).
 - Not for every file. Binaries, images, lockfiles still crash. Source
   extensions are an allowlist.
 - Headers (`.h`) can either be their own small ring or a *linked gallery* if
@@ -185,7 +185,7 @@ its alcove — reading still exists, fight is the foreground.
 3. **Tokenizer → layout** — DONE. `disc/layout.rs` fingerprints the bytes into
    functions, hazards, pickups, safe pads, and gate placement, with determinism
    tests like city generation.
-4. **Opponent AI** — DONE. A disc-wielding Recognizer walks the ring, takes
+4. **Opponent AI** — DONE. A disc-wielding Sentinel walks the ring, takes
    line-of-sight shots, sidesteps an incoming disc, and fields an aggressive or
    defensive stance from the file's density. Best of three.
 5. **Language palettes + HUD + music tint** — DONE. Per-language ring accents,
@@ -199,19 +199,19 @@ talking back.
 ## 9. As built
 
 - New Bevy-free module `src/disc/` (`language`, `layout`, `combat`, `load`) plus
-  wiring in `plugins/lightcycle.rs`, `plugins/ui.rs`, `plugins/scene.rs`, and a
+  wiring in `plugins/grid rider.rs`, `plugins/ui.rs`, `plugins/scene.rs`, and a
   music tint in `plugins/music.rs`.
 - The ring is a circular playable disc carved out of a square arena: the lethal
   fill outside the radius is a wall band plus a low corner plinth, and the close
   gate is a corridor cut through the ring at a path-seeded cardinal. This reuses
   the existing arena bounds, spawn search, crash FX, chase camera, and restore
   path unchanged.
-- The player's movement stays in `LightcycleSim`; `DiscSim` adds only the thrown
+- The player's movement stays in `GridRiderSim`; `DiscSim` adds only the thrown
   discs, the opponent, pickup effects, the hazard fuse, and round bookkeeping,
-  stepped on the same `LIGHTCYCLE_FIXED_STEP`.
+  stepped on the same `GRID_RIDER_FIXED_STEP`.
 - Controls are decoupled from riding: a throw auto-aims at the opponent (clear
   shot first, dominant axis otherwise), `Shift` holds bullet time to slow the
-  ring, and the Recognizer holds still and swells for a beat before each shot.
+  ring, and the Sentinel holds still and swells for a beat before each shot.
 - Balance: the player's disc has a one-cell graze radius so a target that steps
   whole cells can still be hit; the opponent is slower, only dodges a disc that
   is already close, and its rendered body glides between cells instead of
@@ -222,7 +222,7 @@ talking back.
   `R` rematches, `U` / `-` or the gate closes the ring.
 - Sibling games: the ring is shared, the game inside depends on the language
   ([`SourceLanguage::game`]). `.c` / `.h` files open an asteroid field
-  (`crate::asteroids`), and `.py` files open a snake run (`crate::snake`); both
+  (`crate::asteroid_field`), and `.py` files open a snake run (`crate::snake`); both
   reuse the ring geometry, close gate and restore path.
 - Off-grid games: `.slint` files open a side platformer (`crate::platformer`),
   `.lua` files a brick breaker with the bike as the paddle (`crate::breaker`),

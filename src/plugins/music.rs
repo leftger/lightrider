@@ -6,12 +6,12 @@
 //!
 //! - a directory change rebuilds the path-seeded theme and the entry list,
 //! - the interaction mode selects the calm or action profile,
-//! - every frame, the listener position (camera target or lightcycle cell) is
+//! - every frame, the listener position (camera target or grid rider cell) is
 //!   turned into per-entry voice parameters by the proximity mixer.
 
 use crate::config;
-use crate::lightcycle::logic::{RunPhase, stable_path_seed};
-use crate::lightcycle::{LightcycleState, RunEnvironment};
+use crate::grid_rider::logic::{RunPhase, stable_path_seed};
+use crate::grid_rider::{GridRiderState, RunEnvironment};
 use crate::load::DirectoryLoaded;
 use crate::music::arp::ArpState;
 use crate::music::engine::AudioHandle;
@@ -35,7 +35,7 @@ pub struct MusicState {
     pub enabled: bool,
     pub volume: f32,
     pub theme: Option<MusicTheme>,
-    /// Theme for the currently loaded directory, restored when switching from Menu to Explorer/Lightcycle.
+    /// Theme for the currently loaded directory, restored when switching from Menu to Explorer/Grid Rider.
     pub dir_theme: Option<MusicTheme>,
     pub profile: ModeProfile,
     pub mixer: VoiceMixer,
@@ -131,7 +131,7 @@ fn report_audio_status(mut reported: Local<bool>, music: Res<MusicState>) {
     }
 }
 
-/// Syncs the audio profile with the active interaction mode (Menu, Explorer, Lightcycle).
+/// Syncs the audio profile with the active interaction mode (Menu, Explorer, Grid Rider).
 /// Recompiling the base graph is done by the audio thread behind a short fade.
 fn sync_profile_with_mode(mode: Res<InteractionMode>, mut music: ResMut<MusicState>) {
     let profile = ModeProfile::from_mode(*mode);
@@ -207,12 +207,12 @@ fn rebuild_for_directory(
 }
 
 /// The listener is the point the camera is looking at in Explorer, and the bike
-/// in Lightcycle. Nearby entries swell their voices.
+/// in Grid Rider. Nearby entries swell their voices.
 fn update_proximity(
     time: Res<Time>,
     mode: Res<InteractionMode>,
     orbit: Res<OrbitCameraResource>,
-    lightcycle: Res<LightcycleState>,
+    grid_rider: Res<GridRiderState>,
     flood: Option<Res<FloodState>>,
     camera_query: Query<&Transform, With<Camera3d>>,
     mut music: ResMut<MusicState>,
@@ -222,8 +222,8 @@ fn update_proximity(
             x: orbit.target.x,
             z: orbit.target.z,
         },
-        InteractionMode::Lightcycle => {
-            let Some(run) = &lightcycle.run else {
+        InteractionMode::GridRider => {
+            let Some(run) = &grid_rider.run else {
                 return;
             };
             let position = config::ground_position(run.sim.cell.0, run.sim.cell.1);
@@ -255,7 +255,7 @@ fn update_proximity(
 
     // While a disc-wars ring is open the folder theme stays the seed, but the
     // language tints the arpeggiator: Rust steps harder, Python pumps slower.
-    let (arp_rate, arp_gain) = match lightcycle.run.as_ref().map(|run| &run.environment) {
+    let (arp_rate, arp_gain) = match grid_rider.run.as_ref().map(|run| &run.environment) {
         Some(RunEnvironment::Source { language, .. }) => {
             (language.arp_rate_scale(), language.arp_gain_scale())
         }
@@ -264,8 +264,8 @@ fn update_proximity(
 
     // Approach warning growl for the red memory flood wall.
     // Attenuates with distance and maps to 3D space using the camera's orientation.
-    let (wall_gain, wall_pan, wall_rate) = if *mode == InteractionMode::Lightcycle
-        && let Some(run) = &lightcycle.run
+    let (wall_gain, wall_pan, wall_rate) = if *mode == InteractionMode::GridRider
+        && let Some(run) = &grid_rider.run
         && let Some(flood) = flood.as_ref()
     {
         let (cam_pos, cam_right) = if let Some(cam) = camera_query.iter().next() {
@@ -340,7 +340,7 @@ fn update_proximity(
     }
 }
 
-/// Toggle (`N`) and volume (`[` / `]`). Runs in both Explorer and Lightcycle so
+/// Toggle (`N`) and volume (`[` / `]`). Runs in both Explorer and Grid Rider so
 /// the music can always be silenced.
 fn read_music_keys(keys: Res<ButtonInput<KeyCode>>, mut music: ResMut<MusicState>) {
     if keys.just_pressed(KeyCode::KeyN) {
@@ -391,7 +391,7 @@ pub fn compute_wall_audio_params(
     let min_x = flood_center_x - half_width;
     let max_x = flood_center_x + half_width;
     let closest_x = cam_pos.x.clamp(min_x, max_x);
-    let closest_y = cam_pos.y.clamp(0.0, config::lightcycle::FLOOD_HEIGHT);
+    let closest_y = cam_pos.y.clamp(0.0, config::grid_rider::FLOOD_HEIGHT);
     let closest_wall = Vec3::new(closest_x, closest_y, wall_z);
 
     let to_wall = closest_wall - cam_pos;

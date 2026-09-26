@@ -9,7 +9,7 @@
 use crate::config;
 use crate::disc::language::SourceGame;
 use crate::filesystem::language::SourceLanguage;
-use crate::lightcycle::logic::{
+use crate::grid_rider::logic::{
     Arena, ArenaKind, CityTheme, Heading, ParentPortal, Wall, stable_path_seed,
 };
 use std::collections::BTreeSet;
@@ -594,7 +594,7 @@ fn is_function_line(line: &str, language: SourceLanguage) -> bool {
         // TOML has tables, not functions; the surfer only needs the file's
         // length and fingerprint.
         SourceLanguage::Toml => false,
-        // JSON has values, not functions; the Galaga field only needs the
+        // JSON has values, not functions; the Swarm Shooter field only needs the
         // file's length and fingerprint.
         SourceLanguage::Json => false,
         // The arcade languages get a cheap, language-shaped detector so their
@@ -838,8 +838,8 @@ impl SourceGame {
     pub fn arena_shape(self) -> ArenaShape {
         match self {
             Self::DiscWars => ArenaShape::Disc,
-            Self::Asteroids => ArenaShape::Ring {
-                radius_cells: config::asteroids::ASTEROIDS_RADIUS_CELLS,
+            Self::AsteroidField => ArenaShape::Ring {
+                radius_cells: config::asteroid_field::ASTEROID_FIELD_RADIUS_CELLS,
             },
             Self::Snake => ArenaShape::Ring {
                 radius_cells: config::snake::SNAKE_RADIUS_CELLS,
@@ -850,15 +850,15 @@ impl SourceGame {
             Self::RiverSurfer => ArenaShape::Flat {
                 half_extent: config::surfer::SURFER_HALF_EXTENT,
             },
-            Self::Galaga => ArenaShape::Flat {
-                half_extent: config::galaga::GALAGA_HALF_EXTENT,
+            Self::SwarmShooter => ArenaShape::Flat {
+                half_extent: config::swarm_shooter::SWARM_SHOOTER_HALF_EXTENT,
             },
-            Self::PacMan
-            | Self::Columns
-            | Self::Tetris
-            | Self::Frogger
-            | Self::Qbert
-            | Self::Bomberman
+            Self::ByteMuncher
+            | Self::FallingGems
+            | Self::BlockFall
+            | Self::GridHopper
+            | Self::CubeHopper
+            | Self::GridBomber
             | Self::Plinko => ArenaShape::Flat {
                 half_extent: config::arcade::ARCADE_HALF_EXTENT,
             },
@@ -871,7 +871,7 @@ mod tests {
     use super::{PickupKind, SourceSignals, build_disc_arena, heading_toward, tokenize_source};
     use crate::config;
     use crate::filesystem::language::SourceLanguage;
-    use crate::lightcycle::logic::{ArenaKind, Heading, Wall};
+    use crate::grid_rider::logic::{ArenaKind, Heading, Wall};
     use std::path::Path;
 
     #[test]

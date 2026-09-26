@@ -12,8 +12,8 @@
 
 use crate::config;
 use crate::grid::chebyshev;
-use crate::lightcycle::logic::Heading;
-use crate::lightcycle::logic::step_cell;
+use crate::grid_rider::logic::Heading;
+use crate::grid_rider::logic::step_cell;
 use crate::minigame::{GameInput, GameSound, GameTick, SourceGameSim};
 use crate::rng::Rng;
 use std::collections::BTreeSet;
@@ -599,7 +599,7 @@ impl SourceGameSim for StealthSim {
 mod tests {
     use super::{Guard, Patrol, StealthPhase, StealthSim};
     use crate::config;
-    use crate::lightcycle::logic::Heading;
+    use crate::grid_rider::logic::Heading;
 
     fn sim(seed: u64) -> StealthSim {
         StealthSim::new(seed)
