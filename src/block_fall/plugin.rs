@@ -2,13 +2,13 @@
 //!
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
+use crate::block_fall::sim::BlockFallSim;
 use crate::config;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::GridRiderAssets;
 use crate::grid_rider::scene::OutOfCycle;
 use crate::grid_rider::scene::PooledTinted;
 use crate::state::GridRiderSceneRoot;
-use crate::block_fall::sim::BlockFallSim;
 use bevy::prelude::*;
 
 /// One pooled cell of the Block Fall board, keyed by its row-major index.

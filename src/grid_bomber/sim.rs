@@ -98,10 +98,10 @@ impl GridBomberSim {
 
     /// World centre of a room cell, for the renderer.
     pub fn center(cell: (i32, i32)) -> (f32, f32) {
-        let x =
-            (cell.0 as f32 - (config::arcade::GRID_BOMBER_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
-        let z =
-            (cell.1 as f32 - (config::arcade::GRID_BOMBER_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let x = (cell.0 as f32 - (config::arcade::GRID_BOMBER_COLS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
+        let z = (cell.1 as f32 - (config::arcade::GRID_BOMBER_ROWS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
         (x, z)
     }
 

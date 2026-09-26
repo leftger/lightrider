@@ -142,7 +142,7 @@ fn scatter(seed: u64, spawn: (i32, i32), candidates: &[(i32, i32)], target: usiz
 mod tests {
     use super::{SnakeSim, chebyshev};
     use crate::config;
-    use crate::grid_rider::logic::{Heading, GridRiderSim};
+    use crate::grid_rider::logic::{GridRiderSim, Heading};
 
     /// A 21x21 block of cells, plenty for a scatter.
     fn cells() -> Vec<(i32, i32)> {

@@ -2,13 +2,13 @@
 //!
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
+use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::config;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::Apart;
 use crate::grid_rider::scene::GridRiderAssets;
 use crate::grid_rider::scene::Pooled;
 use crate::grid_rider::scene::PooledShown;
-use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 

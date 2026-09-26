@@ -4,7 +4,6 @@ use crate::asteroid_field::plugin::field_camera_focus;
 use crate::breaker::sim::BreakerSim;
 use crate::config;
 use crate::disc::language::SourceGame;
-use crate::swarm_shooter::sim::SwarmShooterSim;
 use crate::grid_rider::scene::CharacterEntity;
 use crate::grid_rider::scene::ChaseCamera;
 use crate::grid_rider::scene::CycleEntity;
@@ -19,6 +18,7 @@ use crate::stealth::plugin::hug_camera_shot;
 use crate::stealth::sim::StealthSim;
 use crate::surfer::plugin::surfer_camera_rig;
 use crate::surfer::sim::SurferSim;
+use crate::swarm_shooter::sim::SwarmShooterSim;
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
 
@@ -202,8 +202,12 @@ pub(crate) fn update_chase_camera(
         let height = config::swarm_shooter::SWARM_SHOOTER_CAMERA_HEIGHT;
         // Lean the camera in from -Z so the cycle (parked at -Z) sits at the
         // bottom of the screen and the formation hangs above it.
-        camera.translation =
-            center + Vec3::new(0.0, height, -height * config::swarm_shooter::SWARM_SHOOTER_CAMERA_LEAN);
+        camera.translation = center
+            + Vec3::new(
+                0.0,
+                height,
+                -height * config::swarm_shooter::SWARM_SHOOTER_CAMERA_LEAN,
+            );
         camera.look_at(center, Vec3::Y);
         return;
     }

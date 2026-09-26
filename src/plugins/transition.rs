@@ -1,5 +1,5 @@
 use crate::config;
-use crate::state::{DirectorySceneRoot, InteractionMode, GridRiderSceneRoot, TrailSceneRoot};
+use crate::state::{DirectorySceneRoot, GridRiderSceneRoot, InteractionMode, TrailSceneRoot};
 use bevy::camera::Projection;
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;

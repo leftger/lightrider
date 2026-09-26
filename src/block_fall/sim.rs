@@ -314,7 +314,7 @@ impl SourceGameSim for BlockFallSim {
 
 #[cfg(test)]
 mod tests {
-    use super::{TETROMINOES, BlockFallPhase, BlockFallSim};
+    use super::{BlockFallPhase, BlockFallSim, TETROMINOES};
     use crate::config;
 
     fn sim() -> BlockFallSim {

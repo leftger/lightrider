@@ -11,15 +11,15 @@ pub mod breaker;
 pub mod character;
 pub mod disc;
 pub mod document;
-pub mod swarm_shooter;
-pub mod history;
 pub mod grid_rider;
+pub mod history;
 pub mod music;
 pub mod platformer;
 pub mod radar;
 pub mod snake;
 pub mod stealth;
 pub mod surfer;
+pub mod swarm_shooter;
 pub mod transition;
 
 pub const WINDOW_TITLE: &str = "Lightrider";

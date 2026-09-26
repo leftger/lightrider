@@ -3,7 +3,7 @@
 use super::city::{city_body_height, city_body_scale};
 use crate::config;
 use crate::disc::layout::DiscLayout;
-use crate::grid_rider::logic::{Arena, CityStructure, Heading, GridRiderSim};
+use crate::grid_rider::logic::{Arena, CityStructure, GridRiderSim, Heading};
 use crate::grid_rider::scene::pose::cycle_cell_pose;
 use crate::grid_rider::scene::pose::heading_angle;
 use crate::grid_rider::scene::pose::pose_world_position;

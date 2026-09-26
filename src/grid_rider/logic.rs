@@ -1255,7 +1255,7 @@ pub(crate) fn step_cell(cell: (i32, i32), heading: Heading) -> (i32, i32) {
 mod tests {
     use super::{
         Arena, ArenaKind, CellContent, CityTheme, CrashReason, EntryRequest, GatePlacement,
-        Heading, GridRiderSim, RunPhase, StepOutcome, Turn, ViaPattern, Wall,
+        GridRiderSim, Heading, RunPhase, StepOutcome, Turn, ViaPattern, Wall,
         classify_next_content, road_plates,
     };
     use crate::config;

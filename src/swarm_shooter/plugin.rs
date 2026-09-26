@@ -3,12 +3,12 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
-use crate::swarm_shooter::sim::SwarmShooterSim;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::Apart;
 use crate::grid_rider::scene::GridRiderAssets;
 use crate::grid_rider::scene::Pooled;
 use crate::state::GridRiderSceneRoot;
+use crate::swarm_shooter::sim::SwarmShooterSim;
 use bevy::prelude::*;
 
 /// One pooled bug in the Swarm Shooter field, keyed into `SwarmShooterSim::bugs`.
@@ -38,13 +38,16 @@ pub(crate) fn spawn_swarm_shooter_field(
             BugEntity { index },
             Mesh3d(assets.unit_cube.clone()),
             MeshMaterial3d(assets.swarm_bug_material.clone()),
-            Transform::from_xyz(bug.x, config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT * 0.5, bug.z).with_scale(
-                Vec3::new(
-                    config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS * 2.0,
-                    config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT,
-                    config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS * 2.0,
-                ),
-            ),
+            Transform::from_xyz(
+                bug.x,
+                config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT * 0.5,
+                bug.z,
+            )
+            .with_scale(Vec3::new(
+                config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS * 2.0,
+                config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT,
+                config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS * 2.0,
+            )),
             if bug.alive {
                 Visibility::Visible
             } else {
@@ -89,8 +92,11 @@ pub(crate) fn sync_swarm_shooter_entities(
     for (entity, mut transform, mut visibility) in &mut bugs {
         match sim.bugs.get(entity.index) {
             Some(bug) if bug.alive => {
-                transform.translation =
-                    Vec3::new(bug.x, config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT * 0.5, bug.z);
+                transform.translation = Vec3::new(
+                    bug.x,
+                    config::swarm_shooter::SWARM_SHOOTER_BUG_HEIGHT * 0.5,
+                    bug.z,
+                );
                 *visibility = Visibility::Visible;
             }
             _ => *visibility = Visibility::Hidden,
@@ -101,7 +107,8 @@ pub(crate) fn sync_swarm_shooter_entities(
         match sim.beams.get(entity.index) {
             Some(beam) => {
                 transform.translation = Vec3::new(beam.x, 0.35, beam.z);
-                transform.scale = Vec3::new(0.12, 0.12, config::swarm_shooter::SWARM_SHOOTER_BEAM_LENGTH);
+                transform.scale =
+                    Vec3::new(0.12, 0.12, config::swarm_shooter::SWARM_SHOOTER_BEAM_LENGTH);
                 *visibility = Visibility::Visible;
             }
             None => *visibility = Visibility::Hidden,

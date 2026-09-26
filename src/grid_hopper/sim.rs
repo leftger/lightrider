@@ -119,10 +119,13 @@ impl GridHopperSim {
             lane.offset = (lane.offset % span + span) % span;
         }
 
-        if self.invuln <= 0.0 && self.cell.1 >= 1 && self.cell.1 <= config::arcade::GRID_HOPPER_LANES {
+        if self.invuln <= 0.0
+            && self.cell.1 >= 1
+            && self.cell.1 <= config::arcade::GRID_HOPPER_LANES
+        {
             let lane = &self.lanes[(self.cell.1 - 1) as usize];
-            let at =
-                (self.cell.0 as f32 - lane.offset).rem_euclid(config::arcade::GRID_HOPPER_COLS as f32);
+            let at = (self.cell.0 as f32 - lane.offset)
+                .rem_euclid(config::arcade::GRID_HOPPER_COLS as f32);
             if at < 0.9 {
                 events.splatted = true;
                 self.lives = self.lives.saturating_sub(1);
@@ -150,8 +153,8 @@ impl GridHopperSim {
         let mut cells = Vec::new();
         for lane in &self.lanes {
             for step in 0..2 {
-                let offset =
-                    (lane.offset + step as f32 * lane.gap) % config::arcade::GRID_HOPPER_COLS as f32;
+                let offset = (lane.offset + step as f32 * lane.gap)
+                    % config::arcade::GRID_HOPPER_COLS as f32;
                 cells.push((offset as i32, lane.row));
             }
         }

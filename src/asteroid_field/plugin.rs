@@ -108,7 +108,11 @@ pub(crate) fn sync_asteroid_field_entities(
             Some(beam) => {
                 transform.translation = Vec3::new(beam.x, 0.35, beam.z);
                 transform.rotation = Quat::from_rotation_y(-beam.vz.atan2(beam.vx));
-                transform.scale = Vec3::new(config::asteroid_field::ASTEROID_FIELD_BEAM_LENGTH, 0.12, 0.12);
+                transform.scale = Vec3::new(
+                    config::asteroid_field::ASTEROID_FIELD_BEAM_LENGTH,
+                    0.12,
+                    0.12,
+                );
                 *visibility = Visibility::Visible;
             }
             None => *visibility = Visibility::Hidden,

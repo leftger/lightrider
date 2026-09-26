@@ -178,9 +178,12 @@ impl SwarmShooterSim {
         }
 
         // The cycle slides along the bottom and fires upward.
-        let half_x = config::swarm_shooter::SWARM_SHOOTER_HALF_X - config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS;
+        let half_x = config::swarm_shooter::SWARM_SHOOTER_HALF_X
+            - config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS;
         self.player_x = (self.player_x
-            + input.slide.clamp(-1.0, 1.0) * config::swarm_shooter::SWARM_SHOOTER_PLAYER_SPEED * dt)
+            + input.slide.clamp(-1.0, 1.0)
+                * config::swarm_shooter::SWARM_SHOOTER_PLAYER_SPEED
+                * dt)
             .clamp(-half_x, half_x);
         self.fire_clock = (self.fire_clock - dt).max(0.0);
         self.invuln = (self.invuln - dt).max(0.0);
@@ -191,14 +194,16 @@ impl SwarmShooterSim {
         {
             self.beams.push(Beam {
                 x: self.player_x,
-                z: config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z + config::swarm_shooter::SWARM_SHOOTER_BEAM_MUZZLE,
+                z: config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z
+                    + config::swarm_shooter::SWARM_SHOOTER_BEAM_MUZZLE,
             });
             self.fire_clock = config::swarm_shooter::SWARM_SHOOTER_FIRE_COOLDOWN;
             events.fired = true;
         }
 
         // The formation sways side to side and steps down.
-        self.formation_x += self.formation_dir * config::swarm_shooter::SWARM_SHOOTER_FORMATION_SPEED * dt;
+        self.formation_x +=
+            self.formation_dir * config::swarm_shooter::SWARM_SHOOTER_FORMATION_SPEED * dt;
         if self.formation_x.abs() > config::swarm_shooter::SWARM_SHOOTER_FORMATION_SWAY {
             self.formation_x = self.formation_x.clamp(
                 -config::swarm_shooter::SWARM_SHOOTER_FORMATION_SWAY,
@@ -264,7 +269,8 @@ impl SwarmShooterSim {
         }
 
         // Beam vs bug: a beam is spent on the first bug it reaches.
-        let reach = config::swarm_shooter::SWARM_SHOOTER_BEAM_RADIUS + config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS;
+        let reach = config::swarm_shooter::SWARM_SHOOTER_BEAM_RADIUS
+            + config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS;
         let beams = std::mem::take(&mut self.beams);
         for beam in beams {
             let hit = self.bugs.iter().position(|bug| {
@@ -283,11 +289,16 @@ impl SwarmShooterSim {
 
         // A bug reaching the cycle costs a life, and the bug with it.
         if self.invuln <= 0.0 {
-            let reach = config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS + config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS;
+            let reach = config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS
+                + config::swarm_shooter::SWARM_SHOOTER_BUG_RADIUS;
             let hit = self.bugs.iter().position(|bug| {
                 bug.alive
-                    && distance_sq(bug.x, bug.z, self.player_x, config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z)
-                        <= reach * reach
+                    && distance_sq(
+                        bug.x,
+                        bug.z,
+                        self.player_x,
+                        config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z,
+                    ) <= reach * reach
             });
             if let Some(index) = hit {
                 self.bugs[index].alive = false;
@@ -305,7 +316,8 @@ impl SwarmShooterSim {
 
         // The whole formation marching down onto the cycle ends the run.
         let lowest = self.formation_z
-            - (config::swarm_shooter::SWARM_SHOOTER_ROWS - 1) as f32 * config::swarm_shooter::SWARM_SHOOTER_CELL_Z;
+            - (config::swarm_shooter::SWARM_SHOOTER_ROWS - 1) as f32
+                * config::swarm_shooter::SWARM_SHOOTER_CELL_Z;
         if lowest <= config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z + 1.5 {
             self.phase = SwarmShooterPhase::Lost;
             events.overrun = true;
@@ -464,7 +476,8 @@ mod tests {
         for _ in 0..600 {
             field.update(1.0 / 60.0);
         }
-        let limit = config::swarm_shooter::SWARM_SHOOTER_HALF_X - config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS;
+        let limit = config::swarm_shooter::SWARM_SHOOTER_HALF_X
+            - config::swarm_shooter::SWARM_SHOOTER_PLAYER_RADIUS;
         assert!(
             field.player_x <= limit + 0.01,
             "the cycle slid off the right"

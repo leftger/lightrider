@@ -18,7 +18,7 @@ use crate::document::plugin::{
     document_line_advance, glyph_char_offset, glyph_pixel_offset, glyph_pixels,
 };
 use crate::grid_rider::logic::{
-    CityStructure, CityStructureKind, CityTheme, Heading, GridRiderSim, Turn,
+    CityStructure, CityStructureKind, CityTheme, GridRiderSim, Heading, Turn,
 };
 use crate::grid_rider::scene::ChaseCamera;
 use crate::grid_rider::scene::GateScanBar;

@@ -5,7 +5,7 @@
 
 use crate::config;
 use crate::grid_rider::ActiveRun;
-use crate::grid_rider::logic::{Heading, GridRiderSim};
+use crate::grid_rider::logic::{GridRiderSim, Heading};
 use bevy::prelude::*;
 
 /// Where the on-foot character should be and which way it faces.

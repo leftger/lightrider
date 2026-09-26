@@ -13,13 +13,15 @@ use super::space::{
 use super::trail::spawn_trail_ribbon;
 use crate::asteroid_field::plugin::spawn_asteroid_field;
 use crate::asteroid_field::sim::AsteroidFieldSim;
-use crate::grid_bomber::plugin::spawn_grid_bomber_room;
-use crate::grid_bomber::sim::GridBomberSim;
+use crate::block_fall::plugin::spawn_block_fall_board;
+use crate::block_fall::sim::BlockFallSim;
 use crate::breaker::plugin::spawn_breaker_court;
 use crate::breaker::sim::BreakerSim;
-use crate::falling_gems::plugin::spawn_gem_well;
-use crate::falling_gems::sim::FallingGemsSim;
+use crate::byte_muncher::plugin::spawn_byte_muncher_maze;
+use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::config;
+use crate::cube_hopper::plugin::spawn_cube_hopper_pyramid;
+use crate::cube_hopper::sim::CubeHopperSim;
 use crate::disc::combat::DiscSim;
 use crate::disc::language::SourceGame;
 use crate::disc::layout::ArenaShape;
@@ -28,13 +30,15 @@ use crate::disc::plugin::{spawn_disc_arena, spawn_disc_focus_marker, spawn_ring_
 use crate::document::layout::build_document_arena_from_parse;
 use crate::document::parse::{ParseLimits, parse_markdown_bytes};
 use crate::document::plugin::{spawn_document_focus_marker, spawn_document_page};
+use crate::falling_gems::plugin::spawn_gem_well;
+use crate::falling_gems::sim::FallingGemsSim;
 use crate::filesystem::language::SourceLanguage;
 use crate::filesystem::node::FileNode;
+use crate::grid_bomber::plugin::spawn_grid_bomber_room;
+use crate::grid_bomber::sim::GridBomberSim;
 use crate::grid_hopper::plugin::spawn_grid_hopper_highway;
 use crate::grid_hopper::sim::GridHopperSim;
-use crate::swarm_shooter::plugin::spawn_swarm_shooter_field;
-use crate::swarm_shooter::sim::SwarmShooterSim;
-use crate::grid_rider::logic::{Arena, GatePlacement, Heading, GridRiderSim};
+use crate::grid_rider::logic::{Arena, GatePlacement, GridRiderSim, Heading};
 use crate::grid_rider::scene::ChaseCamera;
 use crate::grid_rider::scene::CycleEntity;
 use crate::grid_rider::scene::GridRiderAssets;
@@ -45,27 +49,23 @@ use crate::grid_rider::scene::pose::pose_forward;
 use crate::grid_rider::scene::pose::pose_rotation;
 use crate::grid_rider::scene::pose::pose_world_position;
 use crate::grid_rider::{ActiveRun, GridRiderState, RunEnvironment, SourceSim};
-use crate::byte_muncher::plugin::spawn_byte_muncher_maze;
-use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::platformer::plugin::spawn_platformer_level;
 use crate::platformer::sim::PlatformerSim;
 use crate::plinko::plugin::spawn_plinko_board;
 use crate::plinko::sim::PlinkoSim;
 use crate::plugins::transition::{ModeTransition, gods_eye_pose};
-use crate::cube_hopper::plugin::spawn_cube_hopper_pyramid;
-use crate::cube_hopper::sim::CubeHopperSim;
 use crate::snake::plugin::spawn_snake_field;
 use crate::snake::sim::SnakeSim;
 use crate::state::{
-    CacheState, FloodState, HistoryState, InteractionMode, GridRiderSceneRoot, NavigatorResource,
+    CacheState, FloodState, GridRiderSceneRoot, HistoryState, InteractionMode, NavigatorResource,
     OrbitCameraResource,
 };
 use crate::stealth::plugin::spawn_stealth_room;
 use crate::stealth::sim::StealthSim;
 use crate::surfer::plugin::spawn_surfer_course;
 use crate::surfer::sim::SurferSim;
-use crate::block_fall::plugin::spawn_block_fall_board;
-use crate::block_fall::sim::BlockFallSim;
+use crate::swarm_shooter::plugin::spawn_swarm_shooter_field;
+use crate::swarm_shooter::sim::SwarmShooterSim;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -178,16 +178,21 @@ pub(crate) fn build_source_run(path: &Path, language: SourceLanguage, bytes: &[u
         SourceGame::RiverSurfer => {
             SourceSim::Surfer(Box::new(SurferSim::new(layout.seed, layout.signals.lines)))
         }
-        SourceGame::SwarmShooter => {
-            SourceSim::SwarmShooter(Box::new(SwarmShooterSim::new(layout.seed, layout.signals.lines)))
+        SourceGame::SwarmShooter => SourceSim::SwarmShooter(Box::new(SwarmShooterSim::new(
+            layout.seed,
+            layout.signals.lines,
+        ))),
+        SourceGame::ByteMuncher => {
+            SourceSim::ByteMuncher(Box::new(ByteMuncherSim::new(layout.seed)))
         }
-        SourceGame::ByteMuncher => SourceSim::ByteMuncher(Box::new(ByteMuncherSim::new(layout.seed))),
-        SourceGame::FallingGems => {
-            SourceSim::FallingGems(Box::new(FallingGemsSim::new(layout.seed, layout.signals.lines)))
-        }
-        SourceGame::BlockFall => {
-            SourceSim::BlockFall(Box::new(BlockFallSim::new(layout.seed, layout.signals.lines)))
-        }
+        SourceGame::FallingGems => SourceSim::FallingGems(Box::new(FallingGemsSim::new(
+            layout.seed,
+            layout.signals.lines,
+        ))),
+        SourceGame::BlockFall => SourceSim::BlockFall(Box::new(BlockFallSim::new(
+            layout.seed,
+            layout.signals.lines,
+        ))),
         SourceGame::GridHopper => SourceSim::GridHopper(Box::new(GridHopperSim::new(layout.seed))),
         SourceGame::CubeHopper => SourceSim::CubeHopper(Box::new(CubeHopperSim::new(layout.seed))),
         SourceGame::GridBomber => SourceSim::GridBomber(Box::new(GridBomberSim::new(layout.seed))),

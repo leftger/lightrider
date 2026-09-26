@@ -58,7 +58,8 @@ pub(crate) fn setup_grid_rider_assets(
         )),
         rock_material: materials.add(StandardMaterial {
             base_color: config::asteroid_field::ASTEROID_FIELD_ROCK_COLOR,
-            emissive: LinearRgba::from(config::asteroid_field::ASTEROID_FIELD_ROCK_CORE_COLOR) * 0.3,
+            emissive: LinearRgba::from(config::asteroid_field::ASTEROID_FIELD_ROCK_CORE_COLOR)
+                * 0.3,
             perceptual_roughness: 0.92,
             ..default()
         }),
@@ -204,8 +205,10 @@ pub(crate) fn setup_grid_rider_assets(
             unlit: true,
             ..default()
         }),
-        grid_bomber_crate_material: materials.add(unlit_material(config::arcade::GRID_BOMBER_CRATE_COLOR)),
-        grid_bomber_bomb_material: materials.add(unlit_material(config::arcade::GRID_BOMBER_BOMB_COLOR)),
+        grid_bomber_crate_material: materials
+            .add(unlit_material(config::arcade::GRID_BOMBER_CRATE_COLOR)),
+        grid_bomber_bomb_material: materials
+            .add(unlit_material(config::arcade::GRID_BOMBER_BOMB_COLOR)),
         cycle_scene: asset_server
             .load(GltfAssetLabel::Scene(0).from_asset(config::grid_rider::GRID_RIDER_MODEL_ASSET)),
         trail_material: materials.add(trail_glass_material()),

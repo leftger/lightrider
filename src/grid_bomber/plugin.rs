@@ -2,8 +2,8 @@
 //!
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
-use crate::grid_bomber::sim::GridBomberSim;
 use crate::config;
+use crate::grid_bomber::sim::GridBomberSim;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::Apart;
 use crate::grid_rider::scene::GridRiderAssets;

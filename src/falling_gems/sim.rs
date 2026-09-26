@@ -66,7 +66,10 @@ pub struct FallingGemsSim {
 impl FallingGemsSim {
     pub fn new(seed: u64, lines: usize) -> Self {
         let mut sim = Self {
-            board: vec![None; config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS],
+            board: vec![
+                None;
+                config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS
+            ],
             col: config::arcade::FALLING_GEMS_COLS as i32 / 2,
             piece: [0, 1, 2],
             bottom: 2,
@@ -401,7 +404,8 @@ mod tests {
     #[test]
     fn matching_clears_gems_and_gravity_fills_in() {
         let mut well = sim();
-        well.board = vec![None; config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS];
+        well.board =
+            vec![None; config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS];
         // Three reds in a column.
         well.board[0] = Some(0);
         well.board[config::arcade::FALLING_GEMS_COLS] = Some(0);
@@ -420,7 +424,8 @@ mod tests {
     #[test]
     fn clearing_the_well_wins() {
         let mut well = sim();
-        well.board = vec![None; config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS];
+        well.board =
+            vec![None; config::arcade::FALLING_GEMS_COLS * config::arcade::FALLING_GEMS_ROWS];
         let events = well.update(1.0 / 60.0);
         assert!(events.cleared);
         assert_eq!(well.phase, FallingGemsPhase::Won);

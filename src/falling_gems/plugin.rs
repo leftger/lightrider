@@ -2,8 +2,8 @@
 //!
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
-use crate::falling_gems::sim::FallingGemsSim;
 use crate::config;
+use crate::falling_gems::sim::FallingGemsSim;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::GridRiderAssets;
 use crate::grid_rider::scene::OutOfCycle;
@@ -18,7 +18,11 @@ pub(crate) struct GemEntity {
 }
 
 /// Spawns the pooled gem cells of a Falling Gems well.
-pub(crate) fn spawn_gem_well(commands: &mut Commands, assets: &GridRiderAssets, sim: &FallingGemsSim) {
+pub(crate) fn spawn_gem_well(
+    commands: &mut Commands,
+    assets: &GridRiderAssets,
+    sim: &FallingGemsSim,
+) {
     let rendered = sim.render_board();
     for (index, colour) in rendered.iter().copied().enumerate() {
         let col = index % config::arcade::FALLING_GEMS_COLS;

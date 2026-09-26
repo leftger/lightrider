@@ -106,7 +106,8 @@ impl SourceGame {
                 Vec3::new(
                     0.0,
                     config::arcade::GRID_HOPPER_CAMERA_HEIGHT,
-                    config::arcade::GRID_HOPPER_CAMERA_HEIGHT * config::arcade::GRID_HOPPER_CAMERA_LEAN,
+                    config::arcade::GRID_HOPPER_CAMERA_HEIGHT
+                        * config::arcade::GRID_HOPPER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),
@@ -114,7 +115,8 @@ impl SourceGame {
                 Vec3::new(
                     0.0,
                     config::arcade::CUBE_HOPPER_CAMERA_HEIGHT,
-                    -config::arcade::CUBE_HOPPER_CAMERA_HEIGHT * config::arcade::CUBE_HOPPER_CAMERA_LEAN,
+                    -config::arcade::CUBE_HOPPER_CAMERA_HEIGHT
+                        * config::arcade::CUBE_HOPPER_CAMERA_LEAN,
                 ),
                 Vec3::new(0.0, 1.0, 0.0),
             ),
@@ -122,7 +124,8 @@ impl SourceGame {
                 Vec3::new(
                     0.0,
                     config::arcade::GRID_BOMBER_CAMERA_HEIGHT,
-                    config::arcade::GRID_BOMBER_CAMERA_HEIGHT * config::arcade::GRID_BOMBER_CAMERA_LEAN,
+                    config::arcade::GRID_BOMBER_CAMERA_HEIGHT
+                        * config::arcade::GRID_BOMBER_CAMERA_LEAN,
                 ),
                 Vec3::ZERO,
             ),

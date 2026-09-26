@@ -3,11 +3,11 @@
 //! The Bevy side of the game lives here, beside its Bevy-free [`super::sim`].
 
 use crate::config;
+use crate::cube_hopper::sim::CubeHopperSim;
 use crate::grid_rider::GridRiderState;
 use crate::grid_rider::scene::GridRiderAssets;
 use crate::grid_rider::scene::Pooled;
 use crate::grid_rider::scene::PooledPosedTinted;
-use crate::cube_hopper::sim::CubeHopperSim;
 use crate::state::GridRiderSceneRoot;
 use bevy::prelude::*;
 
@@ -89,7 +89,9 @@ pub(crate) fn sync_cube_hopper_entities(
         return;
     };
     for (entity, mut transform, mut material) in &mut cubes {
-        let lit = sim.lit.get(CubeHopperSim::cube_index(entity.row, entity.index));
+        let lit = sim
+            .lit
+            .get(CubeHopperSim::cube_index(entity.row, entity.index));
         let (x, z) = CubeHopperSim::cube_position(entity.row, entity.index);
         let y = (config::arcade::CUBE_HOPPER_ROWS as f32 - 1.0 - entity.row as f32)
             * config::arcade::CUBE_HOPPER_CUBE_HEIGHT

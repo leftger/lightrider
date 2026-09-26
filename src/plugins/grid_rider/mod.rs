@@ -48,20 +48,20 @@ use self::run::{
 use self::step::step_grid_rider;
 use self::trail::update_trail_mesh;
 use crate::asteroid_field::plugin::sync_asteroid_field_entities;
-use crate::grid_bomber::plugin::sync_grid_bomber_entities;
+use crate::block_fall::plugin::sync_block_fall_entities;
 use crate::breaker::plugin::sync_breaker_entities;
-use crate::falling_gems::plugin::sync_falling_gems_entities;
+use crate::byte_muncher::plugin::sync_byte_muncher_entities;
+use crate::cube_hopper::plugin::sync_cube_hopper_entities;
 use crate::disc::plugin::animate_disc_pickups;
 use crate::disc::plugin::update_disc_focus;
 use crate::document::plugin::update_document_focus;
+use crate::falling_gems::plugin::sync_falling_gems_entities;
+use crate::grid_bomber::plugin::sync_grid_bomber_entities;
 use crate::grid_hopper::plugin::sync_grid_hopper_entities;
-use crate::swarm_shooter::plugin::sync_swarm_shooter_entities;
-use crate::byte_muncher::plugin::sync_byte_muncher_entities;
 use crate::plinko::plugin::sync_plinko_entities;
-use crate::cube_hopper::plugin::sync_cube_hopper_entities;
 use crate::snake::plugin::sync_snake_entities;
 use crate::stealth::plugin::sync_stealth_entities;
-use crate::block_fall::plugin::sync_block_fall_entities;
+use crate::swarm_shooter::plugin::sync_swarm_shooter_entities;
 
 pub struct GridRiderPlugin;
 

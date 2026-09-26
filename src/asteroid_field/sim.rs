@@ -222,8 +222,9 @@ impl AsteroidFieldSim {
         let live = self.is_active();
 
         if live {
-            self.angle =
-                wrap_angle(self.angle + self.turn * config::asteroid_field::ASTEROID_FIELD_TURN_RATE * dt);
+            self.angle = wrap_angle(
+                self.angle + self.turn * config::asteroid_field::ASTEROID_FIELD_TURN_RATE * dt,
+            );
             self.invuln = (self.invuln - dt).max(0.0);
             self.fire_clock = (self.fire_clock - dt).max(0.0);
         }
@@ -428,7 +429,10 @@ mod tests {
         let first = AsteroidFieldSim::new(11, (0.0, 0.0), RING);
         let second = AsteroidFieldSim::new(11, (0.0, 0.0), RING);
         assert_eq!(first, second);
-        assert_eq!(first.rocks.len(), config::asteroid_field::ASTEROID_FIELD_WAVE_SIZE);
+        assert_eq!(
+            first.rocks.len(),
+            config::asteroid_field::ASTEROID_FIELD_WAVE_SIZE
+        );
         let other = AsteroidFieldSim::new(12, (0.0, 0.0), RING);
         assert_ne!(first.rocks, other.rocks);
     }

@@ -108,10 +108,10 @@ impl ByteMuncherSim {
 
     /// World centre of a maze cell.
     pub fn center(cell: (i32, i32)) -> (f32, f32) {
-        let x =
-            (cell.0 as f32 - (config::arcade::MUNCHER_COLS - 1) as f32 * 0.5) * config::GRID_SPACING;
-        let z =
-            (cell.1 as f32 - (config::arcade::MUNCHER_ROWS - 1) as f32 * 0.5) * config::GRID_SPACING;
+        let x = (cell.0 as f32 - (config::arcade::MUNCHER_COLS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
+        let z = (cell.1 as f32 - (config::arcade::MUNCHER_ROWS - 1) as f32 * 0.5)
+            * config::GRID_SPACING;
         (x, z)
     }
 

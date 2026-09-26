@@ -2,15 +2,17 @@
 
 use super::physics::{ContinuousTrail, GridRiderPhysics};
 use super::step::restart_run;
-use crate::grid_bomber::sim::GridBomberSim;
+use crate::block_fall::sim::BlockFallSim;
 use crate::breaker::sim::BreakerSim;
-use crate::falling_gems::sim::FallingGemsSim;
+use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::config;
+use crate::cube_hopper::sim::CubeHopperSim;
 use crate::disc::combat::{DiscEvents, PlayerSnapshot};
 use crate::disc::language::SourceGame;
 use crate::disc::load::WarpRequested;
+use crate::falling_gems::sim::FallingGemsSim;
+use crate::grid_bomber::sim::GridBomberSim;
 use crate::grid_hopper::sim::GridHopperSim;
-use crate::swarm_shooter::sim::SwarmShooterSim;
 use crate::grid_rider::logic::RunPhase;
 use crate::grid_rider::scene::CycleEntity;
 use crate::grid_rider::scene::pose::cycle_cell_pose;
@@ -20,15 +22,13 @@ use crate::grid_rider::{GridRiderState, RunEnvironment};
 use crate::load::DirectoryRequested;
 use crate::minigame::GameInput;
 use crate::music::sfx::MusicSfx;
-use crate::byte_muncher::sim::ByteMuncherSim;
 use crate::platformer::sim::PlatformerSim;
 use crate::plinko::sim::PlinkoSim;
 use crate::plugins::transition::ModeTransition;
-use crate::cube_hopper::sim::CubeHopperSim;
 use crate::state::{FloodState, HistoryState, NavigatorResource, PauseState};
 use crate::stealth::sim::StealthSim;
 use crate::surfer::sim::SurferSim;
-use crate::block_fall::sim::BlockFallSim;
+use crate::swarm_shooter::sim::SwarmShooterSim;
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
@@ -387,7 +387,11 @@ pub(crate) fn update_cycle_transform(
     // The Swarm Shooter field parks the bike on the bottom edge, facing up the field,
     // and slides it side to side.
     if let Some(sim) = run.source_sim::<SwarmShooterSim>() {
-        transform.translation = Vec3::new(sim.player_x, 0.0, config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z);
+        transform.translation = Vec3::new(
+            sim.player_x,
+            0.0,
+            config::swarm_shooter::SWARM_SHOOTER_PLAYER_Z,
+        );
         transform.rotation = Quat::from_rotation_arc(Vec3::X, Vec3::Z);
         return;
     }
